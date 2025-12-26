@@ -25,6 +25,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [uploadingCount, setUploadingCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allFolders = [] } = useFolders();
@@ -38,15 +39,15 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   // Build breadcrumb path
   const breadcrumbPath = useMemo(() => {
     if (!currentFolderId) return [];
-    
+
     const path: Folder[] = [];
     let current = allFolders.find((f) => f.id === currentFolderId);
-    
+
     while (current) {
       path.unshift(current);
       current = current.parentId ? allFolders.find((f) => f.id === current!.parentId) : undefined;
     }
-    
+
     return path;
   }, [currentFolderId, allFolders]);
 
@@ -63,7 +64,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     }
   };
 
-  const handleMove = (item: Folder | Asset, type: "folder" | "asset") => {
+  const handleMove = () => {
     toast.info("Move functionality coming soon");
   };
 
@@ -106,7 +107,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 py-4">
+      <div className="flex items-center justify-between border-b px-4 py-2">
         <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
         <div className="flex items-center gap-2">
           <Button

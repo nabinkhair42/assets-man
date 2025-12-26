@@ -12,11 +12,18 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Files, FolderOpen, Star, Trash2, Settings, LogOut } from "lucide-react";
+import {
+  Files,
+  FolderOpen,
+  Star,
+  Trash2,
+  Settings,
+  LogOut,
+  Stone,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/hooks";
-import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
@@ -34,9 +41,12 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b px-6 py-4">
-        <h1 className="text-lg font-semibold">Assets Manager</h1>
+    <Sidebar variant="inset">
+      <SidebarHeader>
+        <div className="flex items-center gap-2">
+          <Stone className="size-6" fill="currentColor" strokeWidth={1.5} stroke="white"/>
+          <span className="text-lg font-semibold">Assets Man</span>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -57,20 +67,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="border-t p-4">
+      <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/settings">
-                <Settings className="h-4 w-4" />
+                <Settings className="size-4" />
                 <span>Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} disabled={logout.isPending}>
-              <LogOut className="h-4 w-4" />
-              <span>{logout.isPending ? "Logging out..." : "Logout"}</span>
+            <SidebarMenuButton
+              onClick={handleLogout}
+              disabled={logout.isPending}
+            >
+              <LogOut className="size-4" />
+              <span>{logout.isPending ? "Logging out" : "Logout"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
