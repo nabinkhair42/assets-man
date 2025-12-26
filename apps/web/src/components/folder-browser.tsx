@@ -64,7 +64,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     }
   };
 
-  const handleMove = () => {
+  const handleMove = (_item: Folder | Asset, _type: "folder" | "asset") => {
     toast.info("Move functionality coming soon");
   };
 
@@ -76,21 +76,44 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const file = files[0];
-    if (!file) return;
+    const fileArray = Array.from(files);
+    const totalFiles = fileArray.length;
+    let successCount = 0;
+    let failCount = 0;
 
-    uploadFile.mutate(
-      { file, folderId: currentFolderId ?? undefined },
-      {
-        onSuccess: () => {
-          toast.success("File uploaded successfully");
-          refetchAssets();
+    setUploadingCount(totalFiles);
+
+    for (const file of fileArray) {
+      const toastId = toast.loading(`Uploading ${file.name}... 0%`);
+
+      uploadFile.mutate(
+        {
+          file,
+          folderId: currentFolderId ?? undefined,
+          onProgress: (progress) => {
+            toast.loading(`Uploading ${file.name}... ${progress}%`, { id: toastId });
+          },
         },
-        onError: () => {
-          toast.error("Failed to upload file");
-        },
-      }
-    );
+        {
+          onSuccess: () => {
+            successCount++;
+            setUploadingCount((prev) => prev - 1);
+            toast.success(`${file.name} uploaded`, { id: toastId });
+            if (successCount + failCount === totalFiles) {
+              refetchAssets();
+            }
+          },
+          onError: () => {
+            failCount++;
+            setUploadingCount((prev) => prev - 1);
+            toast.error(`Failed to upload ${file.name}`, { id: toastId });
+            if (successCount + failCount === totalFiles) {
+              refetchAssets();
+            }
+          },
+        }
+      );
+    }
 
     // Reset input
     e.target.value = "";
@@ -104,6 +127,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
+        multiple
       />
 
       {/* Header */}
@@ -121,9 +145,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             <FolderPlus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button onClick={handleUploadClick} disabled={uploadFile.isPending}>
+          <Button onClick={handleUploadClick} disabled={uploadingCount > 0}>
             <Upload className="mr-2 h-4 w-4" />
-            {uploadFile.isPending ? "Uploading..." : "Upload"}
+            {uploadingCount > 0 ? `Uploading (${uploadingCount})...` : "Upload"}
           </Button>
         </div>
       </div>

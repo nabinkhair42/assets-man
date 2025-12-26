@@ -42,9 +42,11 @@ export function useUploadFile() {
     mutationFn: async ({
       file,
       folderId,
+      onProgress,
     }: {
       file: File;
       folderId?: string;
+      onProgress?: (progress: number) => void;
     }) => {
       // Request presigned URL
       const { uploadUrl, asset } = await assetService.requestUpload({
@@ -54,8 +56,8 @@ export function useUploadFile() {
         folderId,
       });
 
-      // Upload file to storage
-      await assetService.uploadFile(uploadUrl, file);
+      // Upload file to storage with progress tracking
+      await assetService.uploadFile(uploadUrl, file, onProgress);
 
       return asset;
     },

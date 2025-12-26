@@ -21,7 +21,8 @@
       "Bash(pnpm db:push:*)",
       "Bash(for f in index.ts s3-client.ts gcs-client.ts)",
       "Bash(do sed -i 's/\\\\.js\"\"/\"\"/g' \"$f\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
