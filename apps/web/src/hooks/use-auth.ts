@@ -24,7 +24,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (input: RegisterInput) => authService.register(input),
     onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("accessToken", data.tokens.accessToken);
       queryClient.setQueryData(authKeys.me(), data.user);
       setUser(data.user);
     },
@@ -38,7 +38,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) => authService.login(input),
     onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("accessToken", data.tokens.accessToken);
       queryClient.setQueryData(authKeys.me(), data.user);
       setUser(data.user);
     },

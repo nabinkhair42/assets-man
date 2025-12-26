@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { FolderPlus, Upload, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFolderContents, useFolders, useAssets } from "@/hooks";
+import { useFolderContents, useFolders, useAssets, useUploadFile } from "@/hooks";
 import { FolderBreadcrumbs } from "./folder-breadcrumbs";
 import { FolderItem } from "./folder-item";
 import { FileItem } from "./file-item";
@@ -25,10 +25,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allFolders = [] } = useFolders();
   const { data: folders = [], isLoading: foldersLoading } = useFolderContents(currentFolderId);
-  const { data: assetsData, isLoading: assetsLoading } = useAssets({ folderId: currentFolderId ?? undefined });
+  const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useAssets({ folderId: currentFolderId ?? undefined });
+  const uploadFile = useUploadFile();
 
   const assets = assetsData?.assets ?? [];
   const isLoading = foldersLoading || assetsLoading;
@@ -65,8 +67,44 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     toast.info("Move functionality coming soon");
   };
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    if (!file) return;
+
+    uploadFile.mutate(
+      { file, folderId: currentFolderId ?? undefined },
+      {
+        onSuccess: () => {
+          toast.success("File uploaded successfully");
+          refetchAssets();
+        },
+        onError: () => {
+          toast.error("Failed to upload file");
+        },
+      }
+    );
+
+    // Reset input
+    e.target.value = "";
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between border-b px-6 py-4">
         <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
@@ -82,9 +120,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             <FolderPlus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button>
+          <Button onClick={handleUploadClick} disabled={uploadFile.isPending}>
             <Upload className="mr-2 h-4 w-4" />
-            Upload
+            {uploadFile.isPending ? "Uploading..." : "Upload"}
           </Button>
         </div>
       </div>

@@ -41,7 +41,12 @@ export function validate(options: ValidateOptions): RequestHandler {
       if (!result.success) {
         Object.assign(errors, formatZodErrors(result.error));
       } else {
-        req[target] = result.data;
+        // For body, we can assign directly. For query/params, merge into existing object
+        if (target === "body") {
+          req.body = result.data;
+        } else {
+          Object.assign(req[target], result.data);
+        }
       }
     }
 

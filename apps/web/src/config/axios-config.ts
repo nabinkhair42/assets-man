@@ -75,9 +75,9 @@ apiClient.interceptors.response.use(
 
       try {
         const response = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH);
-        const { accessToken } = response.data.data;
+        const { tokens } = response.data.data;
 
-        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("accessToken", tokens.accessToken);
         processQueue(null);
 
         return apiClient(originalRequest);

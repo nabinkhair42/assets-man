@@ -1,9 +1,10 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
+  avatarUrl: string | null;
+  emailVerified: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface RegisterInput {
@@ -17,11 +18,16 @@ export interface LoginInput {
   password: string;
 }
 
+export interface AuthTokens {
+  accessToken: string;
+  expiresIn: number;
+}
+
 export interface AuthResponse {
   user: User;
-  accessToken: string;
+  tokens: AuthTokens;
 }
 
 export interface RefreshResponse {
-  accessToken: string;
+  tokens: AuthTokens;
 }
