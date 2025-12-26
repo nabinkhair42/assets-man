@@ -15,7 +15,8 @@
       "Bash(pnpm build:*)",
       "Bash(git init:*)",
       "Bash(pnpm turbo lint:*)",
-      "Bash(pnpm turbo type-check:*)"
+      "Bash(pnpm turbo type-check:*)",
+      "Bash(npx shadcn@latest add:*)"
     ]
   }
 }

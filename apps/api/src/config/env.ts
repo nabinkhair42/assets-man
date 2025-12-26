@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { z } from "zod";
+import type { StorageConfig } from "@repo/storage";
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
@@ -11,7 +12,30 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z
     .string()
     .min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
+  // Storage configuration
+  STORAGE_PROVIDER: z.enum(["s3", "gcs"]).default("s3"),
+  STORAGE_BUCKET: z.string().min(1, "STORAGE_BUCKET is required"),
+  STORAGE_REGION: z.string().optional(),
+  // S3 credentials
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  // GCS credentials
+  GCS_PROJECT_ID: z.string().optional(),
+  GCS_KEY_FILE_PATH: z.string().optional(),
 });
 
 export const config = envSchema.parse(process.env);
 export type Config = z.infer<typeof envSchema>;
+
+// Storage config helper
+export function getStorageConfig(): StorageConfig {
+  return {
+    provider: config.STORAGE_PROVIDER,
+    bucket: config.STORAGE_BUCKET,
+    region: config.STORAGE_REGION,
+    accessKeyId: config.AWS_ACCESS_KEY_ID,
+    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    projectId: config.GCS_PROJECT_ID,
+    keyFilePath: config.GCS_KEY_FILE_PATH,
+  };
+}
