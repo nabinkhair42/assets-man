@@ -24,7 +24,6 @@ export function FolderBreadcrumbs({ path, onNavigate }: FolderBreadcrumbsProps) 
         <BreadcrumbItem>
           {path.length === 0 ? (
             <BreadcrumbPage className="flex items-center gap-2">
-              <Home className="size-4" />
               Home
             </BreadcrumbPage>
           ) : (

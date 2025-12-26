@@ -1,55 +1,63 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { FolderPlus, Upload, LayoutGrid, List } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFolderContents, useFolders, useAssets, useUploadFile } from "@/hooks";
-import { FolderBreadcrumbs } from "./folder-breadcrumbs";
+import {
+  useFolderContents,
+  useFolders,
+  useAssets,
+  useUploadFile,
+} from "@/hooks";
 import { FolderItem } from "./folder-item";
 import { FileItem } from "./file-item";
 import { CreateFolderDialog } from "./create-folder-dialog";
 import { RenameDialog } from "./rename-dialog";
 import { DeleteDialog } from "./delete-dialog";
-import { assetService } from "@/services";
+import { MoveDialog } from "./move-dialog";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
+import { assetService } from "@/services";
+import AppHeader from "@/components/app-header";
 
 interface FolderBrowserProps {
   initialFolderId?: string | null;
 }
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
+    initialFolderId,
+  );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
-  const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
-  const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [renameItem, setRenameItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [deleteItem, setDeleteItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [moveItem, setMoveItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: allFolders = [] } = useFolders();
-  const { data: folders = [], isLoading: foldersLoading } = useFolderContents(currentFolderId);
-  const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useAssets({ folderId: currentFolderId ?? undefined });
+  const { data: folders = [], isLoading: foldersLoading } =
+    useFolderContents(currentFolderId);
+  const {
+    data: assetsData,
+    isLoading: assetsLoading,
+    refetch: refetchAssets,
+  } = useAssets({ folderId: currentFolderId ?? undefined });
   const uploadFile = useUploadFile();
 
   const assets = assetsData?.assets ?? [];
   const isLoading = foldersLoading || assetsLoading;
 
   // Build breadcrumb path
-  const breadcrumbPath = useMemo(() => {
-    if (!currentFolderId) return [];
-
-    const path: Folder[] = [];
-    let current = allFolders.find((f) => f.id === currentFolderId);
-
-    while (current) {
-      path.unshift(current);
-      current = current.parentId ? allFolders.find((f) => f.id === current!.parentId) : undefined;
-    }
-
-    return path;
-  }, [currentFolderId, allFolders]);
 
   const handleNavigate = (folderId: string | null) => {
     setCurrentFolderId(folderId);
@@ -64,12 +72,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     }
   };
 
-  const handleMove = (_item: Folder | Asset, _type: "folder" | "asset") => {
-    toast.info("Move functionality coming soon");
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  const handleMove = (item: Folder | Asset, type: "folder" | "asset") => {
+    setMoveItem({ item, type });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,7 +95,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           file,
           folderId: currentFolderId ?? undefined,
           onProgress: (progress) => {
-            toast.loading(`Uploading ${file.name}... ${progress}%`, { id: toastId });
+            toast.loading(`Uploading ${file.name}... ${progress}%`, {
+              id: toastId,
+            });
           },
         },
         {
@@ -111,7 +117,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
               refetchAssets();
             }
           },
-        }
+        },
       );
     }
 
@@ -131,42 +137,48 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
-        <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-          >
-            {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-          </Button>
-          <Button variant="outline" onClick={() => setCreateFolderOpen(true)}>
-            <FolderPlus className="mr-2 h-4 w-4" />
-            New Folder
-          </Button>
-          <Button onClick={handleUploadClick} disabled={uploadingCount > 0}>
-            <Upload className="mr-2 h-4 w-4" />
-            {uploadingCount > 0 ? `Uploading (${uploadingCount})...` : "Upload"}
-          </Button>
-        </div>
-      </div>
+      <AppHeader
+        breadcrumbPath={allFolders.filter((f) => f.id === currentFolderId)}
+        handleNavigate={handleNavigate}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        handleUploadClick={() => fileInputRef.current?.click()}
+        setCreateFolderOpen={setCreateFolderOpen}
+        uploadingCount={uploadingCount}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         {isLoading ? (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "space-y-2"}>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                : "space-y-2"
+            }
+          >
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className={viewMode === "grid" ? "h-24" : "h-16"} />
+              <Skeleton
+                key={i}
+                className={viewMode === "grid" ? "h-24" : "h-16"}
+              />
             ))}
           </div>
         ) : folders.length === 0 && assets.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <p className="text-lg">This folder is empty</p>
-            <p className="text-sm">Create a folder or upload files to get started</p>
+            <p className="text-sm">
+              Create a folder or upload files to get started
+            </p>
           </div>
         ) : (
-          <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "space-y-2"}>
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                : "space-y-2"
+            }
+          >
             {/* Folders */}
             {folders.map((folder) => (
               <FolderItem
@@ -210,6 +222,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         onOpenChange={(open) => !open && setDeleteItem(null)}
         item={deleteItem?.item ?? null}
         itemType={deleteItem?.type ?? "folder"}
+      />
+      <MoveDialog
+        open={!!moveItem}
+        onOpenChange={(open) => !open && setMoveItem(null)}
+        item={moveItem?.item ?? null}
+        itemType={moveItem?.type ?? "folder"}
       />
     </div>
   );

@@ -52,9 +52,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-md mx-auto border-none shadow-none">
       <CardHeader>
-        <CardTitle>Create Account</CardTitle>
+        <CardTitle className="text-2xl font-medium">Create Account</CardTitle>
         <CardDescription>
           Sign up to start managing your files
         </CardDescription>
@@ -106,13 +106,15 @@ export default function RegisterPage() {
               )}
             />
           </CardContent>
-          <CardFooter className="flex flex-col gap-4">
+          <CardFooter className="flex flex-col gap-4 mt-4">
             <Button
               type="submit"
               className="w-full"
               disabled={register.isPending}
+              isLoading={register.isPending}
+              loadingText=""
             >
-              {register.isPending ? "Creating account..." : "Create Account"}
+              Create Account
             </Button>
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}

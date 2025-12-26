@@ -51,9 +51,9 @@ export default function LoginPage() {
   };
 
   return (
-    <Card>
+    <Card className="w-full max-w-md mx-auto border-none shadow-none">
       <CardHeader>
-        <CardTitle>Login</CardTitle>
+        <CardTitle className="text-2xl font-medium">Login</CardTitle>
         <CardDescription>
           Enter your credentials to access your files
         </CardDescription>
@@ -92,13 +92,15 @@ export default function LoginPage() {
               )}
             />
           </CardContent>
-          <CardFooter className="flex flex-col gap-4">
+          <CardFooter className="flex flex-col gap-4 mt-4">
             <Button
               type="submit"
               className="w-full"
               disabled={login.isPending}
+              isLoading={login.isPending}
+              loadingText=""
             >
-              {login.isPending ? "Logging in..." : "Login"}
+              Login
             </Button>
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{" "}
