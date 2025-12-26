@@ -8,7 +8,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Home } from "lucide-react";
 import type { Folder } from "@/types";
 import { Fragment } from "react";
 
@@ -35,7 +34,6 @@ export function FolderBreadcrumbs({ path, onNavigate }: FolderBreadcrumbsProps) 
               }}
               className="flex items-center gap-1"
             >
-              <Home className="h-4 w-4" />
               My Files
             </BreadcrumbLink>
           )}

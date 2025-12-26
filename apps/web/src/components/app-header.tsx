@@ -35,9 +35,12 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setC
             <FolderPlus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button onClick={handleUploadClick} disabled={uploadingCount > 0}>
+          <Button onClick={handleUploadClick} disabled={uploadingCount > 0}
+                isLoading={uploadingCount > 0}
+            loadingText=""
+            >
             <Upload className="mr-2 h-4 w-4" />
-            {uploadingCount > 0 ? `Uploading (${uploadingCount})...` : "Upload"}
+            Upload
           </Button>
         </div>
       </div>
