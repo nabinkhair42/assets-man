@@ -40,14 +40,11 @@ export function validate(options: ValidateOptions): RequestHandler {
 
       if (!result.success) {
         Object.assign(errors, formatZodErrors(result.error));
-      } else {
-        // For body, we can assign directly. For query/params, merge into existing object
-        if (target === "body") {
-          req.body = result.data;
-        } else {
-          Object.assign(req[target], result.data);
-        }
+      } else if (target === "body") {
+        // Only reassign body - query/params are read-only in Express
+        req.body = result.data;
       }
+      // For query/params, validation is sufficient - no need to reassign
     }
 
     if (Object.keys(errors).length > 0) {
