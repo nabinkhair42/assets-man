@@ -1,8 +1,8 @@
-import type { StorageConfig, StorageClient } from "./types.js";
-import { createS3Client } from "./s3-client.js";
-import { createGCSClient } from "./gcs-client.js";
+import type { StorageConfig, StorageClient } from "./types";
+import { createS3Client } from "./s3-client";
+import { createGCSClient } from "./gcs-client";
 
-export * from "./types.js";
+export * from "./types";
 
 /**
  * Create a storage client based on the provider configuration

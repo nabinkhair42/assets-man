@@ -18,7 +18,10 @@
       "Bash(pnpm turbo type-check:*)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(pnpm db:generate:*)",
-      "Bash(pnpm db:push:*)"
+      "Bash(pnpm db:push:*)",
+      "Bash(for f in index.ts s3-client.ts gcs-client.ts)",
+      "Bash(do sed -i 's/\\\\.js\"\"/\"\"/g' \"$f\")",
+      "Bash(done)"
     ]
   }
 }

@@ -4,8 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit"
   },
@@ -25,6 +25,7 @@
     "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"
   }

@@ -15,7 +15,7 @@ import type {
   PresignedUploadResult,
   PresignedDownloadResult,
   DeleteResult,
-} from "./types.js";
+} from "./types";
 
 const DEFAULT_EXPIRES_IN = 3600; // 1 hour
 
