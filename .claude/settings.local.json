@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm init:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(cat:*)",
+      "Bash(node:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm turbo build:*)",
+      "Bash(pnpm build:*)",
+      "Bash(git init:*)",
+      "Bash(pnpm turbo lint:*)",
+      "Bash(pnpm turbo type-check:*)"
+    ]
+  }
+}
