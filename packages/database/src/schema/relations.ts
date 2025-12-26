@@ -1,8 +1,8 @@
 import { relations } from "drizzle-orm";
-import { users } from "./users.js";
-import { sessions } from "./sessions.js";
-import { folders } from "./folders.js";
-import { assets } from "./assets.js";
+import { users } from "./users";
+import { sessions } from "./sessions";
+import { folders } from "./folders";
+import { assets } from "./assets";
 
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),

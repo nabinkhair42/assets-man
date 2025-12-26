@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, uuid, type AnyPgColumn } from "drizzle-orm/pg-core";
-import { users } from "./users.js";
+import { users } from "./users";
 
 export const folders = pgTable("folders", {
   id: uuid("id").primaryKey().defaultRandom(),

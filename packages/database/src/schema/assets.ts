@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, uuid, bigint } from "drizzle-orm/pg-core";
-import { users } from "./users.js";
-import { folders } from "./folders.js";
+import { users } from "./users";
+import { folders } from "./folders";
 
 export const assets = pgTable("assets", {
   id: uuid("id").primaryKey().defaultRandom(),
