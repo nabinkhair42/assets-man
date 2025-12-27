@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { Toaster } from "sonner";
-import { QueryProvider, AuthProvider } from "@/providers";
+import { QueryProvider, AuthProvider, ThemeProvider } from "@/providers";
 import "./globals.css";
 
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
   variable: "--font-nunito-sans",
 });
-
 
 export const metadata: Metadata = {
   title: "Assets Manager",
@@ -21,17 +20,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={nunitoSans.className}
-        suppressHydrationWarning
-      >
-        <QueryProvider>
-          <AuthProvider>
-            {children}
-            <Toaster richColors position="bottom-right" />
-          </AuthProvider>
-        </QueryProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={nunitoSans.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <AuthProvider>
+              {children}
+              <Toaster richColors position="bottom-right" />
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

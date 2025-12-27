@@ -38,23 +38,23 @@ interface DraggableFileItemProps {
   onMove: (asset: Asset) => void;
 }
 
-function getFileIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return FileImage;
-  if (mimeType.startsWith("video/")) return FileVideo;
-  if (mimeType.startsWith("audio/")) return FileAudio;
+function getFileIconData(mimeType: string) {
+  if (mimeType.startsWith("image/")) return { icon: FileImage, color: "text-pink-500", bg: "bg-pink-500/10" };
+  if (mimeType.startsWith("video/")) return { icon: FileVideo, color: "text-purple-500", bg: "bg-purple-500/10" };
+  if (mimeType.startsWith("audio/")) return { icon: FileAudio, color: "text-orange-500", bg: "bg-orange-500/10" };
   if (
     mimeType.includes("pdf") ||
     mimeType.includes("document") ||
     mimeType.includes("text")
   )
-    return FileText;
+    return { icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" };
   if (
     mimeType.includes("zip") ||
     mimeType.includes("rar") ||
     mimeType.includes("archive")
   )
-    return FileArchive;
-  return File;
+    return { icon: FileArchive, color: "text-amber-500", bg: "bg-amber-500/10" };
+  return { icon: File, color: "text-muted-foreground", bg: "bg-muted" };
 }
 
 function formatFileSize(bytes: number): string {
@@ -72,7 +72,7 @@ export function DraggableFileItem({
   onDelete,
   onMove,
 }: DraggableFileItemProps) {
-  const Icon = getFileIcon(asset.mimeType);
+  const { icon: Icon, color, bg } = getFileIconData(asset.mimeType);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `draggable-asset-${asset.id}`,
@@ -114,14 +114,16 @@ export function DraggableFileItem({
           {...attributes}
           {...listeners}
           className={cn(
-            "group flex cursor-grab items-center gap-3 rounded-lg border bg-card p-4 transition-all hover:bg-accent",
-            isDragging && "opacity-50 cursor-grabbing"
+            "group flex cursor-grab items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20",
+            isDragging && "opacity-50 cursor-grabbing scale-105"
           )}
         >
-          <Icon className="h-10 w-10 text-muted-foreground" />
+          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${bg}`}>
+            <Icon className={`h-6 w-6 ${color}`} />
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate font-medium">{asset.name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="truncate font-semibold text-foreground">{asset.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {formatFileSize(asset.size)} •{" "}
               {new Date(asset.createdAt).toLocaleDateString()}
             </p>
@@ -130,8 +132,8 @@ export function DraggableFileItem({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                size="icon-sm"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >

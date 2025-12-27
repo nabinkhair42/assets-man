@@ -51,9 +51,14 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto border-none shadow-none">
-      <CardHeader>
-        <CardTitle className="text-2xl font-medium">Login</CardTitle>
+    <Card className="w-full shadow-elevated">
+      <CardHeader className="text-center pb-2">
+        <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+        </div>
+        <CardTitle className="text-2xl">Welcome back</CardTitle>
         <CardDescription>
           Enter your credentials to access your files
         </CardDescription>
@@ -85,27 +90,27 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input type="password" placeholder="Enter your password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 mt-4">
+          <CardFooter className="flex flex-col gap-4">
             <Button
               type="submit"
               className="w-full"
               disabled={login.isPending}
               isLoading={login.isPending}
-              loadingText=""
+              loadingText="Signing in..."
             >
-              Login
+              Sign In
             </Button>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground text-center">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline">
-                Register
+              <Link href="/register" className="text-primary font-medium hover:underline">
+                Create one
               </Link>
             </p>
           </CardFooter>

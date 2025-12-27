@@ -59,13 +59,15 @@ export function FolderItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className="group flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+          className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20 hover:-translate-y-0.5"
           onDoubleClick={() => onOpen(folder.id)}
         >
-          <FolderIcon className="h-10 w-10 text-blue-500" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+            <FolderIcon className="h-6 w-6 text-primary" />
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate font-medium">{folder.name}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="truncate font-semibold text-foreground">{folder.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
               {new Date(folder.createdAt).toLocaleDateString()}
             </p>
           </div>
@@ -73,8 +75,8 @@ export function FolderItem({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                size="icon-sm"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
