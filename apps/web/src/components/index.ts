@@ -1,8 +1,8 @@
 export { AppSidebar } from "./layouts/app-sidebar";
-export { FolderBrowser } from "./folder-browser";
-export { FolderBreadcrumbs } from "./folder-breadcrumbs";
-export { FolderItem } from "./folder-item";
-export { FileItem } from "./file-item";
+export { FolderBrowser } from "./files/folder-browser";
+export { FolderBreadcrumbs } from "./layouts/folder-breadcrumbs";
+export { FolderItem } from "./files/folder-item";
+export { FileItem } from "./files/file-item";
 export { CreateFolderDialog } from "./dialog/create-folder-dialog";
 export { RenameDialog } from "./dialog/rename-dialog";
 export { DeleteDialog } from "./dialog/delete-dialog";
