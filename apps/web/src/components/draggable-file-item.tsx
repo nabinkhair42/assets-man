@@ -89,7 +89,6 @@ export function DraggableFileItem({
   onDelete,
   onMove,
   viewMode = "grid",
-  index = 0,
 }: DraggableFileItemProps) {
   const { icon: Icon, color, bg } = getFileIconData(asset.mimeType);
   const isListView = viewMode === "list";
@@ -177,7 +176,7 @@ export function DraggableFileItem({
             {...listeners}
             className={cn(
               "group flex cursor-grab items-center gap-3 px-4 py-3 transition-all duration-150",
-              "hover:bg-accent/50 border-b border-border/40",
+              "hover:bg-accent/50 rounded",
               isDragging && "opacity-50 cursor-grabbing bg-primary/10"
             )}
           >
@@ -203,7 +202,7 @@ export function DraggableFileItem({
     );
   }
 
-  // Grid view layout (original)
+  // Grid view layout - card style
   return (
     <ContextMenu>
       <ContextMenuTrigger>
@@ -212,21 +211,31 @@ export function DraggableFileItem({
           {...attributes}
           {...listeners}
           className={cn(
-            "group flex cursor-grab items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20",
+            "group relative cursor-grab rounded bg-card rounded p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30",
             isDragging && "opacity-50 cursor-grabbing scale-105"
           )}
         >
-          <div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", bg)}>
-            <Icon className={cn("h-6 w-6", color)} />
+          {/* Menu button - top right */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {dropdownMenu}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate font-semibold text-foreground">{asset.name}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {formatFileSize(asset.size)} •{" "}
-              {formatRelativeTime(new Date(asset.createdAt))}
-            </p>
+
+          {/* Icon - centered */}
+          <div className="flex justify-center mb-3">
+            <div className={cn("flex h-14 w-14 items-center justify-center rounded-xl", bg)}>
+              <Icon className={cn("h-7 w-7", color)} />
+            </div>
           </div>
-          {dropdownMenu}
+
+          {/* File name */}
+          <p className="truncate font-medium text-sm text-foreground text-center mb-1">
+            {asset.name}
+          </p>
+
+          {/* Metadata */}
+          <p className="text-xs text-muted-foreground text-center">
+            {formatFileSize(asset.size)}
+          </p>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>

@@ -13,7 +13,7 @@ import {
   FileArchive,
   File,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TrashSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -176,7 +176,7 @@ export function TrashBrowser() {
               <div className="w-px h-5 bg-border/60" />
               <AlertDialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
+                  <Button variant="destructive" size="sm" tooltipContent="Permanently delete all items">
                     Empty Trash
                   </Button>
                 </AlertDialogTrigger>
@@ -207,11 +207,7 @@ export function TrashBrowser() {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-6">
           {isLoading ? (
-            <div className="flex flex-col">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 mb-0" />
-              ))}
-            </div>
+            <TrashSkeleton />
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
               <Trash2 className="h-12 w-12 mb-4" />
@@ -242,7 +238,7 @@ export function TrashBrowser() {
 
           {/* Infinite scroll trigger */}
           {!isLoading && items.length > 0 && (
-            <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
+            <div ref={loadMoreRef} className="w-full py-2 flex justify-center">
               {isFetchingNextPage && (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               )}
@@ -278,7 +274,7 @@ function TrashItem({ item, onRestore, onPermanentDelete }: TrashItemProps) {
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className="group flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:bg-accent/50 border-b border-border/40"
+          className="group flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:bg-accent/50"
         >
           <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", bg)}>
             <FileIcon className={cn("h-4 w-4", color)} />
@@ -300,7 +296,7 @@ function TrashItem({ item, onRestore, onPermanentDelete }: TrashItemProps) {
                 e.stopPropagation();
                 onRestore(item);
               }}
-              title="Restore"
+              tooltipContent="Restore item"
               className="h-8 w-8 opacity-60 hover:opacity-100"
             >
               <RotateCcw className="h-4 w-4" />
@@ -313,7 +309,7 @@ function TrashItem({ item, onRestore, onPermanentDelete }: TrashItemProps) {
                 onPermanentDelete(item);
               }}
               className="h-8 w-8 opacity-60 hover:opacity-100 text-destructive hover:text-destructive"
-              title="Delete permanently"
+              tooltipContent="Delete permanently"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

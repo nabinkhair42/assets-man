@@ -1,19 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UserPlus, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -29,6 +23,7 @@ import { toast } from "sonner";
 export default function RegisterPage() {
   const router = useRouter();
   const register = useRegister();
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -52,84 +47,110 @@ export default function RegisterPage() {
   };
 
   return (
-    <Card className="w-full shadow-elevated">
-      <CardHeader className="text-center pb-2">
-        <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
+    <div className="w-full">
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div className="mx-auto w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
+          <UserPlus className="w-5 h-5 text-primary" />
         </div>
-        <CardTitle className="text-2xl">Create Account</CardTitle>
-        <CardDescription>
+        <h1 className="text-xl font-semibold text-foreground">Create Account</h1>
+        <p className="text-sm text-muted-foreground mt-1">
           Sign up to start managing your files
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
+
+      {/* Form */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="John Doe"
+                    autoComplete="name"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <div className="relative">
                     <Input
-                      type="email"
-                      placeholder="you@example.com"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      autoComplete="new-password"
+                      className="pr-10"
                       {...field}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Create a strong password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={register.isPending}
-              isLoading={register.isPending}
-              loadingText="Creating account..."
-            >
-              Create Account
-            </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary font-medium hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full mt-2"
+            disabled={register.isPending}
+            isLoading={register.isPending}
+            loadingText="Creating account..."
+          >
+            Create Account
+          </Button>
         </form>
       </Form>
-    </Card>
+
+      {/* Footer */}
+      <p className="text-sm text-muted-foreground text-center mt-4">
+        Already have an account?{" "}
+        <Link href="/login" className="text-primary font-medium hover:underline">
+          Sign in
+        </Link>
+      </p>
+    </div>
   );
 }

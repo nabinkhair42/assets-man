@@ -56,7 +56,6 @@ export function DraggableFolderItem({
   onDelete,
   onMove,
   viewMode = "grid",
-  index = 0,
 }: DraggableFolderItemProps) {
   const isListView = viewMode === "list";
 
@@ -113,6 +112,7 @@ export function DraggableFolderItem({
           )}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
+          tooltipContent="More"
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
@@ -153,7 +153,7 @@ export function DraggableFolderItem({
               {...listeners}
               className={cn(
                 "group flex cursor-grab items-center gap-3 px-4 py-3 transition-all duration-150",
-                "hover:bg-accent/50 border-b border-border/40",
+                "hover:bg-accent/50 rounded border-b border-border/40",
                 isDragging && "opacity-50 cursor-grabbing bg-primary/10",
                 isOver && "ring-2 ring-primary bg-primary/10"
               )}
@@ -182,7 +182,7 @@ export function DraggableFolderItem({
     );
   }
 
-  // Grid view layout (original)
+  // Grid view layout - card style
   return (
     <div ref={setDroppableRef}>
       <ContextMenu>
@@ -192,22 +192,33 @@ export function DraggableFolderItem({
             {...attributes}
             {...listeners}
             className={cn(
-              "group flex cursor-grab items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20",
+              "group relative cursor-grab rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30",
               isDragging && "opacity-50 cursor-grabbing scale-105",
               isOver && "ring-2 ring-primary bg-primary/10 border-primary/50"
             )}
             onDoubleClick={() => onOpen(folder.id)}
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <FolderIcon className="h-6 w-6 text-primary" />
+            {/* Menu button - top right */}
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {dropdownMenu}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="truncate font-semibold text-foreground">{folder.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formatRelativeTime(new Date(folder.createdAt))}
-              </p>
+
+            {/* Icon - centered */}
+            <div className="flex justify-center mb-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
+                <FolderIcon className="h-7 w-7 text-primary" />
+              </div>
             </div>
-            {dropdownMenu}
+
+            {/* Folder name */}
+            <p className="truncate font-medium text-sm text-foreground text-center mb-1">
+              {folder.name}
+            </p>
+
+            {/* Metadata */}
+            <p className="text-xs text-muted-foreground text-center">
+              Folder
+            </p>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>

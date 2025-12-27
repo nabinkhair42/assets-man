@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Upload, Folder as FolderIcon, Loader2 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
@@ -41,7 +41,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(
     initialFolderId
   );
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{
     item: Folder | Asset;
@@ -354,20 +354,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           <ScrollArea className="h-full">
             <div className="p-6">
               {isLoading ? (
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                      : "space-y-2"
-                  }
-                >
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton
-                      key={i}
-                      className={viewMode === "grid" ? "h-24" : "h-16"}
-                    />
-                  ))}
-                </div>
+                <FileBrowserSkeleton viewMode={viewMode} />
               ) : folders.length === 0 && assets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
                   <p className="text-lg">This folder is empty</p>
@@ -424,7 +411,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
               {/* Infinite scroll trigger */}
               {!isLoading && (folders.length > 0 || assets.length > 0) && (
-                <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
+                <div ref={loadMoreRef} className="w-full py-2 flex justify-center">
                   {isFetchingNextPage && (
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   )}
@@ -440,8 +427,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         {/* Drag Overlay */}
         <DragOverlay>
           {activeItem ? (
-            <div className="opacity-80 bg-card border rounded-lg p-4 shadow-lg flex items-center gap-3">
-              <FolderIcon className="h-6 w-6 text-blue-500" />
+            <div className="opacity-80 bg-card border border-border/60 rounded-lg p-4 flex items-center gap-3">
+              <FolderIcon className="h-6 w-6" />
               <span className="font-medium">{activeItem.data.name}</span>
             </div>
           ) : null}

@@ -59,7 +59,7 @@ export function FolderItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20 hover:-translate-y-0.5"
+          className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30"
           onDoubleClick={() => onOpen(folder.id)}
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">

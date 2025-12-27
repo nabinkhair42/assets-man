@@ -91,7 +91,7 @@ export function FileItem({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <div className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent hover:shadow-soft hover:border-primary/20 hover:-translate-y-0.5">
+        <div className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30">
           <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${bg}`}>
             <Icon className={`h-6 w-6 ${color}`} />
           </div>
@@ -108,6 +108,7 @@ export function FileItem({
                 size="icon-sm"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => e.stopPropagation()}
+                tooltipContent="More"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>

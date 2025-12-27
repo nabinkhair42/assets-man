@@ -34,10 +34,16 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setC
           size="icon-sm"
           onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
           className="text-muted-foreground hover:text-foreground"
+          tooltipContent={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
         >
           {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCreateFolderOpen(true)}
+          tooltipContent="Create a new folder"
+        >
           <FolderPlus className="mr-2 h-4 w-4" />
           New Folder
         </Button>
@@ -47,6 +53,7 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setC
           disabled={uploadingCount > 0}
           isLoading={uploadingCount > 0}
           loadingText="Uploading..."
+          tooltipContent="Upload files"
         >
           <Upload className="mr-2 h-4 w-4" />
           Upload
