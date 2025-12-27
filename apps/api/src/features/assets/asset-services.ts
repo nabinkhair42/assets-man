@@ -1,4 +1,4 @@
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count } from "drizzle-orm";
 import { createDb, assets, folders, type Asset } from "@repo/database";
 import {
   createStorageClient,
@@ -120,10 +120,10 @@ export async function listAssets(
   const { folderId, page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Build where clause
+  // Build where clause - exclude trashed items
   const whereClause = folderId
-    ? and(eq(assets.folderId, folderId), eq(assets.ownerId, userId))
-    : and(isNull(assets.folderId), eq(assets.ownerId, userId));
+    ? and(eq(assets.folderId, folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt))
+    : and(isNull(assets.folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt));
 
   // Get total count
   const [countResult] = await db
@@ -207,6 +207,82 @@ export async function deleteAsset(
     throw new Error("NOT_FOUND");
   }
 
+  // Move to trash (soft delete)
+  await db
+    .update(assets)
+    .set({ trashedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)));
+}
+
+export async function restoreAsset(
+  userId: string,
+  assetId: string
+): Promise<Asset> {
+  const asset = await db.query.assets.findFirst({
+    where: and(eq(assets.id, assetId), eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
+  });
+
+  if (!asset) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const [restored] = await db
+    .update(assets)
+    .set({ trashedAt: null, updatedAt: new Date() })
+    .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)))
+    .returning();
+
+  if (!restored) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  return restored;
+}
+
+export async function listTrashedAssets(
+  userId: string,
+  query: { page: number; limit: number }
+): Promise<PaginatedAssets> {
+  const { page, limit } = query;
+  const offset = (page - 1) * limit;
+
+  // Get total count of trashed assets
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(assets)
+    .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)));
+
+  const total = countResult?.count ?? 0;
+
+  // Get trashed assets
+  const assetList = await db.query.assets.findMany({
+    where: and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
+    orderBy: (assets, { desc }) => [desc(assets.trashedAt)],
+    limit,
+    offset,
+  });
+
+  return {
+    assets: assetList,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function permanentlyDeleteAsset(
+  userId: string,
+  assetId: string
+): Promise<void> {
+  const asset = await db.query.assets.findFirst({
+    where: and(eq(assets.id, assetId), eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
+  });
+
+  if (!asset) {
+    throw new Error("NOT_FOUND");
+  }
+
   // Delete from storage
   const storage = getStorage();
   await storage.deleteObject(asset.storageKey);
@@ -220,6 +296,30 @@ export async function deleteAsset(
   await db
     .delete(assets)
     .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)));
+}
+
+export async function emptyTrashAssets(userId: string): Promise<number> {
+  const trashedAssets = await db.query.assets.findMany({
+    where: and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
+  });
+
+  if (trashedAssets.length === 0) return 0;
+
+  const storage = getStorage();
+  const keys = trashedAssets.map((a) => a.storageKey);
+  const thumbnailKeys = trashedAssets
+    .filter((a) => a.thumbnailKey)
+    .map((a) => a.thumbnailKey as string);
+
+  // Delete from storage
+  await storage.deleteObjects([...keys, ...thumbnailKeys]);
+
+  // Delete from database
+  await db
+    .delete(assets)
+    .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)));
+
+  return trashedAssets.length;
 }
 
 export async function deleteAssetsByFolder(

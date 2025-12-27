@@ -23,4 +23,11 @@ export const API_ENDPOINTS = {
     UPLOAD: "/api/assets/upload",
     DOWNLOAD: (id: string) => `/api/assets/${id}/download`,
   },
+
+  // Trash
+  TRASH: {
+    BASE: "/api/trash",
+    RESTORE: (id: string) => `/api/trash/${id}/restore`,
+    PERMANENT_DELETE: (id: string) => `/api/trash/${id}`,
+  },
 } as const;

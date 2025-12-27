@@ -11,6 +11,7 @@ export const folders = pgTable("folders", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   path: text("path").notNull(), // Materialized path: /root/folder1/folder2
+  trashedAt: timestamp("trashed_at"), // Null = not trashed, timestamp = trashed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

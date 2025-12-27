@@ -16,6 +16,7 @@ export const assets = pgTable("assets", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   thumbnailKey: text("thumbnail_key"), // For image/video previews
+  trashedAt: timestamp("trashed_at"), // Null = not trashed, timestamp = trashed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

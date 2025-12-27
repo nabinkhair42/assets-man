@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count } from "drizzle-orm";
 import { createDb, folders, type Folder } from "@repo/database";
 import { config } from "@/config/env.js";
 import type {
@@ -71,14 +71,14 @@ export async function getFolderContents(
 ): Promise<Folder[]> {
   if (parentId) {
     return db.query.folders.findMany({
-      where: and(eq(folders.parentId, parentId), eq(folders.ownerId, userId)),
+      where: and(eq(folders.parentId, parentId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
       orderBy: (folders, { asc }) => [asc(folders.name)],
     });
   }
 
-  // Root level folders
+  // Root level folders - exclude trashed
   return db.query.folders.findMany({
-    where: and(isNull(folders.parentId), eq(folders.ownerId, userId)),
+    where: and(isNull(folders.parentId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
     orderBy: (folders, { asc }) => [asc(folders.name)],
   });
 }
@@ -185,15 +185,114 @@ export async function deleteFolder(
     throw new Error("NOT_FOUND");
   }
 
+  // Move to trash (soft delete)
+  await db
+    .update(folders)
+    .set({ trashedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(folders.id, folderId), eq(folders.ownerId, userId)));
+}
+
+export async function getAllFolders(userId: string): Promise<Folder[]> {
+  return db.query.folders.findMany({
+    where: and(eq(folders.ownerId, userId), isNull(folders.trashedAt)),
+    orderBy: (folders, { asc }) => [asc(folders.path)],
+  });
+}
+
+export interface PaginatedFolders {
+  folders: Folder[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function restoreFolder(
+  userId: string,
+  folderId: string
+): Promise<Folder> {
+  const folder = await db.query.folders.findFirst({
+    where: and(eq(folders.id, folderId), eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
+  });
+
+  if (!folder) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const [restored] = await db
+    .update(folders)
+    .set({ trashedAt: null, updatedAt: new Date() })
+    .where(and(eq(folders.id, folderId), eq(folders.ownerId, userId)))
+    .returning();
+
+  if (!restored) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  return restored;
+}
+
+export async function listTrashedFolders(
+  userId: string,
+  query: { page: number; limit: number }
+): Promise<PaginatedFolders> {
+  const { page, limit } = query;
+  const offset = (page - 1) * limit;
+
+  // Get total count of trashed folders
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(folders)
+    .where(and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)));
+
+  const total = countResult?.count ?? 0;
+
+  // Get trashed folders
+  const folderList = await db.query.folders.findMany({
+    where: and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
+    orderBy: (folders, { desc }) => [desc(folders.trashedAt)],
+    limit,
+    offset,
+  });
+
+  return {
+    folders: folderList,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function permanentlyDeleteFolder(
+  userId: string,
+  folderId: string
+): Promise<void> {
+  const folder = await db.query.folders.findFirst({
+    where: and(eq(folders.id, folderId), eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
+  });
+
+  if (!folder) {
+    throw new Error("NOT_FOUND");
+  }
+
   // Cascade delete is handled by database
   await db
     .delete(folders)
     .where(and(eq(folders.id, folderId), eq(folders.ownerId, userId)));
 }
 
-export async function getAllFolders(userId: string): Promise<Folder[]> {
-  return db.query.folders.findMany({
-    where: eq(folders.ownerId, userId),
-    orderBy: (folders, { asc }) => [asc(folders.path)],
+export async function emptyTrashFolders(userId: string): Promise<number> {
+  const trashedFolders = await db.query.folders.findMany({
+    where: and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
   });
+
+  if (trashedFolders.length === 0) return 0;
+
+  // Delete from database (cascade will delete child folders and assets)
+  await db
+    .delete(folders)
+    .where(and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)));
+
+  return trashedFolders.length;
 }

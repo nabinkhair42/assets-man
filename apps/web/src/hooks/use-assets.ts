@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { assetService } from "@/services/asset-service";
 import type {
   RequestUploadInput,
@@ -18,6 +18,30 @@ export function useAssets(params?: ListAssetsParams) {
   return useQuery({
     queryKey: assetKeys.list(params),
     queryFn: () => assetService.list(params),
+  });
+}
+
+const DEFAULT_LIMIT = 20;
+
+export function useInfiniteAssets(params?: Omit<ListAssetsParams, "page" | "limit"> & { limit?: number }) {
+  const limit = params?.limit ?? DEFAULT_LIMIT;
+
+  return useInfiniteQuery({
+    queryKey: [...assetKeys.lists(), "infinite", params],
+    queryFn: async ({ pageParam = 1 }) => {
+      return assetService.list({
+        ...params,
+        page: pageParam,
+        limit,
+      });
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
   });
 }
 

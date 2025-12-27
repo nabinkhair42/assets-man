@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Upload, Folder as FolderIcon } from "lucide-react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { Upload, Folder as FolderIcon, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +16,7 @@ import {
 import {
   useFolderContents,
   useFolders,
-  useAssets,
+  useInfiniteAssets,
   useUploadFile,
   useMoveFolder,
   useUpdateAsset,
@@ -63,6 +63,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // DnD sensors - add distance threshold to distinguish from clicks
   const sensors = useSensors(
@@ -79,14 +80,46 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const {
     data: assetsData,
     isLoading: assetsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch: refetchAssets,
-  } = useAssets({ folderId: currentFolderId ?? undefined });
+  } = useInfiniteAssets({ folderId: currentFolderId ?? undefined });
   const uploadFile = useUploadFile();
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
 
-  const assets = assetsData?.assets ?? [];
+  // Flatten paginated assets
+  const assets = useMemo(() => {
+    if (!assetsData?.pages) return [];
+    return assetsData.pages.flatMap((page) => page.assets);
+  }, [assetsData]);
+
   const isLoading = foldersLoading || assetsLoading;
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleNavigate = (folderId: string | null) => {
     setCurrentFolderId(folderId);
@@ -369,6 +402,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                   onMove={(a) => handleMove(a, "asset")}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Infinite scroll trigger */}
+          {!isLoading && (folders.length > 0 || assets.length > 0) && (
+            <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
+              {isFetchingNextPage && (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              )}
+              {!hasNextPage && assets.length > 0 && (
+                <p className="text-sm text-muted-foreground">No more files</p>
+              )}
             </div>
           )}
         </div>

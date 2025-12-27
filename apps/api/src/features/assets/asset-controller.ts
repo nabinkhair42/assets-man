@@ -1,5 +1,5 @@
 import type { Response } from "express";
-import { sendSuccess, sendError } from "@/utils/response-utils.js";
+import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js";
 import * as assetService from "./asset-services.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
 import type {
@@ -86,7 +86,12 @@ export async function listAssets(
   try {
     const query = req.query as unknown as ListAssetsQuery;
     const result = await assetService.listAssets(req.userId, query);
-    sendSuccess(res, result);
+    sendPaginated(res, result.assets, {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to list assets", 500);
   }

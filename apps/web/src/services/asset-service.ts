@@ -2,6 +2,7 @@ import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
 import type {
   ApiResponse,
+  PaginatedResponse,
   Asset,
   RequestUploadInput,
   UploadUrlResponse,
@@ -13,11 +14,14 @@ import type {
 
 export const assetService = {
   async list(params?: ListAssetsParams): Promise<PaginatedAssets> {
-    const response = await apiClient.get<ApiResponse<PaginatedAssets>>(
+    const response = await apiClient.get<PaginatedResponse<Asset>>(
       API_ENDPOINTS.ASSETS.BASE,
       { params }
     );
-    return response.data.data;
+    return {
+      assets: response.data.data,
+      ...response.data.pagination,
+    };
   },
 
   async getById(id: string): Promise<Asset> {

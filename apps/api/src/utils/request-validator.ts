@@ -1,6 +1,6 @@
+import { ErrorResponses } from "@/utils/response-utils.js";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { z, type ZodSchema } from "zod";
-import { ErrorResponses } from "./response-utils.js";
 
 type ValidationTarget = "body" | "query" | "params";
 
@@ -8,6 +8,19 @@ interface ValidateOptions {
   body?: ZodSchema;
   query?: ZodSchema;
   params?: ZodSchema;
+}
+
+// Extend Express Request to include validated data
+declare global {
+  namespace Express {
+    interface Request {
+      validated?: {
+        body?: unknown;
+        query?: unknown;
+        params?: unknown;
+      };
+    }
+  }
 }
 
 function formatZodErrors(error: z.ZodError): Record<string, string[]> {
@@ -32,6 +45,9 @@ export function validate(options: ValidateOptions): RequestHandler {
     const targets: ValidationTarget[] = ["body", "query", "params"];
     const errors: Record<string, string[]> = {};
 
+    // Initialize validated object
+    req.validated = {};
+
     for (const target of targets) {
       const schema = options[target];
       if (!schema) continue;
@@ -40,11 +56,28 @@ export function validate(options: ValidateOptions): RequestHandler {
 
       if (!result.success) {
         Object.assign(errors, formatZodErrors(result.error));
-      } else if (target === "body") {
-        // Only reassign body - query/params are read-only in Express
-        req.body = result.data;
+      } else {
+        // Store validated/transformed data
+        req.validated[target] = result.data;
+
+        // For body, we can safely reassign
+        if (target === "body") {
+          req.body = result.data;
+        }
+        // For query and params, update the original object in place
+        if (target === "query") {
+          const data = result.data as Record<string, unknown>;
+          for (const [key, value] of Object.entries(data)) {
+            (req.query as Record<string, unknown>)[key] = value;
+          }
+        }
+        if (target === "params") {
+          const data = result.data as Record<string, unknown>;
+          for (const [key, value] of Object.entries(data)) {
+            (req.params as Record<string, unknown>)[key] = value;
+          }
+        }
       }
-      // For query/params, validation is sufficient - no need to reassign
     }
 
     if (Object.keys(errors).length > 0) {
