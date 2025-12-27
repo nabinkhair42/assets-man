@@ -1,4 +1,4 @@
-import { eq, and, isNull, isNotNull, count } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count, like, or } from "drizzle-orm";
 import { createDb, assets, folders, type Asset } from "@repo/database";
 import {
   createStorageClient,
@@ -117,13 +117,36 @@ export async function listAssets(
   userId: string,
   query: ListAssetsQuery
 ): Promise<PaginatedAssets> {
-  const { folderId, page, limit } = query;
+  const { folderId, search, page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Build where clause - exclude trashed items
-  const whereClause = folderId
-    ? and(eq(assets.folderId, folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt))
-    : and(isNull(assets.folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt));
+  // Build base conditions
+  const baseConditions = [
+    eq(assets.ownerId, userId),
+    isNull(assets.trashedAt),
+  ];
+
+  // Add folder filter only if not searching (search is global)
+  if (!search) {
+    if (folderId) {
+      baseConditions.push(eq(assets.folderId, folderId));
+    } else {
+      baseConditions.push(isNull(assets.folderId));
+    }
+  }
+
+  // Add search condition if provided
+  if (search) {
+    const searchPattern = `%${search.toLowerCase()}%`;
+    baseConditions.push(
+      or(
+        like(assets.name, searchPattern),
+        like(assets.originalName, searchPattern)
+      )!
+    );
+  }
+
+  const whereClause = and(...baseConditions);
 
   // Get total count
   const [countResult] = await db

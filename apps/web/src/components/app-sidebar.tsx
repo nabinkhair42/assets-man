@@ -11,6 +11,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Files,
@@ -20,10 +22,13 @@ import {
   Settings,
   LogOut,
   Stone,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLogout } from "@/hooks";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
@@ -35,17 +40,31 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const logout = useLogout();
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   const handleLogout = () => {
     logout.mutate();
   };
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2">
-          <Stone className="size-6" fill="currentColor" strokeWidth={1.5} stroke="white"/>
-          <span className="text-lg font-semibold">Assets Man</span>
+          <Stone
+            className="size-6 shrink-0"
+            fill="currentColor"
+            strokeWidth={1.5}
+            stroke="white"
+          />
+          <span
+            className={cn(
+              "text-lg font-semibold transition-opacity duration-200",
+              isCollapsed && "opacity-0 w-0 overflow-hidden",
+            )}
+          >
+            Assets Man
+          </span>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -55,9 +74,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                    tooltip={item.title}
+                  >
                     <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="size-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -70,10 +93,10 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild tooltip="Settings">
               <Link href="/settings">
                 <Settings className="size-4" />
-                <span>Settings</span>
+                Settings
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -81,13 +104,29 @@ export function AppSidebar() {
             <SidebarMenuButton
               onClick={handleLogout}
               disabled={logout.isPending}
+              tooltip="Logout"
             >
               <LogOut className="size-4" />
               <span>{logout.isPending ? "Logging out" : "Logout"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={toggleSidebar}
+              tooltip={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="mt-2"
+            >
+              {isCollapsed ? (
+                <ChevronsRight className="size-4" />
+              ) : (
+                <ChevronsLeft className="size-4" />
+              )}
+              <span>{isCollapsed ? "Expand" : "Collapse"}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

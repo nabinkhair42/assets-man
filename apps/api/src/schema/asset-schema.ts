@@ -18,6 +18,7 @@ export const assetIdParamSchema = z.object({
 
 export const listAssetsQuerySchema = z.object({
   folderId: z.string().uuid().optional(),
+  search: z.string().optional(),
   page: z.coerce.number().positive().default(1),
   limit: z.coerce.number().positive().max(100).default(20),
 });

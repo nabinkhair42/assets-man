@@ -1,9 +1,23 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Trash2, RotateCcw, Loader2, Folder as FolderIcon, FileText } from "lucide-react";
+import {
+  Trash2,
+  RotateCcw,
+  Loader2,
+  Folder as FolderIcon,
+  FileText,
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  File,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +44,7 @@ import {
 import { toast } from "sonner";
 import type { TrashedItem } from "@/types";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -37,6 +52,17 @@ function formatFileSize(bytes: number): string {
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function getFileIconData(mimeType: string) {
+  if (mimeType?.startsWith("image/")) return { icon: FileImage, color: "text-pink-500", bg: "bg-pink-500/10" };
+  if (mimeType?.startsWith("video/")) return { icon: FileVideo, color: "text-purple-500", bg: "bg-purple-500/10" };
+  if (mimeType?.startsWith("audio/")) return { icon: FileAudio, color: "text-orange-500", bg: "bg-orange-500/10" };
+  if (mimeType?.includes("pdf") || mimeType?.includes("document") || mimeType?.includes("text"))
+    return { icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" };
+  if (mimeType?.includes("zip") || mimeType?.includes("rar") || mimeType?.includes("archive"))
+    return { icon: FileArchive, color: "text-amber-500", bg: "bg-amber-500/10" };
+  return { icon: File, color: "text-muted-foreground", bg: "bg-muted" };
 }
 
 export function TrashBrowser() {
@@ -129,92 +155,111 @@ export function TrashBrowser() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      {/* Header - consistent with AppHeader */}
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 py-3">
+        <div className="flex items-center gap-3">
+          <SidebarTrigger />
+          <div className="w-px h-5 bg-border/60" />
+          <div className="flex items-center gap-2">
+            <h1 className="text-base font-medium">Trash</h1>
+            {items.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({items.length} items)
+              </span>
+            )}
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <Trash2 className="h-5 w-5" />
-          <h1 className="text-lg font-semibold">Trash</h1>
+          <ThemeToggle />
           {items.length > 0 && (
-            <span className="text-sm text-muted-foreground">
-              ({items.length} items)
-            </span>
+            <>
+              <div className="w-px h-5 bg-border/60" />
+              <AlertDialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    Empty Trash
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Empty Trash?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all items in trash. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleEmptyTrash}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {emptyTrash.isPending ? "Deleting..." : "Empty Trash"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
-        {items.length > 0 && (
-          <AlertDialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen}>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                Empty Trash
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Empty Trash?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete all items in trash. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleEmptyTrash}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {emptyTrash.isPending ? "Deleting..." : "Empty Trash"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
+      </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
-        {isLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-16" />
-            ))}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-            <Trash2 className="h-12 w-12 mb-4" />
-            <p className="text-lg">Trash is empty</p>
-            <p className="text-sm">
-              Items you delete will appear here
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {items.map((item) => (
-              <TrashItem
-                key={`${item.itemType}-${item.id}`}
-                item={item}
-                onRestore={handleRestore}
-                onPermanentDelete={handlePermanentDelete}
-              />
-            ))}
-          </div>
-        )}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-6">
+          {isLoading ? (
+            <div className="flex flex-col">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 mb-0" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+              <Trash2 className="h-12 w-12 mb-4" />
+              <p className="text-lg">Trash is empty</p>
+              <p className="text-sm">Items you delete will appear here</p>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {/* List header */}
+              <div className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 mb-1">
+                <div className="w-8" />
+                <div className="flex-1 min-w-0">Name</div>
+                <div className="w-24 text-right hidden sm:block">Size</div>
+                <div className="w-32 text-right hidden md:block">Deleted</div>
+                <div className="w-20" />
+              </div>
+              {items.map((item, index) => (
+                <TrashItem
+                  key={`${item.itemType}-${item.id}`}
+                  item={item}
+                  index={index}
+                  onRestore={handleRestore}
+                  onPermanentDelete={handlePermanentDelete}
+                />
+              ))}
+            </div>
+          )}
 
-        {/* Infinite scroll trigger */}
-        {!isLoading && items.length > 0 && (
-          <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
-            {isFetchingNextPage && (
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            )}
-            {!hasNextPage && (
-              <p className="text-sm text-muted-foreground">No more items</p>
-            )}
-          </div>
-        )}
-      </div>
+          {/* Infinite scroll trigger */}
+          {!isLoading && items.length > 0 && (
+            <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
+              {isFetchingNextPage && (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              )}
+              {!hasNextPage && (
+                <p className="text-sm text-muted-foreground">No more items</p>
+              )}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }
 
 interface TrashItemProps {
   item: TrashedItem;
+  index: number;
   onRestore: (item: TrashedItem) => void;
   onPermanentDelete: (item: TrashedItem) => void;
 }
@@ -223,36 +268,51 @@ function TrashItem({ item, onRestore, onPermanentDelete }: TrashItemProps) {
   const isFolder = item.itemType === "folder";
   const trashedDate = item.trashedAt ? new Date(item.trashedAt) : new Date();
 
+  // Get appropriate icon for file type
+  const mimeType = (item as any).mimeType || "";
+  const { icon: FileIcon, color, bg } = isFolder
+    ? { icon: FolderIcon, color: "text-primary", bg: "bg-primary/10" }
+    : getFileIconData(mimeType);
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <div className="flex items-center gap-3 rounded-lg border bg-card p-4 hover:bg-accent transition-colors">
-          {isFolder ? (
-            <FolderIcon className="h-10 w-10 text-blue-500" />
-          ) : (
-            <FileText className="h-10 w-10 text-muted-foreground" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="truncate font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {isFolder ? "Folder" : formatFileSize((item as any).size || 0)} •
-              Deleted {formatDistanceToNow(trashedDate, { addSuffix: true })}
-            </p>
+        <div
+          className="group flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:bg-accent/50 border-b border-border/40"
+        >
+          <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", bg)}>
+            <FileIcon className={cn("h-4 w-4", color)} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="truncate font-medium text-sm text-foreground">{item.name}</p>
+          </div>
+          <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
+            {isFolder ? "—" : formatFileSize((item as any).size || 0)}
+          </div>
+          <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
+            {formatDistanceToNow(trashedDate, { addSuffix: true })}
+          </div>
+          <div className="w-20 flex justify-end gap-1">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onRestore(item)}
+              size="icon-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestore(item);
+              }}
               title="Restore"
+              className="h-8 w-8 opacity-60 hover:opacity-100"
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => onPermanentDelete(item)}
-              className="text-destructive hover:text-destructive"
+              size="icon-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPermanentDelete(item);
+              }}
+              className="h-8 w-8 opacity-60 hover:opacity-100 text-destructive hover:text-destructive"
               title="Delete permanently"
             >
               <Trash2 className="h-4 w-4" />
@@ -267,7 +327,7 @@ function TrashItem({ item, onRestore, onPermanentDelete }: TrashItemProps) {
         </ContextMenuItem>
         <ContextMenuItem
           onClick={() => onPermanentDelete(item)}
-          className="text-destructive"
+          className="text-destructive focus:text-destructive"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Permanently

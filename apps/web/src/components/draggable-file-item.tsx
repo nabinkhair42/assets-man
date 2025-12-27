@@ -36,6 +36,8 @@ interface DraggableFileItemProps {
   onRename: (asset: Asset) => void;
   onDelete: (asset: Asset) => void;
   onMove: (asset: Asset) => void;
+  viewMode?: "grid" | "list";
+  index?: number;
 }
 
 function getFileIconData(mimeType: string) {
@@ -65,14 +67,32 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString();
+}
+
 export function DraggableFileItem({
   asset,
   onDownload,
   onRename,
   onDelete,
   onMove,
+  viewMode = "grid",
+  index = 0,
 }: DraggableFileItemProps) {
   const { icon: Icon, color, bg } = getFileIconData(asset.mimeType);
+  const isListView = viewMode === "list";
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `draggable-asset-${asset.id}`,
@@ -106,6 +126,84 @@ export function DraggableFileItem({
     </>
   );
 
+  const dropdownMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={cn(
+            "h-8 w-8 transition-opacity",
+            isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onDownload(asset)}>
+          <Download className="mr-2 h-4 w-4" />
+          Download
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onRename(asset)}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onMove(asset)}>
+          <FolderInput className="mr-2 h-4 w-4" />
+          Move
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onDelete(asset)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  // List view layout
+  if (isListView) {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            className={cn(
+              "group flex cursor-grab items-center gap-3 px-4 py-3 transition-all duration-150",
+              "hover:bg-accent/50 border-b border-border/40",
+              isDragging && "opacity-50 cursor-grabbing bg-primary/10"
+            )}
+          >
+            <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", bg)}>
+              <Icon className={cn("h-4 w-4", color)} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate font-medium text-sm text-foreground">{asset.name}</p>
+            </div>
+            <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
+              {formatFileSize(asset.size)}
+            </div>
+            <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
+              {formatRelativeTime(new Date(asset.createdAt))}
+            </div>
+            <div className="w-10 flex justify-end">
+              {dropdownMenu}
+            </div>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>{menuItems}</ContextMenuContent>
+      </ContextMenu>
+    );
+  }
+
+  // Grid view layout (original)
   return (
     <ContextMenu>
       <ContextMenuTrigger>
@@ -118,50 +216,17 @@ export function DraggableFileItem({
             isDragging && "opacity-50 cursor-grabbing scale-105"
           )}
         >
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${bg}`}>
-            <Icon className={`h-6 w-6 ${color}`} />
+          <div className={cn("flex h-12 w-12 items-center justify-center rounded-lg", bg)}>
+            <Icon className={cn("h-6 w-6", color)} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="truncate font-semibold text-foreground">{asset.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {formatFileSize(asset.size)} •{" "}
-              {new Date(asset.createdAt).toLocaleDateString()}
+              {formatRelativeTime(new Date(asset.createdAt))}
             </p>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onDownload(asset)}>
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onRename(asset)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onMove(asset)}>
-                <FolderInput className="mr-2 h-4 w-4" />
-                Move
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onDelete(asset)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {dropdownMenu}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>

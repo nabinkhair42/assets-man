@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Upload, Folder as FolderIcon, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import {
   DndContext,
@@ -303,7 +304,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-clip">
       {/* Hidden file input */}
       <input
         type="file"
@@ -332,7 +333,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       >
         <div
           className={cn(
-            "flex-1 overflow-auto p-6 relative transition-colors",
+            "flex-1 min-h-0 relative transition-colors",
             isDragging && "bg-primary/5"
           )}
           onDragEnter={handleDragEnter}
@@ -350,72 +351,90 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             </div>
           )}
 
-          {isLoading ? (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                  : "space-y-2"
-              }
-            >
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className={viewMode === "grid" ? "h-24" : "h-16"}
-                />
-              ))}
-            </div>
-          ) : folders.length === 0 && assets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-              <p className="text-lg">This folder is empty</p>
-              <p className="text-sm">
-                Create a folder or upload files to get started
-              </p>
-            </div>
-          ) : (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                  : "space-y-2"
-              }
-            >
-              {/* Folders - draggable and droppable */}
-              {folders.map((folder) => (
-                <DraggableFolderItem
-                  key={folder.id}
-                  folder={folder}
-                  onOpen={handleNavigate}
-                  onRename={(f) => setRenameItem({ item: f, type: "folder" })}
-                  onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
-                  onMove={(f) => handleMove(f, "folder")}
-                />
-              ))}
-              {/* Files - draggable only */}
-              {assets.map((asset) => (
-                <DraggableFileItem
-                  key={asset.id}
-                  asset={asset}
-                  onDownload={handleDownload}
-                  onRename={(a) => setRenameItem({ item: a, type: "asset" })}
-                  onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
-                  onMove={(a) => handleMove(a, "asset")}
-                />
-              ))}
-            </div>
-          )}
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {isLoading ? (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                      : "space-y-2"
+                  }
+                >
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton
+                      key={i}
+                      className={viewMode === "grid" ? "h-24" : "h-16"}
+                    />
+                  ))}
+                </div>
+              ) : folders.length === 0 && assets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                  <p className="text-lg">This folder is empty</p>
+                  <p className="text-sm">
+                    Create a folder or upload files to get started
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+                      : "flex flex-col"
+                  }
+                >
+                  {/* List view header */}
+                  {viewMode === "list" && (
+                    <div className="flex items-center gap-3 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 mb-1">
+                      <div className="w-8" /> {/* Icon space */}
+                      <div className="flex-1 min-w-0">Name</div>
+                      <div className="w-24 text-right hidden sm:block">Size</div>
+                      <div className="w-32 text-right hidden md:block">Modified</div>
+                      <div className="w-10" /> {/* Actions space */}
+                    </div>
+                  )}
+                  {/* Folders - draggable and droppable */}
+                  {folders.map((folder, index) => (
+                    <DraggableFolderItem
+                      key={folder.id}
+                      folder={folder}
+                      onOpen={handleNavigate}
+                      onRename={(f) => setRenameItem({ item: f, type: "folder" })}
+                      onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
+                      onMove={(f) => handleMove(f, "folder")}
+                      viewMode={viewMode}
+                      index={index}
+                    />
+                  ))}
+                  {/* Files - draggable only */}
+                  {assets.map((asset, index) => (
+                    <DraggableFileItem
+                      key={asset.id}
+                      asset={asset}
+                      onDownload={handleDownload}
+                      onRename={(a) => setRenameItem({ item: a, type: "asset" })}
+                      onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
+                      onMove={(a) => handleMove(a, "asset")}
+                      viewMode={viewMode}
+                      index={folders.length + index}
+                    />
+                  ))}
+                </div>
+              )}
 
-          {/* Infinite scroll trigger */}
-          {!isLoading && (folders.length > 0 || assets.length > 0) && (
-            <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
-              {isFetchingNextPage && (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              )}
-              {!hasNextPage && assets.length > 0 && (
-                <p className="text-sm text-muted-foreground">No more files</p>
+              {/* Infinite scroll trigger */}
+              {!isLoading && (folders.length > 0 || assets.length > 0) && (
+                <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
+                  {isFetchingNextPage && (
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  )}
+                  {!hasNextPage && assets.length > 0 && (
+                    <p className="text-sm text-muted-foreground">No more files</p>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </ScrollArea>
         </div>
 
         {/* Drag Overlay */}

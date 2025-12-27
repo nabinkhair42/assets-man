@@ -2,6 +2,7 @@ import { FolderBreadcrumbs } from '@/components'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { SearchCommand } from '@/components/search-command'
 import { Folder } from '@/types'
 import { FolderPlus, LayoutGrid, List, Upload } from 'lucide-react'
 
@@ -24,6 +25,8 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setC
         <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
       </div>
       <div className="flex items-center gap-2">
+        <SearchCommand onNavigateToFolder={handleNavigate} />
+        <div className='w-px h-5 bg-border/60'/>
         <ThemeToggle />
         <div className='w-px h-5 bg-border/60'/>
         <Button

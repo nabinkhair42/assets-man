@@ -32,6 +32,7 @@ export interface UpdateAssetInput {
 
 export interface ListAssetsParams {
   folderId?: string;
+  search?: string;
   page?: number;
   limit?: number;
 }

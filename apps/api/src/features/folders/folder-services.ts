@@ -1,4 +1,4 @@
-import { eq, and, isNull, isNotNull, count } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count, like } from "drizzle-orm";
 import { createDb, folders, type Folder } from "@repo/database";
 import { config } from "@/config/env.js";
 import type {
@@ -295,4 +295,22 @@ export async function emptyTrashFolders(userId: string): Promise<number> {
     .where(and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)));
 
   return trashedFolders.length;
+}
+
+export async function searchFolders(
+  userId: string,
+  search: string,
+  limit: number = 10
+): Promise<Folder[]> {
+  const searchPattern = `%${search.toLowerCase()}%`;
+
+  return db.query.folders.findMany({
+    where: and(
+      eq(folders.ownerId, userId),
+      isNull(folders.trashedAt),
+      like(folders.name, searchPattern)
+    ),
+    orderBy: (folders, { asc }) => [asc(folders.name)],
+    limit,
+  });
 }

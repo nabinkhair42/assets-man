@@ -59,4 +59,14 @@ export const folderService = {
   async delete(id: string): Promise<void> {
     await apiClient.delete(API_ENDPOINTS.FOLDERS.BY_ID(id));
   },
+
+  async search(query: string, limit: number = 10): Promise<Folder[]> {
+    // For now, we fetch all folders and filter client-side
+    // Could add server-side search endpoint later
+    const allFolders = await this.getAll();
+    const searchLower = query.toLowerCase();
+    return allFolders
+      .filter((folder) => folder.name.toLowerCase().includes(searchLower))
+      .slice(0, limit);
+  },
 };

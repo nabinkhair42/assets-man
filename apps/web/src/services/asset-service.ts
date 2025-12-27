@@ -90,4 +90,12 @@ export const assetService = {
   async delete(id: string): Promise<void> {
     await apiClient.delete(API_ENDPOINTS.ASSETS.BY_ID(id));
   },
+
+  async search(query: string, limit: number = 10): Promise<Asset[]> {
+    const response = await apiClient.get<PaginatedResponse<Asset>>(
+      API_ENDPOINTS.ASSETS.BASE,
+      { params: { search: query, limit } }
+    );
+    return response.data.data;
+  },
 };

@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={nunitoSans.className}>
+    <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
+      <body className={`${nunitoSans.className} h-full overflow-hidden`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
