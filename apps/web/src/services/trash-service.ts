@@ -26,7 +26,7 @@ export const trashService = {
   async restore(id: string, type: "asset" | "folder"): Promise<Asset | Folder> {
     const response = await apiClient.post<ApiResponse<{ asset?: Asset; folder?: Folder }>>(
       API_ENDPOINTS.TRASH.RESTORE(id),
-      null,
+      undefined,
       { params: { type } }
     );
     return type === "asset" ? response.data.data.asset! : response.data.data.folder!;

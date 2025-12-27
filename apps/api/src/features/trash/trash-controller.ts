@@ -3,7 +3,7 @@ import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js
 import * as assetService from "@/features/assets/asset-services.js";
 import * as folderService from "@/features/folders/folder-services.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
-import type { ListTrashQuery } from "@/schema/trash-schema.js";
+import type { ListTrashQuery, TrashItemIdParam, TrashItemTypeParam } from "@/schema/trash-schema.js";
 
 export async function listTrash(
   req: AuthRequest,
@@ -46,18 +46,8 @@ export async function restoreItem(
   res: Response
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const { type } = req.query as { type: "asset" | "folder" };
-
-    if (!id) {
-      sendError(res, "VALIDATION_ERROR", "Item ID is required", 400);
-      return;
-    }
-
-    if (!type || !["asset", "folder"].includes(type)) {
-      sendError(res, "VALIDATION_ERROR", "Valid type (asset or folder) is required", 400);
-      return;
-    }
+    const { id } = req.params as unknown as TrashItemIdParam;
+    const { type } = req.query as unknown as TrashItemTypeParam;
 
     if (type === "asset") {
       const asset = await assetService.restoreAsset(req.userId, id);
@@ -83,18 +73,8 @@ export async function permanentlyDelete(
   res: Response
 ): Promise<void> {
   try {
-    const { id } = req.params;
-    const { type } = req.query as { type: "asset" | "folder" };
-
-    if (!id) {
-      sendError(res, "VALIDATION_ERROR", "Item ID is required", 400);
-      return;
-    }
-
-    if (!type || !["asset", "folder"].includes(type)) {
-      sendError(res, "VALIDATION_ERROR", "Valid type (asset or folder) is required", 400);
-      return;
-    }
+    const { id } = req.params as unknown as TrashItemIdParam;
+    const { type } = req.query as unknown as TrashItemTypeParam;
 
     if (type === "asset") {
       await assetService.permanentlyDeleteAsset(req.userId, id);
