@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Upload, Folder as FolderIcon } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
 import { assetService } from "@/services";
+import { useFileActions } from "@/contexts";
 
 interface FolderBrowserProps {
   initialFolderId?: string | null;
@@ -60,6 +61,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  const { registerUploadTrigger, registerCreateFolderTrigger, setIsUploading } = useFileActions();
+
+  // Register triggers for sidebar actions
+  useEffect(() => {
+    registerUploadTrigger(() => fileInputRef.current?.click());
+    registerCreateFolderTrigger(() => setCreateFolderOpen(true));
+  }, [registerUploadTrigger, registerCreateFolderTrigger]);
+
+  // Sync uploading state with context
+  useEffect(() => {
+    setIsUploading(uploadingCount > 0);
+  }, [uploadingCount, setIsUploading]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -227,9 +240,6 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         handleNavigate={handleNavigate}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        handleUploadClick={() => fileInputRef.current?.click()}
-        setCreateFolderOpen={setCreateFolderOpen}
-        uploadingCount={uploadingCount}
       />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

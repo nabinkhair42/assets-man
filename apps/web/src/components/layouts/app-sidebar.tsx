@@ -15,17 +15,28 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import {
   Files,
   FolderOpen,
+  FolderPlus,
   Star,
   Trash2,
   Settings,
   LogOut,
   Stone,
+  Plus,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutDialog } from "@/components/dialog/logout-dialog";
+import { useFileActions } from "@/contexts";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
@@ -37,6 +48,9 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const { triggerUpload, triggerCreateFolder, isUploading } = useFileActions();
+
+  const isFilesPage = pathname === "/files" || pathname.startsWith("/files");
 
   return (
     <>
@@ -55,6 +69,36 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
         <SidebarContent>
+          {/* New Button - Google Drive style */}
+          {isFilesPage && (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center"
+                      disabled={isUploading}
+                    >
+                      <Plus className="size-4" />
+                      <span className="group-data-[collapsible=icon]:hidden">New</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem onClick={triggerCreateFolder}>
+                      <FolderPlus className="size-4 mr-2" />
+                      New Folder
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={triggerUpload} disabled={isUploading}>
+                      <Upload className="size-4 mr-2" />
+                      {isUploading ? "Uploading..." : "Upload File"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>

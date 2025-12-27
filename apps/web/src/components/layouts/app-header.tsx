@@ -4,31 +4,36 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SearchCommand } from '@/components/dialog/search-command'
 import { Folder } from '@/types'
-import { FolderPlus, LayoutGrid, List, Upload } from 'lucide-react'
+import { LayoutGrid, List } from 'lucide-react'
 
 interface AppHeaderProps {
   breadcrumbPath: Folder[]
   handleNavigate: (folderId: string | null) => void
   viewMode: "grid" | "list"
   setViewMode: (viewMode: "grid" | "list") => void
-  setCreateFolderOpen: (createFolderOpen: boolean) => void
-  handleUploadClick: () => void
-  uploadingCount: number
 }
 
-const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setCreateFolderOpen, handleUploadClick, uploadingCount }: AppHeaderProps) => {
+const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode }: AppHeaderProps) => {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 py-3">
-      <div className='flex items-center gap-3'>
+    <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/50 bg-background/95 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
+      {/* Left side - Sidebar trigger and breadcrumbs */}
+      <div className='flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0'>
         <SidebarTrigger />
-        <div className='w-px h-5 bg-border/60'/>
-        <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
+        <div className='w-px h-5 bg-border/60 hidden sm:block'/>
+        <div className="hidden sm:block">
+          <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
+        </div>
       </div>
-      <div className="flex items-center gap-2">
+
+      {/* Center - Search (responsive) */}
+      <div className="flex-1 flex justify-center min-w-0">
         <SearchCommand onNavigateToFolder={handleNavigate} />
-        <div className='w-px h-5 bg-border/60'/>
+      </div>
+
+      {/* Right side - Theme toggle and view toggle */}
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         <ThemeToggle />
-        <div className='w-px h-5 bg-border/60'/>
+        <div className='w-px h-5 bg-border/60 hidden sm:block'/>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -37,26 +42,6 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, setC
           tooltipContent={viewMode === "grid" ? "Switch to list view" : "Switch to grid view"}
         >
           {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setCreateFolderOpen(true)}
-          tooltipContent="Create a new folder"
-        >
-          <FolderPlus className="mr-2 h-4 w-4" />
-          New Folder
-        </Button>
-        <Button
-          size="sm"
-          onClick={handleUploadClick}
-          disabled={uploadingCount > 0}
-          isLoading={uploadingCount > 0}
-          loadingText="Uploading..."
-          tooltipContent="Upload files"
-        >
-          <Upload className="mr-2 h-4 w-4" />
-          Upload
         </Button>
       </div>
     </header>
