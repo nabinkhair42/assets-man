@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, bigint, boolean } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { folders } from "./folders";
 
@@ -16,6 +16,7 @@ export const assets = pgTable("assets", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   thumbnailKey: text("thumbnail_key"), // For image/video previews
+  isStarred: boolean("is_starred").default(false).notNull(),
   trashedAt: timestamp("trashed_at"), // Null = not trashed, timestamp = trashed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

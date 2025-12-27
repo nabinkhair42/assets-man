@@ -122,3 +122,35 @@ export function useDeleteAsset() {
     },
   });
 }
+
+export function useToggleAssetStarred() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => assetService.toggleStarred(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["starred"] });
+      queryClient.setQueryData(assetKeys.detail(data.id), data);
+    },
+  });
+}
+
+export function useStarredAssets(params?: { page?: number; limit?: number }) {
+  return useInfiniteQuery({
+    queryKey: ["starred", "assets", params],
+    queryFn: async ({ pageParam = 1 }) => {
+      return assetService.listStarred({
+        ...params,
+        page: pageParam,
+      });
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+  });
+}

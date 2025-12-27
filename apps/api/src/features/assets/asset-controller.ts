@@ -154,3 +154,49 @@ export async function deleteAsset(
     sendError(res, "INTERNAL_ERROR", "Failed to delete asset", 500);
   }
 }
+
+export async function toggleStarred(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      sendError(res, "VALIDATION_ERROR", "Asset ID is required", 400);
+      return;
+    }
+
+    const asset = await assetService.toggleStarred(req.userId, id);
+    sendSuccess(res, { asset }, asset.isStarred ? "Asset starred" : "Asset unstarred");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "NOT_FOUND") {
+      sendError(res, "NOT_FOUND", "Asset not found", 404);
+      return;
+    }
+
+    sendError(res, "INTERNAL_ERROR", "Failed to toggle starred", 500);
+  }
+}
+
+export async function listStarredAssets(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const result = await assetService.listStarredAssets(req.userId, { page, limit });
+    sendPaginated(res, result.assets, {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    });
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to list starred assets", 500);
+  }
+}

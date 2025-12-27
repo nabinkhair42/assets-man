@@ -8,6 +8,7 @@ export interface Asset {
   thumbnailKey: string | null;
   folderId: string | null;
   ownerId: string;
+  isStarred: boolean;
   trashedAt: string | null;
   createdAt: string;
   updatedAt: string;

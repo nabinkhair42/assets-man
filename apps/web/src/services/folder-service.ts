@@ -69,4 +69,18 @@ export const folderService = {
       .filter((folder) => folder.name.toLowerCase().includes(searchLower))
       .slice(0, limit);
   },
+
+  async toggleStarred(id: string): Promise<Folder> {
+    const response = await apiClient.post<ApiResponse<{ folder: Folder }>>(
+      API_ENDPOINTS.FOLDERS.STAR(id)
+    );
+    return response.data.data.folder;
+  },
+
+  async listStarred(): Promise<Folder[]> {
+    const response = await apiClient.get<ApiResponse<{ folders: Folder[] }>>(
+      API_ENDPOINTS.FOLDERS.STARRED
+    );
+    return response.data.data.folders;
+  },
 };

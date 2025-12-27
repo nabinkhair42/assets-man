@@ -21,6 +21,9 @@ import {
   useUploadFile,
   useMoveFolder,
   useUpdateAsset,
+  useToggleAssetStarred,
+  useToggleFolderStarred,
+  useMarqueeSelection,
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
@@ -30,7 +33,7 @@ import {
   DeleteDialog,
   MoveDialog,
 } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger } from "@/components/shared";
+import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, type SelectedItem } from "@/components/shared";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
@@ -59,9 +62,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [uploadingCount, setUploadingCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  const lastSelectedIndex = useRef<number | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
   const { registerUploadTrigger, registerCreateFolderTrigger, setIsUploading } = useFileActions();
+
+  const selectionMode = selectedItems.size > 0;
 
   // Register triggers for sidebar actions
   useEffect(() => {
@@ -91,11 +99,21 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const uploadFile = useUploadFile();
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
+  const toggleAssetStarred = useToggleAssetStarred();
+  const toggleFolderStarred = useToggleFolderStarred();
 
   const assets = useMemo(() => {
     if (!assetsData?.pages) return [];
     return assetsData.pages.flatMap((page) => page.assets);
   }, [assetsData]);
+
+  // Combined list of all items for index-based operations
+  const allItems = useMemo(() => {
+    const items: Array<{ id: string; type: "folder" | "asset"; name: string; data: Folder | Asset }> = [];
+    folders.forEach((folder) => items.push({ id: folder.id, type: "folder", name: folder.name, data: folder }));
+    assets.forEach((asset) => items.push({ id: asset.id, type: "asset", name: asset.name, data: asset }));
+    return items;
+  }, [folders, assets]);
 
   const isLoading = foldersLoading || assetsLoading;
 
@@ -104,13 +122,153 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const handleDownload = async (asset: Asset) => {
     try {
       const { url } = await assetService.getDownloadUrl(asset.id);
-      window.open(url, "_blank");
+      // Create a temporary anchor and trigger download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = asset.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch {
       toast.error("Failed to get download URL");
     }
   };
 
   const handleMove = (item: Folder | Asset, type: "folder" | "asset") => setMoveItem({ item, type });
+
+  const handleStarAsset = useCallback((asset: Asset) => {
+    toggleAssetStarred.mutate(asset.id, {
+      onSuccess: (data) => {
+        toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
+        refetchAssets();
+      },
+      onError: () => toast.error("Failed to update starred status"),
+    });
+  }, [toggleAssetStarred, refetchAssets]);
+
+  const handleStarFolder = useCallback((folder: Folder) => {
+    toggleFolderStarred.mutate(folder.id, {
+      onSuccess: (data) => {
+        toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
+        refetchFolders();
+      },
+      onError: () => toast.error("Failed to update starred status"),
+    });
+  }, [toggleFolderStarred, refetchFolders]);
+
+  // Selection handlers with shift+click support
+  const handleItemSelect = useCallback((
+    index: number,
+    id: string,
+    type: "folder" | "asset",
+    name: string,
+    selected: boolean,
+    shiftKey: boolean
+  ) => {
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+      const key = `${type}-${id}`;
+
+      if (shiftKey && lastSelectedIndex.current !== null && selected) {
+        // Range selection with shift+click
+        const start = Math.min(lastSelectedIndex.current, index);
+        const end = Math.max(lastSelectedIndex.current, index);
+
+        for (let i = start; i <= end; i++) {
+          const item = allItems[i];
+          if (item) {
+            next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+          }
+        }
+      } else {
+        // Single item selection
+        if (selected) {
+          next.set(key, { id, type, name });
+        } else {
+          next.delete(key);
+        }
+      }
+
+      // Update last selected index
+      if (selected) {
+        lastSelectedIndex.current = index;
+      }
+
+      return next;
+    });
+  }, [allItems]);
+
+  const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false) => {
+    const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
+    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
+  }, [allItems, handleItemSelect]);
+
+  const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false) => {
+    const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
+    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
+  }, [allItems, handleItemSelect]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedItems(new Map());
+    lastSelectedIndex.current = null;
+  }, []);
+
+  const handleMarqueeSelectionChange = useCallback((selectedIds: string[]) => {
+    if (selectedIds.length === 0) {
+      handleClearSelection();
+      return;
+    }
+
+    const newSelection = new Map<string, SelectedItem>();
+    for (const id of selectedIds) {
+      // id format is "folder-{id}" or "asset-{id}"
+      const [type, ...idParts] = id.split("-");
+      const itemId = idParts.join("-");
+      const item = allItems.find((i) => i.type === type && i.id === itemId);
+      if (item) {
+        newSelection.set(id, { id: itemId, type: item.type, name: item.name });
+      }
+    }
+    setSelectedItems(newSelection);
+  }, [allItems, handleClearSelection]);
+
+  // Marquee selection hook
+  const { isSelecting: isMarqueeSelecting, marqueeRect, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
+    items: allItems,
+    getItemId: (item) => `${item.type}-${item.id}`,
+    onSelectionChange: handleMarqueeSelectionChange,
+    containerRef: contentContainerRef,
+    itemSelector: "[data-item-id]",
+    disabled: isDragging || !!activeItem,
+  });
+
+  const handleBulkDelete = useCallback(() => {
+    // For now, just show toast - bulk delete would need API support
+    toast.info(`Would delete ${selectedItems.size} items`);
+    handleClearSelection();
+  }, [selectedItems, handleClearSelection]);
+
+  const handleBulkMove = useCallback(() => {
+    // For now, just show toast - bulk move would need API support
+    toast.info(`Would move ${selectedItems.size} items`);
+    handleClearSelection();
+  }, [selectedItems, handleClearSelection]);
+
+  const handleBulkDownload = useCallback(async () => {
+    const assetItems = Array.from(selectedItems.values()).filter((item) => item.type === "asset");
+    if (assetItems.length === 0) {
+      toast.info("No files selected for download");
+      return;
+    }
+
+    for (const item of assetItems) {
+      const asset = assets.find((a) => a.id === item.id);
+      if (asset) {
+        await handleDownload(asset);
+      }
+    }
+    handleClearSelection();
+  }, [selectedItems, assets, handleClearSelection]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -260,7 +418,23 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           )}
 
           <ScrollArea className="h-full">
-            <div className="p-6">
+            <div
+              ref={contentContainerRef}
+              className="p-6 relative"
+              onMouseDown={handleMarqueeMouseDown}
+            >
+              {/* Marquee selection rectangle */}
+              {isMarqueeSelecting && marqueeRect && (
+                <div
+                  className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-50"
+                  style={{
+                    left: marqueeRect.left,
+                    top: marqueeRect.top,
+                    width: marqueeRect.width,
+                    height: marqueeRect.height,
+                  }}
+                />
+              )}
               {isLoading ? (
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : folders.length === 0 && assets.length === 0 ? (
@@ -280,8 +454,15 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onRename={(f) => setRenameItem({ item: f, type: "folder" })}
                       onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
                       onMove={(f) => handleMove(f, "folder")}
+                      onStar={handleStarFolder}
                       viewMode={viewMode}
                       index={index}
+                      isSelected={selectedItems.has(`folder-${folder.id}`)}
+                      onSelect={handleSelectFolder}
+                      selectionMode={selectionMode}
+                      selectedCount={selectedItems.size}
+                      onBulkDelete={handleBulkDelete}
+                      onBulkMove={handleBulkMove}
                     />
                   ))}
                   {assets.map((asset, index) => (
@@ -292,8 +473,16 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onRename={(a) => setRenameItem({ item: a, type: "asset" })}
                       onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
                       onMove={(a) => handleMove(a, "asset")}
+                      onStar={handleStarAsset}
                       viewMode={viewMode}
                       index={folders.length + index}
+                      isSelected={selectedItems.has(`asset-${asset.id}`)}
+                      onSelect={handleSelectAsset}
+                      selectionMode={selectionMode}
+                      selectedCount={selectedItems.size}
+                      onBulkDownload={handleBulkDownload}
+                      onBulkDelete={handleBulkDelete}
+                      onBulkMove={handleBulkMove}
                     />
                   ))}
                 </div>
@@ -325,6 +514,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       <RenameDialog open={!!renameItem} onOpenChange={(open) => !open && setRenameItem(null)} item={renameItem?.item ?? null} itemType={renameItem?.type ?? "folder"} />
       <DeleteDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)} item={deleteItem?.item ?? null} itemType={deleteItem?.type ?? "folder"} />
       <MoveDialog open={!!moveItem} onOpenChange={(open) => !open && setMoveItem(null)} item={moveItem?.item ?? null} itemType={moveItem?.type ?? "folder"} />
+
+      <SelectionToolbar
+        selectedItems={Array.from(selectedItems.values())}
+        onClearSelection={handleClearSelection}
+        onDelete={handleBulkDelete}
+        onMove={handleBulkMove}
+        onDownload={handleBulkDownload}
+      />
     </div>
   );
 }

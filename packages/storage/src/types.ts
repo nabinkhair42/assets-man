@@ -34,6 +34,12 @@ export interface DeleteResult {
   key: string;
 }
 
+export interface DownloadOptions {
+  key: string;
+  expiresIn?: number;
+  filename?: string; // Forces download with this filename
+}
+
 export interface StorageClient {
   /**
    * Generate a presigned URL for uploading a file
@@ -44,8 +50,7 @@ export interface StorageClient {
    * Generate a presigned URL for downloading a file
    */
   getPresignedDownloadUrl(
-    key: string,
-    expiresIn?: number
+    options: DownloadOptions
   ): Promise<PresignedDownloadResult>;
 
   /**

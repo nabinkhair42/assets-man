@@ -167,3 +167,41 @@ export async function deleteFolder(
     sendError(res, "INTERNAL_ERROR", "Failed to delete folder", 500);
   }
 }
+
+export async function toggleStarred(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      sendError(res, "VALIDATION_ERROR", "Folder ID is required", 400);
+      return;
+    }
+
+    const folder = await folderService.toggleStarred(req.userId, id);
+    sendSuccess(res, { folder }, folder.isStarred ? "Folder starred" : "Folder unstarred");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "NOT_FOUND") {
+      sendError(res, "NOT_FOUND", "Folder not found", 404);
+      return;
+    }
+
+    sendError(res, "INTERNAL_ERROR", "Failed to toggle starred", 500);
+  }
+}
+
+export async function listStarredFolders(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const folders = await folderService.listStarredFolders(req.userId);
+    sendSuccess(res, { folders });
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to list starred folders", 500);
+  }
+}

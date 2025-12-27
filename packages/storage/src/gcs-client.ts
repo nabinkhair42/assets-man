@@ -3,6 +3,7 @@ import type {
   StorageConfig,
   StorageClient,
   UploadOptions,
+  DownloadOptions,
   PresignedUploadResult,
   PresignedDownloadResult,
   DeleteResult,
@@ -40,15 +41,18 @@ export function createGCSClient(config: StorageConfig): StorageClient {
     },
 
     async getPresignedDownloadUrl(
-      key: string,
-      expiresIn = DEFAULT_EXPIRES_IN
+      options: DownloadOptions
     ): Promise<PresignedDownloadResult> {
-      const file = bucket.file(key);
+      const expiresIn = options.expiresIn ?? DEFAULT_EXPIRES_IN;
+      const file = bucket.file(options.key);
 
       const [url] = await file.getSignedUrl({
         version: "v4",
         action: "read",
         expires: Date.now() + expiresIn * 1000,
+        ...(options.filename && {
+          responseDisposition: `attachment; filename="${encodeURIComponent(options.filename)}"`,
+        }),
       });
 
       return { url, expiresIn };

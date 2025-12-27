@@ -314,3 +314,58 @@ export async function searchFolders(
     limit,
   });
 }
+
+export async function toggleStarred(
+  userId: string,
+  folderId: string
+): Promise<Folder> {
+  const folder = await getFolderById(userId, folderId);
+
+  if (!folder) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const [updated] = await db
+    .update(folders)
+    .set({ isStarred: !folder.isStarred, updatedAt: new Date() })
+    .where(and(eq(folders.id, folderId), eq(folders.ownerId, userId)))
+    .returning();
+
+  if (!updated) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  return updated;
+}
+
+export async function listStarredFolders(
+  userId: string,
+  query: { page: number; limit: number }
+): Promise<PaginatedFolders> {
+  const { page, limit } = query;
+  const offset = (page - 1) * limit;
+
+  // Get total count
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(folders)
+    .where(and(eq(folders.ownerId, userId), eq(folders.isStarred, true), isNull(folders.trashedAt)));
+
+  const total = countResult?.count ?? 0;
+
+  // Get starred folders
+  const folderList = await db.query.folders.findMany({
+    where: and(eq(folders.ownerId, userId), eq(folders.isStarred, true), isNull(folders.trashedAt)),
+    orderBy: (folders, { desc }) => [desc(folders.updatedAt)],
+    limit,
+    offset,
+  });
+
+  return {
+    folders: folderList,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}

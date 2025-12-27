@@ -87,3 +87,23 @@ export function useDeleteFolder() {
     },
   });
 }
+
+export function useToggleFolderStarred() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => folderService.toggleStarred(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["starred"] });
+      queryClient.setQueryData(folderKeys.detail(data.id), data);
+    },
+  });
+}
+
+export function useStarredFolders() {
+  return useQuery({
+    queryKey: ["starred", "folders"],
+    queryFn: () => folderService.listStarred(),
+  });
+}

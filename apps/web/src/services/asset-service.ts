@@ -98,4 +98,22 @@ export const assetService = {
     );
     return response.data.data;
   },
+
+  async toggleStarred(id: string): Promise<Asset> {
+    const response = await apiClient.post<ApiResponse<{ asset: Asset }>>(
+      API_ENDPOINTS.ASSETS.STAR(id)
+    );
+    return response.data.data.asset;
+  },
+
+  async listStarred(params?: { page?: number; limit?: number }): Promise<PaginatedAssets> {
+    const response = await apiClient.get<PaginatedResponse<Asset>>(
+      API_ENDPOINTS.ASSETS.STARRED,
+      { params }
+    );
+    return {
+      assets: response.data.data,
+      ...response.data.pagination,
+    };
+  },
 };

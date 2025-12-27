@@ -26,6 +26,9 @@ assetRouter.get(
   wrap(assetController.listAssets)
 );
 
+// List starred assets
+assetRouter.get("/starred", wrap(assetController.listStarredAssets));
+
 // Request upload URL (creates asset record and returns presigned URL)
 assetRouter.post(
   "/upload",
@@ -60,4 +63,11 @@ assetRouter.delete(
   "/:id",
   validateParams(assetIdParamSchema),
   wrap(assetController.deleteAsset)
+);
+
+// Toggle starred status
+assetRouter.post(
+  "/:id/star",
+  validateParams(assetIdParamSchema),
+  wrap(assetController.toggleStarred)
 );

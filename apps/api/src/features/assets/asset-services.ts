@@ -108,7 +108,11 @@ export async function getDownloadUrl(
   }
 
   const storage = getStorage();
-  const { url } = await storage.getPresignedDownloadUrl(asset.storageKey, 3600);
+  const { url } = await storage.getPresignedDownloadUrl({
+    key: asset.storageKey,
+    expiresIn: 3600,
+    filename: asset.name,
+  });
 
   return { url, asset };
 }
@@ -368,4 +372,59 @@ export async function deleteAssetsByFolder(
   await db
     .delete(assets)
     .where(and(eq(assets.folderId, folderId), eq(assets.ownerId, userId)));
+}
+
+export async function toggleStarred(
+  userId: string,
+  assetId: string
+): Promise<Asset> {
+  const asset = await getAssetById(userId, assetId);
+
+  if (!asset) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const [updated] = await db
+    .update(assets)
+    .set({ isStarred: !asset.isStarred, updatedAt: new Date() })
+    .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)))
+    .returning();
+
+  if (!updated) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  return updated;
+}
+
+export async function listStarredAssets(
+  userId: string,
+  query: { page: number; limit: number }
+): Promise<PaginatedAssets> {
+  const { page, limit } = query;
+  const offset = (page - 1) * limit;
+
+  // Get total count
+  const [countResult] = await db
+    .select({ count: count() })
+    .from(assets)
+    .where(and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt)));
+
+  const total = countResult?.count ?? 0;
+
+  // Get starred assets
+  const assetList = await db.query.assets.findMany({
+    where: and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt)),
+    orderBy: (assets, { desc }) => [desc(assets.updatedAt)],
+    limit,
+    offset,
+  });
+
+  return {
+    assets: assetList,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }

@@ -12,6 +12,7 @@ import type {
   StorageConfig,
   StorageClient,
   UploadOptions,
+  DownloadOptions,
   PresignedUploadResult,
   PresignedDownloadResult,
   DeleteResult,
@@ -55,12 +56,16 @@ export function createS3Client(config: StorageConfig): StorageClient {
     },
 
     async getPresignedDownloadUrl(
-      key: string,
-      expiresIn = DEFAULT_EXPIRES_IN
+      options: DownloadOptions
     ): Promise<PresignedDownloadResult> {
+      const expiresIn = options.expiresIn ?? DEFAULT_EXPIRES_IN;
+
       const command = new GetObjectCommand({
         Bucket: bucket,
-        Key: key,
+        Key: options.key,
+        ...(options.filename && {
+          ResponseContentDisposition: `attachment; filename="${encodeURIComponent(options.filename)}"`,
+        }),
       });
 
       const url = await getSignedUrl(client, command, { expiresIn });

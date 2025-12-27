@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string) => `/api/folders/${id}`,
     CONTENTS: "/api/folders/contents",
     MOVE: (id: string) => `/api/folders/${id}/move`,
+    STAR: (id: string) => `/api/folders/${id}/star`,
+    STARRED: "/api/folders/starred",
   },
 
   // Assets
@@ -22,6 +24,8 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string) => `/api/assets/${id}`,
     UPLOAD: "/api/assets/upload",
     DOWNLOAD: (id: string) => `/api/assets/${id}/download`,
+    STAR: (id: string) => `/api/assets/${id}/star`,
+    STARRED: "/api/assets/starred",
   },
 
   // Trash

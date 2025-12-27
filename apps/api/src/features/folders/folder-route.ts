@@ -25,6 +25,9 @@ folderRouter.get("/", wrap(folderController.getAllFolders));
 // List folder contents (children of a folder or root)
 folderRouter.get("/contents", wrap(folderController.getFolderContents));
 
+// List starred folders
+folderRouter.get("/starred", wrap(folderController.listStarredFolders));
+
 // Get single folder
 folderRouter.get(
   "/:id",
@@ -60,4 +63,11 @@ folderRouter.delete(
   "/:id",
   validateParams(folderIdParamSchema),
   wrap(folderController.deleteFolder)
+);
+
+// Toggle starred status
+folderRouter.post(
+  "/:id/star",
+  validateParams(folderIdParamSchema),
+  wrap(folderController.toggleStarred)
 );
