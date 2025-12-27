@@ -41,7 +41,7 @@ import { useFileActions } from "@/contexts";
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
   { title: "Folders", href: "/files?view=folders", icon: FolderOpen },
-  { title: "Starred", href: "/files?filter=starred", icon: Star },
+  { title: "Starred", href: "/starred", icon: Star },
   { title: "Trash", href: "/trash", icon: Trash2 },
 ];
 

@@ -339,33 +339,13 @@ export async function toggleStarred(
 }
 
 export async function listStarredFolders(
-  userId: string,
-  query: { page: number; limit: number }
-): Promise<PaginatedFolders> {
-  const { page, limit } = query;
-  const offset = (page - 1) * limit;
-
-  // Get total count
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(folders)
-    .where(and(eq(folders.ownerId, userId), eq(folders.isStarred, true), isNull(folders.trashedAt)));
-
-  const total = countResult?.count ?? 0;
-
-  // Get starred folders
+  userId: string
+): Promise<Folder[]> {
+  // Get all starred folders (no pagination for simplicity)
   const folderList = await db.query.folders.findMany({
     where: and(eq(folders.ownerId, userId), eq(folders.isStarred, true), isNull(folders.trashedAt)),
     orderBy: (folders, { desc }) => [desc(folders.updatedAt)],
-    limit,
-    offset,
   });
 
-  return {
-    folders: folderList,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
+  return folderList;
 }

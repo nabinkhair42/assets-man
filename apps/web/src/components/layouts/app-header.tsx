@@ -11,9 +11,10 @@ interface AppHeaderProps {
   handleNavigate: (folderId: string | null) => void
   viewMode: "grid" | "list"
   setViewMode: (viewMode: "grid" | "list") => void
+  title?: string
 }
 
-const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode }: AppHeaderProps) => {
+const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title }: AppHeaderProps) => {
   return (
     <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/50 bg-background/95 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
       {/* Left side - Sidebar trigger and breadcrumbs */}
@@ -21,7 +22,11 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode }: Ap
         <SidebarTrigger />
         <div className='w-px h-5 bg-border/60 hidden sm:block'/>
         <div className="hidden sm:block">
-          <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
+          {title ? (
+            <span className="text-lg font-semibold">{title}</span>
+          ) : (
+            <FolderBreadcrumbs path={breadcrumbPath} onNavigate={handleNavigate} />
+          )}
         </div>
       </div>
 
