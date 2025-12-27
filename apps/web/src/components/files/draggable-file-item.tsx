@@ -1,19 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import {
-  File,
-  FileImage,
-  FileText,
-  FileVideo,
-  FileAudio,
-  FileArchive,
-  MoreVertical,
-  Download,
-  Pencil,
-  Trash2,
-  FolderInput,
-} from "lucide-react";
+import { MoreVertical, Download, Pencil, Trash2, FolderInput } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -27,7 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { FileIcon } from "@/components/shared";
 import { cn } from "@/lib/utils";
+import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import type { Asset } from "@/types";
 
 interface DraggableFileItemProps {
@@ -40,48 +30,6 @@ interface DraggableFileItemProps {
   index?: number;
 }
 
-function getFileIconData(mimeType: string) {
-  if (mimeType.startsWith("image/")) return { icon: FileImage, color: "text-pink-500", bg: "bg-pink-500/10" };
-  if (mimeType.startsWith("video/")) return { icon: FileVideo, color: "text-purple-500", bg: "bg-purple-500/10" };
-  if (mimeType.startsWith("audio/")) return { icon: FileAudio, color: "text-orange-500", bg: "bg-orange-500/10" };
-  if (
-    mimeType.includes("pdf") ||
-    mimeType.includes("document") ||
-    mimeType.includes("text")
-  )
-    return { icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" };
-  if (
-    mimeType.includes("zip") ||
-    mimeType.includes("rar") ||
-    mimeType.includes("archive")
-  )
-    return { icon: FileArchive, color: "text-amber-500", bg: "bg-amber-500/10" };
-  return { icon: File, color: "text-muted-foreground", bg: "bg-muted" };
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
-}
-
 export function DraggableFileItem({
   asset,
   onDownload,
@@ -90,15 +38,11 @@ export function DraggableFileItem({
   onMove,
   viewMode = "grid",
 }: DraggableFileItemProps) {
-  const { icon: Icon, color, bg } = getFileIconData(asset.mimeType);
   const isListView = viewMode === "list";
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `draggable-asset-${asset.id}`,
-    data: {
-      type: "asset",
-      item: asset,
-    },
+    data: { type: "asset", item: asset },
   });
 
   const menuItems = (
@@ -115,10 +59,7 @@ export function DraggableFileItem({
         <FolderInput className="mr-2 h-4 w-4" />
         Move
       </ContextMenuItem>
-      <ContextMenuItem
-        onClick={() => onDelete(asset)}
-        className="text-destructive focus:text-destructive"
-      >
+      <ContextMenuItem onClick={() => onDelete(asset)} className="text-destructive focus:text-destructive">
         <Trash2 className="mr-2 h-4 w-4" />
         Delete
       </ContextMenuItem>
@@ -131,10 +72,7 @@ export function DraggableFileItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className={cn(
-            "h-8 w-8 transition-opacity",
-            isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
+          className={cn("h-8 w-8 transition-opacity", isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100")}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -154,10 +92,7 @@ export function DraggableFileItem({
           <FolderInput className="mr-2 h-4 w-4" />
           Move
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => onDelete(asset)}
-          className="text-destructive focus:text-destructive"
-        >
+        <DropdownMenuItem onClick={() => onDelete(asset)} className="text-destructive focus:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -180,9 +115,7 @@ export function DraggableFileItem({
               isDragging && "opacity-50 cursor-grabbing bg-primary/10"
             )}
           >
-            <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", bg)}>
-              <Icon className={cn("h-4 w-4", color)} />
-            </div>
+            <FileIcon mimeType={asset.mimeType} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="truncate font-medium text-sm text-foreground">{asset.name}</p>
             </div>
@@ -192,9 +125,7 @@ export function DraggableFileItem({
             <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
               {formatRelativeTime(new Date(asset.createdAt))}
             </div>
-            <div className="w-10 flex justify-end">
-              {dropdownMenu}
-            </div>
+            <div className="w-10 flex justify-end">{dropdownMenu}</div>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>
@@ -202,7 +133,7 @@ export function DraggableFileItem({
     );
   }
 
-  // Grid view layout - card style
+  // Grid view layout
   return (
     <ContextMenu>
       <ContextMenuTrigger>
@@ -211,31 +142,18 @@ export function DraggableFileItem({
           {...attributes}
           {...listeners}
           className={cn(
-            "group relative cursor-grab rounded bg-card rounded p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30",
+            "group relative cursor-grab rounded bg-card p-4 transition-all duration-200 hover:bg-accent/50",
             isDragging && "opacity-50 cursor-grabbing scale-105"
           )}
         >
-          {/* Menu button - top right */}
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {dropdownMenu}
           </div>
-
-          {/* Icon - centered */}
           <div className="flex justify-center mb-3">
-            <div className={cn("flex h-14 w-14 items-center justify-center rounded-xl", bg)}>
-              <Icon className={cn("h-7 w-7", color)} />
-            </div>
+            <FileIcon mimeType={asset.mimeType} size="lg" />
           </div>
-
-          {/* File name */}
-          <p className="truncate font-medium text-sm text-foreground text-center mb-1">
-            {asset.name}
-          </p>
-
-          {/* Metadata */}
-          <p className="text-xs text-muted-foreground text-center">
-            {formatFileSize(asset.size)}
-          </p>
+          <p className="truncate font-medium text-sm text-foreground text-center mb-1">{asset.name}</p>
+          <p className="text-xs text-muted-foreground text-center">{formatFileSize(asset.size)}</p>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>

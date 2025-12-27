@@ -3,6 +3,7 @@ import * as trashController from "./trash-controller.js";
 import { validateParams, validateQuery } from "@/utils/request-validator.js";
 import {
   trashItemIdParamSchema,
+  trashItemTypeParamSchema,
   listTrashQuerySchema,
 } from "@/schema/trash-schema.js";
 import { authenticate, type AuthRequest } from "@/middleware/auth-middleware.js";
@@ -28,6 +29,7 @@ trashRouter.get(
 trashRouter.post(
   "/:id/restore",
   validateParams(trashItemIdParamSchema),
+  validateQuery(trashItemTypeParamSchema),
   wrap(trashController.restoreItem)
 );
 
@@ -35,6 +37,7 @@ trashRouter.post(
 trashRouter.delete(
   "/:id",
   validateParams(trashItemIdParamSchema),
+  validateQuery(trashItemTypeParamSchema),
   wrap(trashController.permanentlyDelete)
 );
 

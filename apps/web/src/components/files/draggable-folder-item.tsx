@@ -1,13 +1,7 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import {
-  Folder as FolderIcon,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  FolderInput,
-} from "lucide-react";
+import { Folder as FolderIcon, MoreVertical, Pencil, Trash2, FolderInput } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,7 +15,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { FileIcon } from "@/components/shared";
 import { cn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/formatters";
 import type { Folder } from "@/types";
 
 interface DraggableFolderItemProps {
@@ -34,21 +30,6 @@ interface DraggableFolderItemProps {
   index?: number;
 }
 
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHour < 24) return `${diffHour}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
-}
-
 export function DraggableFolderItem({
   folder,
   onOpen,
@@ -59,17 +40,9 @@ export function DraggableFolderItem({
 }: DraggableFolderItemProps) {
   const isListView = viewMode === "list";
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDraggableRef,
-    isDragging,
-  } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
     id: `draggable-folder-${folder.id}`,
-    data: {
-      type: "folder",
-      item: folder,
-    },
+    data: { type: "folder", item: folder },
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -90,10 +63,7 @@ export function DraggableFolderItem({
         <FolderInput className="mr-2 h-4 w-4" />
         Move
       </ContextMenuItem>
-      <ContextMenuItem
-        onClick={() => onDelete(folder)}
-        className="text-destructive focus:text-destructive"
-      >
+      <ContextMenuItem onClick={() => onDelete(folder)} className="text-destructive focus:text-destructive">
         <Trash2 className="mr-2 h-4 w-4" />
         Delete
       </ContextMenuItem>
@@ -106,10 +76,7 @@ export function DraggableFolderItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className={cn(
-            "h-8 w-8 transition-opacity",
-            isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
+          className={cn("h-8 w-8 transition-opacity", isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100")}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           tooltipContent="More"
@@ -130,10 +97,7 @@ export function DraggableFolderItem({
           <FolderInput className="mr-2 h-4 w-4" />
           Move
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => onDelete(folder)}
-          className="text-destructive focus:text-destructive"
-        >
+        <DropdownMenuItem onClick={() => onDelete(folder)} className="text-destructive focus:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
         </DropdownMenuItem>
@@ -153,27 +117,21 @@ export function DraggableFolderItem({
               {...listeners}
               className={cn(
                 "group flex cursor-grab items-center gap-3 px-4 py-3 transition-all duration-150",
-                "hover:bg-accent/50 rounded border-b border-border/40",
+                "hover:bg-accent/50 rounded",
                 isDragging && "opacity-50 cursor-grabbing bg-primary/10",
                 isOver && "ring-2 ring-primary bg-primary/10"
               )}
               onDoubleClick={() => onOpen(folder.id)}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-                <FolderIcon className="h-4 w-4 text-primary" />
-              </div>
+              <FileIcon isFolder size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="truncate font-medium text-sm text-foreground">{folder.name}</p>
               </div>
-              <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
-                —
-              </div>
+              <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">—</div>
               <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
                 {formatRelativeTime(new Date(folder.createdAt))}
               </div>
-              <div className="w-10 flex justify-end">
-                {dropdownMenu}
-              </div>
+              <div className="w-10 flex justify-end">{dropdownMenu}</div>
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent>{menuItems}</ContextMenuContent>
@@ -182,7 +140,7 @@ export function DraggableFolderItem({
     );
   }
 
-  // Grid view layout - card style
+  // Grid view layout
   return (
     <div ref={setDroppableRef}>
       <ContextMenu>
@@ -192,33 +150,20 @@ export function DraggableFolderItem({
             {...attributes}
             {...listeners}
             className={cn(
-              "group relative cursor-grab rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30",
+              "group relative cursor-grab rounded bg-card p-4 transition-all duration-200 hover:bg-accent/50",
               isDragging && "opacity-50 cursor-grabbing scale-105",
-              isOver && "ring-2 ring-primary bg-primary/10 border-primary/50"
+              isOver && "ring-2 ring-primary bg-primary/10"
             )}
             onDoubleClick={() => onOpen(folder.id)}
           >
-            {/* Menu button - top right */}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
               {dropdownMenu}
             </div>
-
-            {/* Icon - centered */}
             <div className="flex justify-center mb-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-                <FolderIcon className="h-7 w-7 text-primary" />
-              </div>
+              <FileIcon isFolder size="lg" />
             </div>
-
-            {/* Folder name */}
-            <p className="truncate font-medium text-sm text-foreground text-center mb-1">
-              {folder.name}
-            </p>
-
-            {/* Metadata */}
-            <p className="text-xs text-muted-foreground text-center">
-              Folder
-            </p>
+            <p className="truncate font-medium text-sm text-foreground text-center mb-1">{folder.name}</p>
+            <p className="text-xs text-muted-foreground text-center">Folder</p>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>

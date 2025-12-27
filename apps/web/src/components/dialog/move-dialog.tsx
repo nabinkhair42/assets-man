@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -24,25 +24,25 @@ interface MoveDialogProps {
   itemType: "folder" | "asset";
 }
 
+function getParentId(item: Folder | Asset | null, itemType: "folder" | "asset"): string | null {
+  if (!item) return null;
+  return itemType === "folder" ? (item as Folder).parentId : (item as Asset).folderId;
+}
+
 export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const { data: allFolders = [] } = useFolders();
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
+  const prevOpenRef = useRef(open);
 
-  // Get current parent ID
-  const currentParentId = item
-    ? itemType === "folder"
-      ? (item as Folder).parentId
-      : (item as Asset).folderId
-    : null;
+  const currentParentId = getParentId(item, itemType);
 
-  // Reset selection when dialog opens
-  useEffect(() => {
-    if (open && item) {
-      setSelectedFolderId(currentParentId);
-    }
-  }, [open, item, currentParentId]);
+  // Reset selection when dialog opens (state sync during render, not in effect)
+  if (open && !prevOpenRef.current && item) {
+    setSelectedFolderId(currentParentId);
+  }
+  prevOpenRef.current = open;
 
   // Get IDs to exclude (the item itself and its descendants for folders)
   const excludeIds = useMemo(() => {

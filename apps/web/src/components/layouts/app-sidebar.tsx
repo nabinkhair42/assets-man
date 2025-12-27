@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import {
   Files,
@@ -39,7 +40,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar variant="inset">
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <Stone
@@ -48,7 +49,9 @@ export function AppSidebar() {
               strokeWidth={1.5}
               stroke="white"
             />
-            <span className="text-lg font-semibold">Assets Man</span>
+            <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+              Assets Man
+            </span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -61,6 +64,7 @@ export function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === item.href}
+                      tooltip={item.title}
                     >
                       <Link href={item.href}>
                         <item.icon className="size-4" />
@@ -76,21 +80,25 @@ export function AppSidebar() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild tooltip="Settings">
                 <Link href="/settings">
                   <Settings className="size-4" />
-                  Settings
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => setLogoutDialogOpen(true)}>
+              <SidebarMenuButton
+                onClick={() => setLogoutDialogOpen(true)}
+                tooltip="Logout"
+              >
                 <LogOut className="size-4" />
                 <span>Logout</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
+        <SidebarRail />
       </Sidebar>
 
       <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
