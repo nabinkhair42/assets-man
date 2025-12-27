@@ -24,13 +24,13 @@ import {
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
-import { CreateFolderDialog } from "./create-folder-dialog";
-import { RenameDialog } from "./rename-dialog";
-import { DeleteDialog } from "./delete-dialog";
-import { MoveDialog } from "./move-dialog";
+import { CreateFolderDialog } from "./dialog/create-folder-dialog";
+import { RenameDialog } from "./dialog/rename-dialog";
+import { DeleteDialog } from "./dialog/delete-dialog";
+import { MoveDialog } from "./dialog/move-dialog";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
-import AppHeader from "@/components/app-header";
+import AppHeader from "@/components/layouts/app-header";
 import { assetService } from "@/services";
 
 interface FolderBrowserProps {

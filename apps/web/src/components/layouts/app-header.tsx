@@ -1,8 +1,8 @@
 import { FolderBreadcrumbs } from '@/components'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { SearchCommand } from '@/components/search-command'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { SearchCommand } from '@/components/dialog/search-command'
 import { Folder } from '@/types'
 import { FolderPlus, LayoutGrid, List, Upload } from 'lucide-react'
 

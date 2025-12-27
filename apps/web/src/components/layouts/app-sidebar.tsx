@@ -14,16 +14,6 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Files,
   FolderOpen,
   Star,
@@ -34,7 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useLogout } from "@/hooks";
+import { LogoutDialog } from "@/components/dialog/logout-dialog";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
@@ -45,16 +35,7 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const logout = useLogout();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        setLogoutDialogOpen(false);
-      },
-    });
-  };
 
   return (
     <>
@@ -103,38 +84,16 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => setLogoutDialogOpen(true)}
-                disabled={logout.isPending}
-              >
+              <SidebarMenuButton onClick={() => setLogoutDialogOpen(true)}>
                 <LogOut className="size-4" />
-                <span>{logout.isPending ? "Logging out..." : "Logout"}</span>
+                <span>Logout</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 
-      {/* Logout Confirmation Dialog */}
-      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to logout? You will need to sign in again to access your files.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleLogout}
-              disabled={logout.isPending}
-            >
-              {logout.isPending ? "Logging out..." : "Logout"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
     </>
   );
 }
