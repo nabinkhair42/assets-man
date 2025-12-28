@@ -8,6 +8,7 @@ import { authRouter } from "@/features/auth/auth-route.js";
 import { folderRouter } from "@/features/folders/index.js";
 import { assetRouter } from "@/features/assets/index.js";
 import { trashRouter } from "@/features/trash/index.js";
+import { recentRouter } from "@/features/recent/index.js";
 import { validateServices } from "@/service-validator/index.js";
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/folders", folderRouter);
 app.use("/api/assets", assetRouter);
 app.use("/api/trash", trashRouter);
+app.use("/api/recent", recentRouter);
 
 // 404 handler
 app.use(notFoundHandler);

@@ -35,4 +35,10 @@ export const API_ENDPOINTS = {
     RESTORE: (id: string) => `/api/trash/${id}/restore`,
     PERMANENT_DELETE: (id: string) => `/api/trash/${id}`,
   },
+
+  // Recent
+  RECENT: {
+    BASE: "/api/recent",
+    REMOVE: (id: string) => `/api/recent/${id}`,
+  },
 } as const;

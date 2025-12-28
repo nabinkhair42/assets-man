@@ -23,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Files,
-  FolderOpen,
+  Clock,
   FolderPlus,
   Star,
   Trash2,
@@ -40,7 +40,7 @@ import { useFileActions } from "@/contexts";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
-  { title: "Folders", href: "/files?view=folders", icon: FolderOpen },
+  { title: "Recent", href: "/recent", icon: Clock },
   { title: "Starred", href: "/starred", icon: Star },
   { title: "Trash", href: "/trash", icon: Trash2 },
 ];

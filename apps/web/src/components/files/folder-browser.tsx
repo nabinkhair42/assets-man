@@ -46,7 +46,7 @@ import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, Mobile
 import { toast } from "sonner";
 import type { Folder, Asset, SortBy, SortOrder } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
-import { assetService } from "@/services";
+import { assetService, recentService } from "@/services";
 import { useFileActions } from "@/contexts";
 
 interface FolderBrowserProps {
@@ -138,7 +138,13 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const isLoading = foldersLoading || assetsLoading;
 
-  const handleNavigate = (folderId: string | null) => setCurrentFolderId(folderId);
+  const handleNavigate = useCallback((folderId: string | null) => {
+    setCurrentFolderId(folderId);
+    // Record folder access for recent items
+    if (folderId) {
+      recentService.recordAccess({ itemId: folderId, itemType: "folder" }).catch(() => {});
+    }
+  }, []);
 
   const handleDownload = async (asset: Asset) => {
     try {
@@ -176,6 +182,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       onError: () => toast.error("Failed to update starred status"),
     });
   }, [toggleFolderStarred, refetchFolders]);
+
+  const handlePreview = useCallback((asset: Asset) => {
+    // Record asset access for recent items
+    recentService.recordAccess({ itemId: asset.id, itemType: "asset" }).catch(() => {});
+    setPreviewAsset(asset);
+  }, []);
 
   // Selection handlers with shift+click support
   const handleItemSelect = useCallback((
@@ -514,7 +526,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
                       onMove={(a) => handleMove(a, "asset")}
                       onStar={handleStarAsset}
-                      onPreview={setPreviewAsset}
+                      onPreview={handlePreview}
                       viewMode={viewMode}
                       index={folders.length + index}
                       isSelected={selectedItems.has(`asset-${asset.id}`)}
@@ -587,7 +599,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         onOpenChange={(open) => !open && setPreviewAsset(null)}
         asset={previewAsset}
         assets={assets}
-        onNavigate={setPreviewAsset}
+        onNavigate={handlePreview}
       />
 
       <SelectionToolbar
