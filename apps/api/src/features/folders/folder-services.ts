@@ -1,10 +1,11 @@
-import { eq, and, isNull, isNotNull, count, like } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count, asc, desc, sql } from "drizzle-orm";
 import { createDb, folders, type Folder } from "@repo/database";
 import { config } from "@/config/env.js";
 import type {
   CreateFolderInput,
   UpdateFolderInput,
   MoveFolderInput,
+  FolderContentsQuery,
 } from "@/schema/folder-schema.js";
 
 const db = createDb(config.DATABASE_URL);
@@ -65,21 +66,38 @@ export async function getFolderById(
   return folder ?? null;
 }
 
+function getFolderSortColumn(sortBy: string) {
+  switch (sortBy) {
+    case "createdAt":
+      return folders.createdAt;
+    case "updatedAt":
+      return folders.updatedAt;
+    case "name":
+    default:
+      return folders.name;
+  }
+}
+
 export async function getFolderContents(
   userId: string,
-  parentId: string | null
+  query: FolderContentsQuery
 ): Promise<Folder[]> {
+  const { parentId, sortBy, sortOrder } = query;
+
+  const sortColumn = getFolderSortColumn(sortBy);
+  const orderByClause = sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
+
   if (parentId) {
     return db.query.folders.findMany({
       where: and(eq(folders.parentId, parentId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
-      orderBy: (folders, { asc }) => [asc(folders.name)],
+      orderBy: orderByClause,
     });
   }
 
   // Root level folders - exclude trashed
   return db.query.folders.findMany({
     where: and(isNull(folders.parentId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
-    orderBy: (folders, { asc }) => [asc(folders.name)],
+    orderBy: orderByClause,
   });
 }
 
@@ -297,22 +315,47 @@ export async function emptyTrashFolders(userId: string): Promise<number> {
   return trashedFolders.length;
 }
 
+export interface FolderWithScore extends Folder {
+  relevanceScore?: number;
+}
+
 export async function searchFolders(
   userId: string,
   search: string,
   limit: number = 10
-): Promise<Folder[]> {
-  const searchPattern = `%${search.toLowerCase()}%`;
+): Promise<FolderWithScore[]> {
+  const searchTerm = search.trim().toLowerCase();
+  const likePattern = `%${searchTerm}%`;
 
-  return db.query.folders.findMany({
-    where: and(
+  // Fuzzy match or exact substring match
+  const fuzzyCondition = sql`(
+    similarity(lower(${folders.name}), ${searchTerm}) > 0.1
+    OR lower(${folders.name}) LIKE ${likePattern}
+  )`;
+
+  const results = await db
+    .select({
+      id: folders.id,
+      name: folders.name,
+      parentId: folders.parentId,
+      ownerId: folders.ownerId,
+      path: folders.path,
+      isStarred: folders.isStarred,
+      trashedAt: folders.trashedAt,
+      createdAt: folders.createdAt,
+      updatedAt: folders.updatedAt,
+      relevanceScore: sql<number>`similarity(lower(${folders.name}), ${searchTerm})`,
+    })
+    .from(folders)
+    .where(and(
       eq(folders.ownerId, userId),
       isNull(folders.trashedAt),
-      like(folders.name, searchPattern)
-    ),
-    orderBy: (folders, { asc }) => [asc(folders.name)],
-    limit,
-  });
+      fuzzyCondition
+    ))
+    .orderBy(sql`similarity(lower(${folders.name}), ${searchTerm}) DESC`)
+    .limit(limit);
+
+  return results;
 }
 
 export async function toggleStarred(

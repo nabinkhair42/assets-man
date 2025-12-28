@@ -16,12 +16,20 @@ export const assetIdParamSchema = z.object({
   id: z.string().uuid(),
 });
 
+export const sortBySchema = z.enum(["name", "size", "createdAt", "updatedAt"]);
+export const sortOrderSchema = z.enum(["asc", "desc"]);
+
 export const listAssetsQuerySchema = z.object({
   folderId: z.string().uuid().optional(),
   search: z.string().optional(),
   page: z.coerce.number().positive().default(1),
   limit: z.coerce.number().positive().max(100).default(20),
+  sortBy: sortBySchema.default("createdAt"),
+  sortOrder: sortOrderSchema.default("desc"),
 });
+
+export type SortBy = z.infer<typeof sortBySchema>;
+export type SortOrder = z.infer<typeof sortOrderSchema>;
 
 export type RequestUploadInput = z.infer<typeof requestUploadSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;

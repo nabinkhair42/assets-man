@@ -2,10 +2,12 @@ import type { Response } from "express";
 import { sendSuccess, sendError } from "@/utils/response-utils.js";
 import * as folderService from "./folder-services.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
-import type {
-  CreateFolderInput,
-  UpdateFolderInput,
-  MoveFolderInput,
+import {
+  folderContentsQuerySchema,
+  folderSearchQuerySchema,
+  type CreateFolderInput,
+  type UpdateFolderInput,
+  type MoveFolderInput,
 } from "@/schema/folder-schema.js";
 
 export async function createFolder(
@@ -58,8 +60,12 @@ export async function getFolderContents(
   res: Response
 ): Promise<void> {
   try {
-    const parentId = (req.query.parentId as string) || null;
-    const folders = await folderService.getFolderContents(req.userId, parentId);
+    const parsed = folderContentsQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      sendError(res, "VALIDATION_ERROR", "Invalid query parameters", 400);
+      return;
+    }
+    const folders = await folderService.getFolderContents(req.userId, parsed.data);
     sendSuccess(res, { folders });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to get folder contents", 500);
@@ -203,5 +209,24 @@ export async function listStarredFolders(
     sendSuccess(res, { folders });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to list starred folders", 500);
+  }
+}
+
+export async function searchFolders(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const parsed = folderSearchQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      sendError(res, "VALIDATION_ERROR", "Invalid search parameters", 400);
+      return;
+    }
+
+    const { q, limit } = parsed.data;
+    const folders = await folderService.searchFolders(req.userId, q, limit);
+    sendSuccess(res, { folders });
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to search folders", 500);
   }
 }

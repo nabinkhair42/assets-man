@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     BASE: "/api/folders",
     BY_ID: (id: string) => `/api/folders/${id}`,
     CONTENTS: "/api/folders/contents",
+    SEARCH: "/api/folders/search",
     MOVE: (id: string) => `/api/folders/${id}/move`,
     STAR: (id: string) => `/api/folders/${id}/star`,
     STARRED: "/api/folders/starred",

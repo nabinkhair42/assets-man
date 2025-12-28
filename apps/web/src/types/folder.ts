@@ -1,3 +1,5 @@
+import type { SortOrder } from "./asset";
+
 export interface Folder {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface Folder {
   trashedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  relevanceScore?: number; // Present in search results
 }
 
 export interface CreateFolderInput {
@@ -22,6 +25,10 @@ export interface MoveFolderInput {
   parentId: string | null;
 }
 
+export type FolderSortBy = "name" | "createdAt" | "updatedAt";
+
 export interface FolderContentsParams {
   parentId?: string | null;
+  sortBy?: FolderSortBy;
+  sortOrder?: SortOrder;
 }

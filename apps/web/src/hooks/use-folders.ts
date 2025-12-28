@@ -4,14 +4,15 @@ import type {
   CreateFolderInput,
   UpdateFolderInput,
   MoveFolderInput,
+  FolderContentsParams,
 } from "@/types";
 
 export const folderKeys = {
   all: ["folders"] as const,
   lists: () => [...folderKeys.all, "list"] as const,
   list: () => [...folderKeys.lists(), "all"] as const,
-  contents: (parentId?: string | null) =>
-    [...folderKeys.lists(), "contents", parentId ?? "root"] as const,
+  contents: (params?: FolderContentsParams) =>
+    [...folderKeys.lists(), "contents", params] as const,
   details: () => [...folderKeys.all, "detail"] as const,
   detail: (id: string) => [...folderKeys.details(), id] as const,
 };
@@ -23,10 +24,10 @@ export function useFolders() {
   });
 }
 
-export function useFolderContents(parentId?: string | null) {
+export function useFolderContents(params?: FolderContentsParams) {
   return useQuery({
-    queryKey: folderKeys.contents(parentId),
-    queryFn: () => folderService.getContents({ parentId }),
+    queryKey: folderKeys.contents(params),
+    queryFn: () => folderService.getContents(params),
   });
 }
 
@@ -43,11 +44,8 @@ export function useCreateFolder() {
 
   return useMutation({
     mutationFn: (input: CreateFolderInput) => folderService.create(input),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
-      queryClient.invalidateQueries({
-        queryKey: folderKeys.contents(variables.parentId),
-      });
     },
   });
 }

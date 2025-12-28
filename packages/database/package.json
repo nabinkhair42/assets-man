@@ -9,6 +9,7 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:enable-trgm": "tsx src/enable-trgm.ts",
     "type-check": "tsc --noEmit",
     "lint": "eslint src/"
   },
@@ -35,6 +36,7 @@
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"
   }

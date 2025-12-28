@@ -24,7 +24,10 @@
       "Bash(done)",
       "Bash(npx tsc:*)",
       "Bash(mkdir:*)",
-      "Bash(pnpm dev)"
+      "Bash(pnpm dev)",
+      "Bash(ls:*)",
+      "Bash(PGPASSWORD=mysecretpassword psql:*)",
+      "Bash(pnpm db:enable-trgm:*)"
     ]
   }
 }

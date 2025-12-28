@@ -1,4 +1,4 @@
-import { eq, and, isNull, isNotNull, count, like, or } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, type SQL } from "drizzle-orm";
 import { createDb, assets, folders, type Asset } from "@repo/database";
 import {
   createStorageClient,
@@ -28,8 +28,12 @@ export interface UploadUrlResult {
   asset: Asset;
 }
 
+export interface AssetWithScore extends Asset {
+  relevanceScore?: number;
+}
+
 export interface PaginatedAssets {
-  assets: Asset[];
+  assets: AssetWithScore[];
   total: number;
   page: number;
   limit: number;
@@ -117,37 +121,110 @@ export async function getDownloadUrl(
   return { url, asset };
 }
 
+function getAssetSortColumn(sortBy: string) {
+  switch (sortBy) {
+    case "name":
+      return assets.name;
+    case "size":
+      return assets.size;
+    case "updatedAt":
+      return assets.updatedAt;
+    case "createdAt":
+    default:
+      return assets.createdAt;
+  }
+}
+
 export async function listAssets(
   userId: string,
   query: ListAssetsQuery
 ): Promise<PaginatedAssets> {
-  const { folderId, search, page, limit } = query;
+  const { folderId, search, page, limit, sortBy, sortOrder } = query;
   const offset = (page - 1) * limit;
 
-  // Build base conditions
+  // If searching, use fuzzy search with pg_trgm
+  if (search) {
+    const searchTerm = search.trim().toLowerCase();
+    const likePattern = `%${searchTerm}%`;
+
+    // Fuzzy condition: similarity > threshold OR contains substring
+    const fuzzyCondition = sql`(
+      GREATEST(
+        similarity(lower(${assets.name}), ${searchTerm}),
+        similarity(lower(${assets.originalName}), ${searchTerm})
+      ) > 0.1
+      OR lower(${assets.name}) LIKE ${likePattern}
+      OR lower(${assets.originalName}) LIKE ${likePattern}
+    )`;
+
+    // Count total matching assets
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(assets)
+      .where(and(
+        eq(assets.ownerId, userId),
+        isNull(assets.trashedAt),
+        fuzzyCondition
+      ));
+
+    const total = countResult?.count ?? 0;
+
+    // Get assets with relevance score, ordered by relevance
+    const results = await db
+      .select({
+        id: assets.id,
+        name: assets.name,
+        originalName: assets.originalName,
+        mimeType: assets.mimeType,
+        size: assets.size,
+        storageKey: assets.storageKey,
+        folderId: assets.folderId,
+        ownerId: assets.ownerId,
+        thumbnailKey: assets.thumbnailKey,
+        isStarred: assets.isStarred,
+        trashedAt: assets.trashedAt,
+        createdAt: assets.createdAt,
+        updatedAt: assets.updatedAt,
+        relevanceScore: sql<number>`GREATEST(
+          similarity(lower(${assets.name}), ${searchTerm}),
+          similarity(lower(${assets.originalName}), ${searchTerm})
+        )`,
+      })
+      .from(assets)
+      .where(and(
+        eq(assets.ownerId, userId),
+        isNull(assets.trashedAt),
+        fuzzyCondition
+      ))
+      .orderBy(sql`GREATEST(
+        similarity(lower(${assets.name}), ${searchTerm}),
+        similarity(lower(${assets.originalName}), ${searchTerm})
+      ) DESC`)
+      .limit(limit)
+      .offset(offset);
+
+    return {
+      assets: results.map(r => ({
+        ...r,
+        relevanceScore: r.relevanceScore,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  // Non-search query - filter by folder
   const baseConditions = [
     eq(assets.ownerId, userId),
     isNull(assets.trashedAt),
   ];
 
-  // Add folder filter only if not searching (search is global)
-  if (!search) {
-    if (folderId) {
-      baseConditions.push(eq(assets.folderId, folderId));
-    } else {
-      baseConditions.push(isNull(assets.folderId));
-    }
-  }
-
-  // Add search condition if provided
-  if (search) {
-    const searchPattern = `%${search.toLowerCase()}%`;
-    baseConditions.push(
-      or(
-        like(assets.name, searchPattern),
-        like(assets.originalName, searchPattern)
-      )!
-    );
+  if (folderId) {
+    baseConditions.push(eq(assets.folderId, folderId));
+  } else {
+    baseConditions.push(isNull(assets.folderId));
   }
 
   const whereClause = and(...baseConditions);
@@ -160,10 +237,14 @@ export async function listAssets(
 
   const total = countResult?.count ?? 0;
 
+  // Build order by clause
+  const sortColumn = getAssetSortColumn(sortBy);
+  const orderByClause = sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
+
   // Get assets
   const assetList = await db.query.assets.findMany({
     where: whereClause,
-    orderBy: (assets, { desc }) => [desc(assets.createdAt)],
+    orderBy: orderByClause,
     limit,
     offset,
   });

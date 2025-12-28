@@ -40,11 +40,12 @@ import {
   RenameDialog,
   DeleteDialog,
   MoveDialog,
+  FilePreviewDialog,
 } from "@/components/dialog";
 import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, MobileFab, type SelectedItem } from "@/components/shared";
 import { toast } from "sonner";
-import type { Folder, Asset } from "@/types";
-import { AppHeader } from "@/components/layouts";
+import type { Folder, Asset, SortBy, SortOrder } from "@/types";
+import { AppHeader, type SortConfig } from "@/components/layouts";
 import { assetService } from "@/services";
 import { useFileActions } from "@/contexts";
 
@@ -62,10 +63,12 @@ const FILE_LIST_COLUMNS = [
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [moveItem, setMoveItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
@@ -93,8 +96,15 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
+  // Map asset sortBy to folder sortBy (folders don't have size)
+  const folderSortBy = sortConfig.sortBy === "size" ? "name" : sortConfig.sortBy;
+
   const { data: allFolders = [], refetch: refetchFolders } = useFolders();
-  const { data: folders = [], isLoading: foldersLoading } = useFolderContents(currentFolderId);
+  const { data: folders = [], isLoading: foldersLoading } = useFolderContents({
+    parentId: currentFolderId,
+    sortBy: folderSortBy,
+    sortOrder: sortConfig.sortOrder,
+  });
   const {
     data: assetsData,
     isLoading: assetsLoading,
@@ -102,7 +112,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     hasNextPage,
     fetchNextPage,
     refetch: refetchAssets,
-  } = useInfiniteAssets({ folderId: currentFolderId ?? undefined });
+  } = useInfiniteAssets({
+    folderId: currentFolderId ?? undefined,
+    sortBy: sortConfig.sortBy,
+    sortOrder: sortConfig.sortOrder,
+  });
   const uploadFile = useUploadFile();
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
@@ -419,6 +433,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         handleNavigate={handleNavigate}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        sortConfig={sortConfig}
+        onSortChange={setSortConfig}
       />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -438,7 +454,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             </div>
           )}
 
-          <ScrollArea className="h-full [&>[data-radix-scroll-area-viewport]]:min-h-full">
+          <ScrollArea className="h-full *:data-radix-scroll-area-viewport:min-h-full">
             <ContextMenu>
               <ContextMenuTrigger asChild>
                 <div
@@ -498,6 +514,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
                       onMove={(a) => handleMove(a, "asset")}
                       onStar={handleStarAsset}
+                      onPreview={setPreviewAsset}
                       viewMode={viewMode}
                       index={folders.length + index}
                       isSelected={selectedItems.has(`asset-${asset.id}`)}
@@ -565,6 +582,13 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       <RenameDialog open={!!renameItem} onOpenChange={(open) => !open && setRenameItem(null)} item={renameItem?.item ?? null} itemType={renameItem?.type ?? "folder"} />
       <DeleteDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)} item={deleteItem?.item ?? null} itemType={deleteItem?.type ?? "folder"} />
       <MoveDialog open={!!moveItem} onOpenChange={(open) => !open && setMoveItem(null)} item={moveItem?.item ?? null} itemType={moveItem?.type ?? "folder"} />
+      <FilePreviewDialog
+        open={!!previewAsset}
+        onOpenChange={(open) => !open && setPreviewAsset(null)}
+        asset={previewAsset}
+        assets={assets}
+        onNavigate={setPreviewAsset}
+      />
 
       <SelectionToolbar
         selectedItems={Array.from(selectedItems.values())}

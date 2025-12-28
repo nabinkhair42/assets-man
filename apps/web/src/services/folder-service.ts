@@ -20,7 +20,7 @@ export const folderService = {
   async getContents(params?: FolderContentsParams): Promise<Folder[]> {
     const response = await apiClient.get<ApiResponse<{ folders: Folder[] }>>(
       API_ENDPOINTS.FOLDERS.CONTENTS,
-      { params: { parentId: params?.parentId } }
+      { params }
     );
     return response.data.data.folders;
   },
@@ -61,13 +61,11 @@ export const folderService = {
   },
 
   async search(query: string, limit: number = 10): Promise<Folder[]> {
-    // For now, we fetch all folders and filter client-side
-    // Could add server-side search endpoint later
-    const allFolders = await this.getAll();
-    const searchLower = query.toLowerCase();
-    return allFolders
-      .filter((folder) => folder.name.toLowerCase().includes(searchLower))
-      .slice(0, limit);
+    const response = await apiClient.get<ApiResponse<{ folders: Folder[] }>>(
+      API_ENDPOINTS.FOLDERS.SEARCH,
+      { params: { q: query, limit } }
+    );
+    return response.data.data.folders;
   },
 
   async toggleStarred(id: string): Promise<Folder> {

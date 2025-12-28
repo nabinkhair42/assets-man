@@ -12,6 +12,7 @@ export interface Asset {
   trashedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  relevanceScore?: number; // Present in search results
 }
 
 export interface RequestUploadInput {
@@ -31,11 +32,16 @@ export interface UpdateAssetInput {
   folderId?: string | null;
 }
 
+export type SortBy = "name" | "size" | "createdAt" | "updatedAt";
+export type SortOrder = "asc" | "desc";
+
 export interface ListAssetsParams {
   folderId?: string;
   search?: string;
   page?: number;
   limit?: number;
+  sortBy?: SortBy;
+  sortOrder?: SortOrder;
 }
 
 export interface PaginatedAssets {

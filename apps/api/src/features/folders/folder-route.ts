@@ -25,6 +25,9 @@ folderRouter.get("/", wrap(folderController.getAllFolders));
 // List folder contents (children of a folder or root)
 folderRouter.get("/contents", wrap(folderController.getFolderContents));
 
+// Search folders (fuzzy search)
+folderRouter.get("/search", wrap(folderController.searchFolders));
+
 // List starred folders
 folderRouter.get("/starred", wrap(folderController.listStarredFolders));
 

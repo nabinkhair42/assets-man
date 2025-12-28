@@ -45,6 +45,22 @@ function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+function getRelevanceLabel(score: number | undefined): string | null {
+  if (score === undefined) return null;
+  if (score >= 0.8) return "Best match";
+  if (score >= 0.5) return "Good match";
+  if (score >= 0.3) return "Partial match";
+  return null;
+}
+
+function getRelevanceColor(score: number | undefined): string {
+  if (score === undefined) return "";
+  if (score >= 0.8) return "text-green-500";
+  if (score >= 0.5) return "text-blue-500";
+  if (score >= 0.3) return "text-amber-500";
+  return "text-muted-foreground";
+}
+
 interface SearchCommandProps {
   onNavigateToFolder?: (folderId: string | null) => void;
 }
@@ -167,17 +183,25 @@ export function SearchCommand({ onNavigateToFolder }: SearchCommandProps) {
             <>
               {folders.length > 0 && (
                 <CommandGroup heading="Folders">
-                  {folders.map((folder) => (
-                    <CommandItem
-                      key={`folder-${folder.id}`}
-                      value={`folder-${folder.name}`}
-                      onSelect={() => handleSelectFolder(folder)}
-                      className="cursor-pointer"
-                    >
-                      <FolderIcon className="mr-2 h-4 w-4 text-primary" />
-                      <span className="flex-1 truncate">{folder.name}</span>
-                    </CommandItem>
-                  ))}
+                  {folders.map((folder) => {
+                    const relevanceLabel = getRelevanceLabel(folder.relevanceScore);
+                    return (
+                      <CommandItem
+                        key={`folder-${folder.id}`}
+                        value={`folder-${folder.name}`}
+                        onSelect={() => handleSelectFolder(folder)}
+                        className="cursor-pointer"
+                      >
+                        <FolderIcon className="mr-2 h-4 w-4 text-primary" />
+                        <span className="flex-1 truncate">{folder.name}</span>
+                        {relevanceLabel && (
+                          <span className={cn("ml-2 text-xs", getRelevanceColor(folder.relevanceScore))}>
+                            {relevanceLabel}
+                          </span>
+                        )}
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               )}
               {folders.length > 0 && assets.length > 0 && <CommandSeparator />}
@@ -185,6 +209,7 @@ export function SearchCommand({ onNavigateToFolder }: SearchCommandProps) {
                 <CommandGroup heading="Files">
                   {assets.map((asset) => {
                     const { icon: Icon, color } = getFileIconData(asset.mimeType);
+                    const relevanceLabel = getRelevanceLabel(asset.relevanceScore);
                     return (
                       <CommandItem
                         key={`asset-${asset.id}`}
@@ -194,6 +219,11 @@ export function SearchCommand({ onNavigateToFolder }: SearchCommandProps) {
                       >
                         <Icon className={cn("mr-2 h-4 w-4", color)} />
                         <span className="flex-1 truncate">{asset.name}</span>
+                        {relevanceLabel && (
+                          <span className={cn("ml-2 text-xs", getRelevanceColor(asset.relevanceScore))}>
+                            {relevanceLabel}
+                          </span>
+                        )}
                         <span className="ml-2 text-xs text-muted-foreground">
                           {formatFileSize(asset.size)}
                         </span>

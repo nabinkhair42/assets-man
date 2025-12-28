@@ -3,8 +3,22 @@ import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { SearchCommand } from '@/components/dialog/search-command'
-import { Folder } from '@/types'
-import { LayoutGrid, List } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu'
+import { Folder, SortBy, SortOrder } from '@/types'
+import { LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+
+export interface SortConfig {
+  sortBy: SortBy
+  sortOrder: SortOrder
+}
 
 interface AppHeaderProps {
   breadcrumbPath: Folder[]
@@ -12,13 +26,34 @@ interface AppHeaderProps {
   viewMode: "grid" | "list"
   setViewMode: (viewMode: "grid" | "list") => void
   title?: string
+  sortConfig?: SortConfig
+  onSortChange?: (config: SortConfig) => void
 }
 
-const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title }: AppHeaderProps) => {
+const SORT_LABELS: Record<SortBy, string> = {
+  name: "Name",
+  size: "Size",
+  createdAt: "Date created",
+  updatedAt: "Date modified",
+}
+
+const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title, sortConfig, onSortChange }: AppHeaderProps) => {
   // Get current folder name for mobile display
   const currentFolderName = breadcrumbPath.length > 0
     ? breadcrumbPath[breadcrumbPath.length - 1]?.name
     : "My Files";
+
+  const handleSortByChange = (value: string) => {
+    if (onSortChange && sortConfig) {
+      onSortChange({ ...sortConfig, sortBy: value as SortBy })
+    }
+  }
+
+  const handleSortOrderChange = (value: string) => {
+    if (onSortChange && sortConfig) {
+      onSortChange({ ...sortConfig, sortOrder: value as SortOrder })
+    }
+  }
 
   return (
     <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/50 bg-background/95 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
@@ -45,8 +80,43 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, titl
         <SearchCommand onNavigateToFolder={handleNavigate} />
       </div>
 
-      {/* Right side - Theme toggle and view toggle */}
+      {/* Right side - Sort, Theme toggle, and view toggle */}
       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+        {sortConfig && onSortChange && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground hover:text-foreground"
+                tooltipContent="Sort options"
+              >
+                <ArrowUpDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={sortConfig.sortBy} onValueChange={handleSortByChange}>
+                <DropdownMenuRadioItem value="name">Name</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="size">Size</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="createdAt">Date created</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="updatedAt">Date modified</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Order</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={sortConfig.sortOrder} onValueChange={handleSortOrderChange}>
+                <DropdownMenuRadioItem value="asc">
+                  <ArrowUp className="mr-2 h-4 w-4" />
+                  Ascending
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="desc">
+                  <ArrowDown className="mr-2 h-4 w-4" />
+                  Descending
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <ThemeToggle />
         <div className='w-px h-5 bg-border/60 hidden sm:block'/>
         <Button

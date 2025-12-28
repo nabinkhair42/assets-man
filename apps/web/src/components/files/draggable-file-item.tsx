@@ -29,6 +29,7 @@ interface DraggableFileItemProps {
   onDelete: (asset: Asset) => void;
   onMove: (asset: Asset) => void;
   onStar?: (asset: Asset) => void;
+  onPreview?: (asset: Asset) => void;
   viewMode?: "grid" | "list";
   index?: number;
   isSelected?: boolean;
@@ -48,6 +49,7 @@ export function DraggableFileItem({
   onDelete,
   onMove,
   onStar,
+  onPreview,
   viewMode = "grid",
   isSelected = false,
   isPendingSelection = false,
@@ -167,6 +169,10 @@ export function DraggableFileItem({
     onSelect?.(asset, !isSelected, e.shiftKey);
   };
 
+  const handleDoubleClick = () => {
+    onPreview?.(asset);
+  };
+
   // Auto-select on context menu open (Google Drive behavior)
   const handleContextMenuOpen = (open: boolean) => {
     if (open && !isSelected) {
@@ -185,6 +191,7 @@ export function DraggableFileItem({
             {...listeners}
             data-item-id={`asset-${asset.id}`}
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             className={cn(
               "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
               "hover:bg-accent/50 rounded-lg",
@@ -228,6 +235,7 @@ export function DraggableFileItem({
           {...listeners}
           data-item-id={`asset-${asset.id}`}
           onClick={handleClick}
+          onDoubleClick={handleDoubleClick}
           className={cn(
             "group relative cursor-pointer rounded-lg bg-card p-4 transition-all duration-150",
             "hover:bg-accent/50",
