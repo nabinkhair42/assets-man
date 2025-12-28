@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Upload, Folder as FolderIcon } from "lucide-react";
+import { Upload, Folder as FolderIcon, FolderPlus, CheckSquare, RefreshCw } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+} from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import {
   DndContext,
@@ -33,7 +41,7 @@ import {
   DeleteDialog,
   MoveDialog,
 } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, type SelectedItem } from "@/components/shared";
+import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, MobileFab, type SelectedItem } from "@/components/shared";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
@@ -45,11 +53,10 @@ interface FolderBrowserProps {
 }
 
 const FILE_LIST_COLUMNS = [
-  { label: "", width: "w-8" },
   { label: "Name" },
   { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
   { label: "Modified", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-10" },
+  { label: "", width: "w-8" },
 ];
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
@@ -233,7 +240,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   }, [allItems, handleClearSelection]);
 
   // Marquee selection hook
-  const { isSelecting: isMarqueeSelecting, marqueeRect, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
+  const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
     items: allItems,
     getItemId: (item) => `${item.type}-${item.id}`,
     onSelectionChange: handleMarqueeSelectionChange,
@@ -269,6 +276,20 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     }
     handleClearSelection();
   }, [selectedItems, assets, handleClearSelection]);
+
+  const handleSelectAll = useCallback(() => {
+    const newSelection = new Map<string, SelectedItem>();
+    for (const item of allItems) {
+      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+    }
+    setSelectedItems(newSelection);
+  }, [allItems]);
+
+  const handleRefresh = useCallback(() => {
+    refetchFolders();
+    refetchAssets();
+    toast.success("Refreshed");
+  }, [refetchFolders, refetchAssets]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -417,25 +438,27 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             </div>
           )}
 
-          <ScrollArea className="h-full">
-            <div
-              ref={contentContainerRef}
-              className="p-6 relative"
-              onMouseDown={handleMarqueeMouseDown}
-            >
-              {/* Marquee selection rectangle */}
-              {isMarqueeSelecting && marqueeRect && (
+          <ScrollArea className="h-full [&>[data-radix-scroll-area-viewport]]:min-h-full">
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
                 <div
-                  className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-50"
-                  style={{
-                    left: marqueeRect.left,
-                    top: marqueeRect.top,
-                    width: marqueeRect.width,
-                    height: marqueeRect.height,
-                  }}
-                />
-              )}
-              {isLoading ? (
+                  ref={contentContainerRef}
+                  className="p-3 sm:p-6 relative min-h-[calc(100vh-8rem)]"
+                  onMouseDown={handleMarqueeMouseDown}
+                >
+                  {/* Marquee selection rectangle */}
+                  {isMarqueeSelecting && marqueeRect && (
+                    <div
+                      className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-50"
+                      style={{
+                        left: marqueeRect.left,
+                        top: marqueeRect.top,
+                        width: marqueeRect.width,
+                        height: marqueeRect.height,
+                      }}
+                    />
+                  )}
+                  {isLoading ? (
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : folders.length === 0 && assets.length === 0 ? (
                 <EmptyState
@@ -444,7 +467,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                   description="Create a folder or upload files to get started"
                 />
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "flex flex-col"}>
+                <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4" : "flex flex-col"}>
                   {viewMode === "list" && <ListHeader columns={FILE_LIST_COLUMNS} />}
                   {folders.map((folder, index) => (
                     <DraggableFolderItem
@@ -458,6 +481,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       viewMode={viewMode}
                       index={index}
                       isSelected={selectedItems.has(`folder-${folder.id}`)}
+                      isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
                       onSelect={handleSelectFolder}
                       selectionMode={selectionMode}
                       selectedCount={selectedItems.size}
@@ -477,6 +501,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       viewMode={viewMode}
                       index={folders.length + index}
                       isSelected={selectedItems.has(`asset-${asset.id}`)}
+                      isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
                       onSelect={handleSelectAsset}
                       selectionMode={selectionMode}
                       selectedCount={selectedItems.size}
@@ -488,15 +513,41 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                 </div>
               )}
 
-              {!isLoading && (folders.length > 0 || assets.length > 0) && (
-                <InfiniteScrollTrigger
-                  hasNextPage={hasNextPage}
-                  isFetchingNextPage={isFetchingNextPage}
-                  fetchNextPage={fetchNextPage}
-                  endMessage="No more files"
-                />
-              )}
-            </div>
+                  {!isLoading && (folders.length > 0 || assets.length > 0) && (
+                    <InfiniteScrollTrigger
+                      hasNextPage={hasNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
+                      fetchNextPage={fetchNextPage}
+                    />
+                  )}
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-48">
+                <ContextMenuItem onClick={() => setCreateFolderOpen(true)}>
+                  <FolderPlus className="mr-2 h-4 w-4" />
+                  New folder
+                  <ContextMenuShortcut>Ctrl+N</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload files
+                  <ContextMenuShortcut>Ctrl+U</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                {allItems.length > 0 && (
+                  <ContextMenuItem onClick={handleSelectAll}>
+                    <CheckSquare className="mr-2 h-4 w-4" />
+                    Select all
+                    <ContextMenuShortcut>Ctrl+A</ContextMenuShortcut>
+                  </ContextMenuItem>
+                )}
+                <ContextMenuItem onClick={handleRefresh}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh
+                  <ContextMenuShortcut>F5</ContextMenuShortcut>
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </ScrollArea>
         </div>
 
@@ -521,6 +572,13 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         onDelete={handleBulkDelete}
         onMove={handleBulkMove}
         onDownload={handleBulkDownload}
+      />
+
+      <MobileFab
+        onUpload={() => fileInputRef.current?.click()}
+        onNewFolder={() => setCreateFolderOpen(true)}
+        disabled={uploadingCount > 0}
+        hidden={selectionMode}
       />
     </div>
   );

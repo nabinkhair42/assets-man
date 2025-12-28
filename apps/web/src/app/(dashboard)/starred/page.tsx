@@ -331,7 +331,6 @@ export default function StarredPage() {
                   hasNextPage={hasNextPage}
                   isFetchingNextPage={isFetchingNextPage}
                   fetchNextPage={fetchNextPage}
-                  endMessage="No more starred items"
                 />
               )}
             </div>

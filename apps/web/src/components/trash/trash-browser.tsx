@@ -109,7 +109,6 @@ export function TrashBrowser() {
               hasNextPage={hasNextPage}
               isFetchingNextPage={isFetchingNextPage}
               fetchNextPage={fetchNextPage}
-              endMessage="No more items"
             />
           )}
         </div>

@@ -17,10 +17,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { FileIcon } from "@/components/shared";
 import { cn } from "@/lib/utils";
-import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
+import { formatFileSize, formatRelativeTime, truncateFileName } from "@/lib/formatters";
 import type { Asset } from "@/types";
 
 interface DraggableFileItemProps {
@@ -33,6 +32,7 @@ interface DraggableFileItemProps {
   viewMode?: "grid" | "list";
   index?: number;
   isSelected?: boolean;
+  isPendingSelection?: boolean;
   onSelect?: (asset: Asset, selected: boolean, shiftKey?: boolean) => void;
   selectionMode?: boolean;
   selectedCount?: number;
@@ -50,15 +50,14 @@ export function DraggableFileItem({
   onStar,
   viewMode = "grid",
   isSelected = false,
+  isPendingSelection = false,
   onSelect,
-  selectionMode = false,
   selectedCount = 0,
   onBulkDownload,
   onBulkDelete,
   onBulkMove,
 }: DraggableFileItemProps) {
   const isListView = viewMode === "list";
-  const showCheckbox = selectionMode || isSelected;
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `draggable-asset-${asset.id}`,
@@ -125,7 +124,7 @@ export function DraggableFileItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className={cn("h-8 w-8 transition-opacity", isListView ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100")}
+          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -159,11 +158,13 @@ export function DraggableFileItem({
     </DropdownMenu>
   );
 
-  const handleCheckboxClick = (e: React.MouseEvent) => {
+  // Handle click to toggle selection (Google Drive style)
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't toggle if clicking on dropdown or other interactive elements
+    if ((e.target as HTMLElement).closest("button")) return;
+
     e.stopPropagation();
-    // Capture shiftKey and toggle selection
-    const newChecked = !isSelected;
-    onSelect?.(asset, newChecked, e.shiftKey);
+    onSelect?.(asset, !isSelected, e.shiftKey);
   };
 
   // Auto-select on context menu open (Google Drive behavior)
@@ -183,29 +184,25 @@ export function DraggableFileItem({
             {...attributes}
             {...listeners}
             data-item-id={`asset-${asset.id}`}
+            onClick={handleClick}
             className={cn(
-              "group flex cursor-grab items-center gap-3 px-4 py-3 transition-all duration-150",
-              "hover:bg-accent/50 rounded",
-              isDragging && "opacity-50 cursor-grabbing bg-primary/10",
-              isSelected && "bg-primary/10"
+              "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
+              "hover:bg-accent/50 rounded-lg",
+              isDragging && "opacity-50 cursor-grabbing",
+              isPendingSelection && "bg-primary/20 ring-2 ring-primary ring-inset",
+              isSelected && "bg-primary/15 ring-2 ring-primary/60 ring-inset"
             )}
           >
-            <div
-              className={cn(
-                "flex items-center justify-center w-5 transition-opacity cursor-pointer",
-                showCheckbox ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-              )}
-              onClick={handleCheckboxClick}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <Checkbox
-                checked={isSelected}
-                className="pointer-events-none"
-              />
-            </div>
             <FileIcon mimeType={asset.mimeType} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="truncate font-medium text-sm text-foreground">{asset.name}</p>
+            <div className="flex-1 min-w-0" title={asset.name}>
+              {/* Mobile: Show truncated name */}
+              <p className="sm:hidden font-medium text-sm text-foreground">
+                {truncateFileName(asset.name, 28)}
+              </p>
+              {/* Desktop: Show full name with CSS truncation */}
+              <p className="hidden sm:block truncate font-medium text-sm text-foreground">
+                {asset.name}
+              </p>
             </div>
             <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
               {formatFileSize(asset.size)}
@@ -213,7 +210,7 @@ export function DraggableFileItem({
             <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
               {formatRelativeTime(new Date(asset.createdAt))}
             </div>
-            <div className="w-10 flex justify-end">{dropdownMenu}</div>
+            <div className="w-8 flex justify-end">{dropdownMenu}</div>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>
@@ -230,25 +227,15 @@ export function DraggableFileItem({
           {...attributes}
           {...listeners}
           data-item-id={`asset-${asset.id}`}
+          onClick={handleClick}
           className={cn(
-            "group relative cursor-grab rounded bg-card p-4 transition-all duration-200 hover:bg-accent/50",
-            isDragging && "opacity-50 cursor-grabbing scale-105",
-            isSelected && "ring-2 ring-primary bg-primary/10"
+            "group relative cursor-pointer rounded-lg bg-card p-4 transition-all duration-150",
+            "hover:bg-accent/50",
+            isDragging && "opacity-50 scale-105",
+            isPendingSelection && "bg-primary/20 ring-2 ring-primary",
+            isSelected && "bg-primary/15 ring-2 ring-primary/60"
           )}
         >
-          <div
-            className={cn(
-              "absolute top-2 left-2 transition-opacity cursor-pointer",
-              showCheckbox ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}
-            onClick={handleCheckboxClick}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <Checkbox
-              checked={isSelected}
-              className="pointer-events-none"
-            />
-          </div>
           <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {dropdownMenu}
           </div>

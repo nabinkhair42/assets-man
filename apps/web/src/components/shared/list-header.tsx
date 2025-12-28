@@ -22,7 +22,7 @@ export function ListHeader({ columns, className }: ListHeaderProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 mb-1",
+        "flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border/60 mb-1",
         className
       )}
     >

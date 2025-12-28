@@ -15,12 +15,22 @@ interface AppHeaderProps {
 }
 
 const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title }: AppHeaderProps) => {
+  // Get current folder name for mobile display
+  const currentFolderName = breadcrumbPath.length > 0
+    ? breadcrumbPath[breadcrumbPath.length - 1]?.name
+    : "My Files";
+
   return (
     <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/50 bg-background/95 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
       {/* Left side - Sidebar trigger and breadcrumbs */}
       <div className='flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0'>
         <SidebarTrigger />
         <div className='w-px h-5 bg-border/60 hidden sm:block'/>
+        {/* Mobile: Show current folder name or title */}
+        <span className="sm:hidden font-medium text-sm truncate max-w-[120px]">
+          {title || currentFolderName}
+        </span>
+        {/* Desktop: Show full breadcrumbs or title */}
         <div className="hidden sm:block">
           {title ? (
             <span className="text-lg font-semibold">{title}</span>

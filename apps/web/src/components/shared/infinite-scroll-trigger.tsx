@@ -7,14 +7,12 @@ interface InfiniteScrollTriggerProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
-  endMessage?: string;
 }
 
 export function InfiniteScrollTrigger({
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
-  endMessage = "No more items",
 }: InfiniteScrollTriggerProps) {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +24,6 @@ export function InfiniteScrollTrigger({
       (entries) => {
         const first = entries[0];
         if (first?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          // Defer to avoid synchronous setState within effect
           requestAnimationFrame(() => {
             fetchNextPage();
           });
@@ -42,13 +39,12 @@ export function InfiniteScrollTrigger({
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  if (!hasNextPage && !isFetchingNextPage) return null;
+
   return (
-    <div ref={loadMoreRef} className="w-full py-2 flex justify-center">
+    <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
       {isFetchingNextPage && (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      )}
-      {!hasNextPage && (
-        <p className="text-sm text-muted-foreground">{endMessage}</p>
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       )}
     </div>
   );

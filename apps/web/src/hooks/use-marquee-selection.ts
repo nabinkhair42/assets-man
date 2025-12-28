@@ -28,6 +28,7 @@ export function useMarqueeSelection<T>({
 }: UseMarqueeSelectionOptions<T>) {
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set());
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const scrollOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -40,6 +41,54 @@ export function useMarqueeSelection<T>({
 
     return element;
   }, []);
+
+  // Calculate intersecting items for a given rect
+  const calculateIntersectingItems = useCallback(
+    (rect: MarqueeRect): string[] => {
+      const container = containerRef.current;
+      if (!container) return [];
+
+      const scrollableParent = getScrollableParent(container);
+      const containerRect = container.getBoundingClientRect();
+      const currentScrollX = scrollableParent?.scrollLeft ?? 0;
+      const currentScrollY = scrollableParent?.scrollTop ?? 0;
+
+      const left = Math.min(rect.startX, rect.endX);
+      const right = Math.max(rect.startX, rect.endX);
+      const top = Math.min(rect.startY, rect.endY);
+      const bottom = Math.max(rect.startY, rect.endY);
+
+      const itemElements = container.querySelectorAll(itemSelector);
+      const intersectingIds: string[] = [];
+
+      itemElements.forEach((element) => {
+        const itemRect = element.getBoundingClientRect();
+
+        // Convert item rect to container-relative coordinates with scroll
+        const itemLeft = itemRect.left - containerRect.left + currentScrollX;
+        const itemRight = itemRect.right - containerRect.left + currentScrollX;
+        const itemTop = itemRect.top - containerRect.top + currentScrollY;
+        const itemBottom = itemRect.bottom - containerRect.top + currentScrollY;
+
+        // Check for intersection
+        const intersects =
+          itemLeft < right &&
+          itemRight > left &&
+          itemTop < bottom &&
+          itemBottom > top;
+
+        if (intersects) {
+          const itemId = element.getAttribute("data-item-id");
+          if (itemId) {
+            intersectingIds.push(itemId);
+          }
+        }
+      });
+
+      return intersectingIds;
+    },
+    [containerRef, itemSelector, getScrollableParent]
+  );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -78,6 +127,7 @@ export function useMarqueeSelection<T>({
       startPoint.current = { x, y };
       setIsSelecting(true);
       setMarqueeRect({ startX: x, startY: y, endX: x, endY: y });
+      setPendingSelection(new Set());
 
       e.preventDefault();
     },
@@ -99,82 +149,54 @@ export function useMarqueeSelection<T>({
       const x = e.clientX - rect.left + currentScrollX;
       const y = e.clientY - rect.top + currentScrollY;
 
-      setMarqueeRect({
+      const newRect = {
         startX: startPoint.current.x,
         startY: startPoint.current.y,
         endX: x,
         endY: y,
-      });
+      };
+
+      setMarqueeRect(newRect);
+
+      // Calculate and update pending selection in real-time
+      const intersecting = calculateIntersectingItems(newRect);
+      setPendingSelection(new Set(intersecting));
     },
-    [isSelecting, containerRef, getScrollableParent]
+    [isSelecting, containerRef, getScrollableParent, calculateIntersectingItems]
   );
 
   const handleMouseUp = useCallback(() => {
     if (!isSelecting || !marqueeRect || !containerRef.current) {
       setIsSelecting(false);
       setMarqueeRect(null);
+      setPendingSelection(new Set());
       startPoint.current = null;
       return;
     }
 
-    // Calculate normalized rect
-    const left = Math.min(marqueeRect.startX, marqueeRect.endX);
-    const right = Math.max(marqueeRect.startX, marqueeRect.endX);
-    const top = Math.min(marqueeRect.startY, marqueeRect.endY);
-    const bottom = Math.max(marqueeRect.startY, marqueeRect.endY);
-
     // Check if the marquee is too small (just a click)
-    const width = right - left;
-    const height = bottom - top;
+    const width = Math.abs(marqueeRect.endX - marqueeRect.startX);
+    const height = Math.abs(marqueeRect.endY - marqueeRect.startY);
 
     if (width < 5 && height < 5) {
       // Clear selection on click in empty space
       onSelectionChange([]);
       setIsSelecting(false);
       setMarqueeRect(null);
+      setPendingSelection(new Set());
       startPoint.current = null;
       return;
     }
 
-    // Find all intersecting items
-    const container = containerRef.current;
-    const scrollableParent = getScrollableParent(container);
-    const containerRect = container.getBoundingClientRect();
-    const currentScrollX = scrollableParent?.scrollLeft ?? 0;
-    const currentScrollY = scrollableParent?.scrollTop ?? 0;
-
-    const itemElements = container.querySelectorAll(itemSelector);
-    const selectedIds: string[] = [];
-
-    itemElements.forEach((element) => {
-      const itemRect = element.getBoundingClientRect();
-
-      // Convert item rect to container-relative coordinates with scroll
-      const itemLeft = itemRect.left - containerRect.left + currentScrollX;
-      const itemRight = itemRect.right - containerRect.left + currentScrollX;
-      const itemTop = itemRect.top - containerRect.top + currentScrollY;
-      const itemBottom = itemRect.bottom - containerRect.top + currentScrollY;
-
-      // Check for intersection
-      const intersects =
-        itemLeft < right &&
-        itemRight > left &&
-        itemTop < bottom &&
-        itemBottom > top;
-
-      if (intersects) {
-        const itemId = element.getAttribute("data-item-id");
-        if (itemId) {
-          selectedIds.push(itemId);
-        }
-      }
-    });
-
+    // Apply the pending selection
+    const selectedIds = calculateIntersectingItems(marqueeRect);
     onSelectionChange(selectedIds);
+
     setIsSelecting(false);
     setMarqueeRect(null);
+    setPendingSelection(new Set());
     startPoint.current = null;
-  }, [isSelecting, marqueeRect, containerRef, itemSelector, onSelectionChange, getScrollableParent]);
+  }, [isSelecting, marqueeRect, containerRef, onSelectionChange, calculateIntersectingItems]);
 
   // Add global mouse event listeners when selecting
   useEffect(() => {
@@ -202,6 +224,7 @@ export function useMarqueeSelection<T>({
   return {
     isSelecting,
     marqueeRect: visualRect,
+    pendingSelection,
     handleMouseDown,
   };
 }
