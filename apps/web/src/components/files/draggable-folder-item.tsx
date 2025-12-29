@@ -261,7 +261,7 @@ export function DraggableFolderItem({
     );
   }
 
-  // Grid view layout
+  // Grid view layout - Compact horizontal card (Google Drive style)
   return (
     <div ref={setDroppableRef}>
       <ContextMenu onOpenChange={handleContextMenuOpen}>
@@ -274,28 +274,49 @@ export function DraggableFolderItem({
             onClick={handleClick}
             onDoubleClick={() => onOpen(folder.id)}
             className={cn(
-              "group relative cursor-pointer rounded-lg bg-card p-4 transition-all duration-150",
-              "hover:bg-accent/50",
+              "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
+              "hover:border-border hover:bg-accent/30",
               isDragging && "opacity-50 scale-105",
-              isOver && "ring-2 ring-primary bg-primary/10",
-              isPendingSelection && "bg-primary/20 ring-2 ring-primary",
-              isSelected && "bg-primary/15 ring-2 ring-primary/60"
+              isOver && "border-primary bg-primary/10",
+              isPendingSelection && "border-primary bg-primary/5",
+              isSelected && "border-primary/60 bg-primary/5"
             )}
           >
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {dropdownMenu}
-            </div>
-            <div className="flex justify-center mb-3">
-              <FileIcon isFolder size="lg" />
-            </div>
-            <p className="truncate font-medium text-sm text-foreground text-center mb-1">{folder.name}</p>
-            {showOwner && owner ? (
-              <div className="flex items-center justify-center gap-1.5">
-                <SingleAvatar user={owner} size="sm" showTooltip={false} />
-                <p className="text-xs text-muted-foreground truncate max-w-16">{owner.name}</p>
+            <div className="flex items-center gap-3 px-3 py-2.5">
+              {/* Folder icon */}
+              <div className="relative shrink-0">
+                <FolderIcon className="h-5 w-5 text-muted-foreground" />
+                {folder.isStarred && (
+                  <Star className="absolute -top-1 -right-1 h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
+                )}
               </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center">Folder</p>
+
+              {/* Name */}
+              <span className="flex-1 truncate text-sm font-medium" title={folder.name}>
+                {folder.name}
+              </span>
+
+              {/* Selection checkmark or menu */}
+              {isSelected ? (
+                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                  <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {dropdownMenu}
+                </div>
+              )}
+            </div>
+
+            {/* Drop indicator overlay */}
+            {isOver && (
+              <div className="absolute inset-0 rounded-lg flex items-center justify-center bg-primary/10 backdrop-blur-[1px]">
+                <span className="px-2 py-1 rounded bg-primary text-primary-foreground text-xs font-medium">
+                  Drop here
+                </span>
+              </div>
             )}
           </div>
         </ContextMenuTrigger>

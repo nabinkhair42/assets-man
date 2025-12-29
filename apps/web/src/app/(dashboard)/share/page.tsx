@@ -79,6 +79,10 @@ export default function SharedWithMePage() {
     }));
   }, [shares]);
 
+  // Separate folders and files for grid view
+  const sharedFolders = useMemo(() => allItems.filter((item) => item.type === "folder"), [allItems]);
+  const sharedFiles = useMemo(() => allItems.filter((item) => item.type === "asset"), [allItems]);
+
   const handleNavigate = (folderId: string | null) => {
     if (folderId) {
       router.push(`/files?folderId=${folderId}`);
@@ -381,72 +385,120 @@ export default function SharedWithMePage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {allItems.map((item, index) => (
-                    <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
-                      <ContextMenuTrigger>
-                        <div
-                          data-item-id={`${item.type}-${item.id}`}
-                          onClick={(e) => handleItemSelect(index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
-                          onDoubleClick={() => handleOpen(item)}
-                          className={cn(
-                            "group relative cursor-pointer rounded-lg bg-card p-4 transition-all duration-150",
-                            "hover:bg-accent/50",
-                            pendingSelection.has(`${item.type}-${item.id}`) && "bg-primary/20 ring-2 ring-primary",
-                            selectedItems.has(`${item.type}-${item.id}`) && "bg-primary/15 ring-2 ring-primary/60"
-                          )}
-                        >
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {renderDropdownMenu(item)}
-                          </div>
-                          <div className="flex justify-center mb-3">
-                            <FileIcon
-                              isFolder={item.type === "folder"}
-                              mimeType={item.mimeType ?? undefined}
-                              size="lg"
-                            />
-                          </div>
-                          <p className="truncate font-medium text-sm text-foreground text-center mb-1">{item.name}</p>
-                          <div className="flex items-center justify-center gap-2">
-                            <SingleAvatar
-                              user={{ id: item.ownerId, name: item.ownerName }}
-                              size="sm"
-                              showTooltip={false}
-                            />
-                            <p className="text-xs text-muted-foreground truncate max-w-20">
-                              {item.ownerName}
-                            </p>
-                          </div>
-                          {item.type === "asset" && item.size && (
-                            <p className="text-xs text-muted-foreground text-center mt-1">
-                              {formatFileSize(item.size)}
-                            </p>
-                          )}
-                        </div>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem onClick={() => handleOpen(item)}>
-                          {item.type === "folder" ? (
-                            <>
-                              <Folder className="mr-2 h-4 w-4" />
-                              Open Folder
-                            </>
-                          ) : (
-                            <>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Preview
-                            </>
-                          )}
-                        </ContextMenuItem>
-                        {item.type === "asset" && (
-                          <ContextMenuItem onClick={() => handleDownload(item)}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </ContextMenuItem>
-                        )}
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  ))}
+                /* Grid View - Folders first (compact), then Files */
+                <div className="space-y-6">
+                  {/* Folders Section */}
+                  {sharedFolders.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                        {sharedFolders.map((item, index) => (
+                          <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
+                            <ContextMenuTrigger>
+                              <div
+                                data-item-id={`${item.type}-${item.id}`}
+                                onClick={(e) => handleItemSelect(index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
+                                onDoubleClick={() => handleOpen(item)}
+                                className={cn(
+                                  "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
+                                  "hover:border-border hover:bg-accent/30",
+                                  pendingSelection.has(`${item.type}-${item.id}`) && "border-primary bg-primary/5",
+                                  selectedItems.has(`${item.type}-${item.id}`) && "border-primary/60 bg-primary/5"
+                                )}
+                              >
+                                <div className="flex items-center gap-3 px-3 py-2.5">
+                                  <Folder className="h-5 w-5 text-muted-foreground shrink-0" />
+                                  <span className="flex-1 truncate text-sm font-medium" title={item.name}>
+                                    {item.name}
+                                  </span>
+                                  {selectedItems.has(`${item.type}-${item.id}`) ? (
+                                    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                      <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  ) : (
+                                    <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {renderDropdownMenu(item)}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem onClick={() => handleOpen(item)}>
+                                <Folder className="mr-2 h-4 w-4" />
+                                Open Folder
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Files Section */}
+                  {sharedFiles.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {sharedFiles.map((item, index) => (
+                          <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
+                            <ContextMenuTrigger>
+                              <div
+                                data-item-id={`${item.type}-${item.id}`}
+                                onClick={(e) => handleItemSelect(sharedFolders.length + index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
+                                onDoubleClick={() => handleOpen(item)}
+                                className={cn(
+                                  "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
+                                  "hover:border-border/60 hover:shadow-lg hover:shadow-black/5",
+                                  pendingSelection.has(`${item.type}-${item.id}`) && "border-primary bg-primary/5",
+                                  selectedItems.has(`${item.type}-${item.id}`) && "border-primary/60 bg-primary/5 shadow-md shadow-primary/10"
+                                )}
+                              >
+                                {/* Preview area */}
+                                <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <FileIcon mimeType={item.mimeType ?? undefined} size="xl" />
+                                  </div>
+                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {renderDropdownMenu(item)}
+                                  </div>
+                                  {selectedItems.has(`${item.type}-${item.id}`) && (
+                                    <div className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                      <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Info area */}
+                                <div className="p-3">
+                                  <p className="truncate font-medium text-sm text-foreground mb-1" title={item.name}>
+                                    {item.name}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <SingleAvatar user={{ id: item.ownerId, name: item.ownerName }} size="xs" showTooltip={false} />
+                                    <span className="text-xs text-muted-foreground truncate">{item.ownerName}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem onClick={() => handleOpen(item)}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Preview
+                              </ContextMenuItem>
+                              <ContextMenuItem onClick={() => handleDownload(item)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

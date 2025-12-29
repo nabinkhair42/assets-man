@@ -281,28 +281,58 @@ export function DraggableFileItem({
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
           className={cn(
-            "group relative cursor-pointer rounded-lg bg-card p-4 transition-all duration-150",
-            "hover:bg-accent/50",
+            "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
+            "hover:border-border/60 hover:shadow-lg hover:shadow-black/5",
             isDragging && "opacity-50 scale-105",
-            isPendingSelection && "bg-primary/20 ring-2 ring-primary",
-            isSelected && "bg-primary/15 ring-2 ring-primary/60"
+            isPendingSelection && "border-primary bg-primary/5",
+            isSelected && "border-primary/60 bg-primary/5 shadow-md shadow-primary/10"
           )}
         >
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            {dropdownMenu}
-          </div>
-          <div className="flex justify-center mb-3">
-            <FileIcon mimeType={asset.mimeType} size="lg" />
-          </div>
-          <p className="truncate font-medium text-sm text-foreground text-center mb-1">{asset.name}</p>
-          {showOwner && owner ? (
-            <div className="flex items-center justify-center gap-1.5">
-              <SingleAvatar user={owner} size="sm" showTooltip={false} />
-              <p className="text-xs text-muted-foreground truncate max-w-16">{owner.name}</p>
+          {/* Preview area */}
+          <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
+            {/* File icon centered */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FileIcon mimeType={asset.mimeType} size="xl" />
             </div>
-          ) : (
-            <p className="text-xs text-muted-foreground text-center">{formatFileSize(asset.size)}</p>
-          )}
+
+            {/* Star indicator */}
+            {asset.isStarred && (
+              <div className="absolute top-2 left-2">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 drop-shadow-sm" />
+              </div>
+            )}
+
+            {/* Dropdown menu */}
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {dropdownMenu}
+            </div>
+
+            {/* Selection checkmark */}
+            {isSelected && (
+              <div className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Info area */}
+          <div className="p-3">
+            <p className="truncate font-medium text-sm text-foreground mb-1" title={asset.name}>
+              {asset.name}
+            </p>
+            <div className="flex items-center justify-between">
+              {showOwner && owner ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <SingleAvatar user={owner} size="xs" showTooltip={false} />
+                  <span className="text-xs text-muted-foreground truncate">{owner.name}</span>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</span>
+              )}
+            </div>
+          </div>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>

@@ -66,7 +66,7 @@ const AppHeader = ({
     <header className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="flex items-center h-14 px-4">
         {/* Left section - Sidebar trigger and title/breadcrumbs */}
-        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+        <div className="flex items-center gap-3 min-w-0 shrink-0">
           <SidebarTrigger className="h-8 w-8" />
 
           {/* Mobile: Show current folder name or title */}
@@ -90,7 +90,7 @@ const AppHeader = ({
         </div>
 
         {/* Right section - Actions */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {/* Sort dropdown */}
           {sortConfig && onSortChange && (
             <DropdownMenu>
@@ -99,6 +99,7 @@ const AppHeader = ({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  tooltipContent='Sorting'
                 >
                   <ArrowUpDown className="h-4 w-4" />
                 </Button>
@@ -135,6 +136,7 @@ const AppHeader = ({
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={onRefresh}
               disabled={isRefreshing}
+              tooltipContent='Refresh'
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -149,6 +151,7 @@ const AppHeader = ({
               variant="ghost"
               size="icon"
               onClick={() => setViewMode("list")}
+              tooltipContent='List View'
               className={`h-7 w-7 rounded-md ${viewMode === "list" ? "bg-background shadow-sm" : "hover:bg-transparent"}`}
             >
               <List className="h-4 w-4" />
@@ -157,6 +160,7 @@ const AppHeader = ({
               variant="ghost"
               size="icon"
               onClick={() => setViewMode("grid")}
+              tooltipContent='Grid View'
               className={`h-7 w-7 rounded-md ${viewMode === "grid" ? "bg-background shadow-sm" : "hover:bg-transparent"}`}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -172,7 +176,7 @@ const AppHeader = ({
           >
             {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
           </Button>
-        </div>
+      </div>
       </div>
     </header>
   )

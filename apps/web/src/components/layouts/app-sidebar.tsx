@@ -60,7 +60,7 @@ export function AppSidebar() {
         <SidebarHeader>
           <div className="flex items-center gap-2">
             <Stone
-              className="size-6 shrink-0"
+              className="size-6 shrink-0 text-accent-foreground"
               fill="currentColor"
               strokeWidth={1.5}
               stroke="white"

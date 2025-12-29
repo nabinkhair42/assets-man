@@ -69,7 +69,7 @@ export default function RecentPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const { data: allFolders = [] } = useFolders();
+  useFolders();
   const { data: recentData, isLoading, refetch: refetchRecent } = useRecentItems({ limit: 50 });
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
@@ -353,9 +353,83 @@ export default function RecentPage() {
                   title="No recent items"
                   description="Files and folders you open will appear here"
                 />
+              ) : viewMode === "grid" ? (
+                /* Grid View - Folders first (compact), then Files */
+                <div className="space-y-6">
+                  {/* Folders Section */}
+                  {recentFolders.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                        {recentFolders.map((folder) => {
+                          const index = allItems.findIndex((i) => i.type === "folder" && i.id === folder.id);
+                          return (
+                            <DraggableFolderItem
+                              key={`folder-${folder.id}`}
+                              folder={folder}
+                              onOpen={handleNavigate}
+                              onRename={(f) => setRenameItem({ item: f, type: "folder" })}
+                              onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
+                              onMove={(f) => handleMove(f, "folder")}
+                              onStar={handleStarFolder}
+                              viewMode={viewMode}
+                              index={index}
+                              isSelected={selectedItems.has(`folder-${folder.id}`)}
+                              isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
+                              onSelect={handleSelectFolder}
+                              selectionMode={selectionMode}
+                              selectedCount={selectedItems.size}
+                              onBulkDelete={handleBulkDelete}
+                              onBulkMove={handleBulkMove}
+                              showOwner
+                              owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Files Section */}
+                  {recentAssets.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {recentAssets.map((asset) => {
+                          const index = allItems.findIndex((i) => i.type === "asset" && i.id === asset.id);
+                          return (
+                            <DraggableFileItem
+                              key={`asset-${asset.id}`}
+                              asset={asset}
+                              onDownload={handleDownload}
+                              onRename={(a) => setRenameItem({ item: a, type: "asset" })}
+                              onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
+                              onMove={(a) => handleMove(a, "asset")}
+                              onStar={handleStarAsset}
+                              onPreview={handlePreview}
+                              viewMode={viewMode}
+                              index={index}
+                              isSelected={selectedItems.has(`asset-${asset.id}`)}
+                              isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
+                              onSelect={handleSelectAsset}
+                              selectionMode={selectionMode}
+                              selectedCount={selectedItems.size}
+                              onBulkDownload={handleBulkDownload}
+                              onBulkDelete={handleBulkDelete}
+                              onBulkMove={handleBulkMove}
+                              showOwner
+                              owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "flex flex-col"}>
-                  {viewMode === "list" && <ListHeader columns={FILE_LIST_COLUMNS} />}
+                /* List View - Combined */
+                <div className="flex flex-col">
+                  <ListHeader columns={FILE_LIST_COLUMNS} />
                   {allItems.map((item, index) => (
                     item.type === "folder" ? (
                       <DraggableFolderItem

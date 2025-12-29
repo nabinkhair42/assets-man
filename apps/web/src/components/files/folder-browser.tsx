@@ -525,9 +525,81 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                   title="This folder is empty"
                   description="Create a folder or upload files to get started"
                 />
+              ) : viewMode === "grid" ? (
+                /* Grid View - Folders first (compact), then Files */
+                <div className="space-y-6">
+                  {/* Folders Section */}
+                  {folders.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                        {folders.map((folder, index) => (
+                          <DraggableFolderItem
+                            key={folder.id}
+                            folder={folder}
+                            onOpen={handleNavigate}
+                            onRename={(f) => setRenameItem({ item: f, type: "folder" })}
+                            onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
+                            onMove={(f) => handleMove(f, "folder")}
+                            onCopy={(f) => setCopyItem({ item: f, type: "folder" })}
+                            onShare={(f) => setShareItem({ item: f, type: "folder" })}
+                            onStar={handleStarFolder}
+                            viewMode={viewMode}
+                            index={index}
+                            isSelected={selectedItems.has(`folder-${folder.id}`)}
+                            isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
+                            onSelect={handleSelectFolder}
+                            selectionMode={selectionMode}
+                            selectedCount={selectedItems.size}
+                            onBulkDelete={handleBulkDelete}
+                            onBulkMove={handleBulkMove}
+                            showOwner
+                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Files Section */}
+                  {assets.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {assets.map((asset, index) => (
+                          <DraggableFileItem
+                            key={asset.id}
+                            asset={asset}
+                            onDownload={handleDownload}
+                            onRename={(a) => setRenameItem({ item: a, type: "asset" })}
+                            onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
+                            onMove={(a) => handleMove(a, "asset")}
+                            onCopy={(a) => setCopyItem({ item: a, type: "asset" })}
+                            onShare={(a) => setShareItem({ item: a, type: "asset" })}
+                            onStar={handleStarAsset}
+                            onPreview={handlePreview}
+                            viewMode={viewMode}
+                            index={folders.length + index}
+                            isSelected={selectedItems.has(`asset-${asset.id}`)}
+                            isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
+                            onSelect={handleSelectAsset}
+                            selectionMode={selectionMode}
+                            selectedCount={selectedItems.size}
+                            onBulkDownload={handleBulkDownload}
+                            onBulkDelete={handleBulkDelete}
+                            onBulkMove={handleBulkMove}
+                            showOwner
+                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4" : "flex flex-col"}>
-                  {viewMode === "list" && <ListHeader columns={FILE_LIST_COLUMNS} />}
+                /* List View - Combined */
+                <div className="flex flex-col">
+                  <ListHeader columns={FILE_LIST_COLUMNS} />
                   {folders.map((folder, index) => (
                     <DraggableFolderItem
                       key={folder.id}

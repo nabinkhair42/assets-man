@@ -31,7 +31,7 @@ export default function AuthLayout({
         <div className="hidden lg:flex lg:w-1/2 bg-primary/5 border-r border-border/40 flex-col justify-between p-10">
           <div className="flex items-center gap-2">
             <Stone
-              className="size-8 shrink-0 text-primary"
+              className="size-6 shrink-0 text-accent-foreground"
               fill="currentColor"
               strokeWidth={1.5}
               stroke="white"
@@ -75,7 +75,7 @@ export default function AuthLayout({
             {/* Mobile branding */}
             <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
               <Stone
-                className="size-8 shrink-0 text-primary"
+              className="size-6 shrink-0 text-accent-foreground"
                 fill="currentColor"
                 strokeWidth={1.5}
                 stroke="white"

@@ -14,17 +14,19 @@ export interface AvatarUser {
 interface AvatarGroupProps {
   users: AvatarUser[];
   max?: number;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
 const sizeClasses = {
+  xs: "h-5 w-5 text-[10px]",
   sm: "h-6 w-6 text-xs",
   md: "h-8 w-8 text-sm",
   lg: "h-10 w-10 text-base",
 };
 
 const overlapClasses = {
+  xs: "-ml-1.5",
   sm: "-ml-2",
   md: "-ml-3",
   lg: "-ml-4",
@@ -128,7 +130,7 @@ export function AvatarGroup({ users, max = 3, size = "sm", className }: AvatarGr
 // Single avatar variant for simpler use cases
 interface SingleAvatarProps {
   user: AvatarUser;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   showTooltip?: boolean;
   className?: string;
 }

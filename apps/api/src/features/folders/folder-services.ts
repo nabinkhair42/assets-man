@@ -28,6 +28,45 @@ function buildPath(parentPath: string | null, name: string): string {
   return parentPath ? `${parentPath}/${name}` : `/${name}`;
 }
 
+/**
+ * Updates all descendant folder paths when a parent folder's path changes.
+ * This handles both rename and move operations.
+ *
+ * @param userId - The owner's user ID
+ * @param oldPath - The old path of the parent folder
+ * @param newPath - The new path of the parent folder
+ */
+async function updateChildPaths(
+  userId: string,
+  oldPath: string,
+  newPath: string
+): Promise<number> {
+  if (oldPath === newPath) return 0;
+
+  // Find all folders whose path starts with the old path followed by "/"
+  // This ensures we only get descendants, not the folder itself
+  const childFolders = await db.query.folders.findMany({
+    where: and(
+      eq(folders.ownerId, userId),
+      sql`${folders.path} LIKE ${oldPath + '/%'}`
+    ),
+  });
+
+  if (childFolders.length === 0) return 0;
+
+  // Update each child folder's path by replacing the old prefix with new prefix
+  for (const child of childFolders) {
+    const updatedPath = newPath + child.path.substring(oldPath.length);
+
+    await db
+      .update(folders)
+      .set({ path: updatedPath, updatedAt: new Date() })
+      .where(eq(folders.id, child.id));
+  }
+
+  return childFolders.length;
+}
+
 export async function createFolder(
   userId: string,
   input: CreateFolderInput
@@ -126,13 +165,17 @@ export async function updateFolder(
     updatedAt: new Date(),
   };
 
+  const oldPath = existing.path;
+  let newPath = oldPath;
+
   if (input.name && input.name !== existing.name) {
     updates.name = input.name;
     // Update path
     const parentPath = existing.parentId
       ? existing.path.substring(0, existing.path.lastIndexOf("/"))
       : null;
-    updates.path = buildPath(parentPath, input.name);
+    newPath = buildPath(parentPath, input.name);
+    updates.path = newPath;
   }
 
   const [updated] = await db
@@ -145,7 +188,10 @@ export async function updateFolder(
     throw new Error("INTERNAL_ERROR");
   }
 
-  // TODO: Update child paths if name changed
+  // Update child folder paths if the folder was renamed
+  if (oldPath !== newPath) {
+    await updateChildPaths(userId, oldPath, newPath);
+  }
 
   return updated;
 }
@@ -166,6 +212,7 @@ export async function moveFolder(
     throw new Error("INVALID_MOVE");
   }
 
+  const oldPath = folder.path;
   let newPath: string;
 
   if (input.parentId) {
@@ -198,7 +245,10 @@ export async function moveFolder(
     throw new Error("INTERNAL_ERROR");
   }
 
-  // TODO: Update child paths
+  // Update child folder paths if the folder was moved
+  if (oldPath !== newPath) {
+    await updateChildPaths(userId, oldPath, newPath);
+  }
 
   return updated;
 }

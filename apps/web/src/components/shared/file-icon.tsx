@@ -37,14 +37,16 @@ export function getFolderIconData(): FileIconData {
 interface FileIconProps {
   mimeType?: string;
   isFolder?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
 }
 
 const sizeClasses = {
+  xs: { container: "h-6 w-6 rounded", icon: "h-3 w-3" },
   sm: { container: "h-8 w-8 rounded-md", icon: "h-4 w-4" },
   md: { container: "h-10 w-10 rounded-lg", icon: "h-5 w-5" },
   lg: { container: "h-14 w-14 rounded-xl", icon: "h-7 w-7" },
+  xl: { container: "h-16 w-16 rounded-2xl", icon: "h-8 w-8" },
 };
 
 export function FileIcon({ mimeType = "", isFolder = false, size = "sm", className }: FileIconProps) {

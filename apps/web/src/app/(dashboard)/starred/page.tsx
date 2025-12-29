@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Star } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import {
   DndContext,
   DragOverlay,
@@ -71,7 +70,7 @@ export default function StarredPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const { data: allFolders = [] } = useFolders();
+  useFolders();
   const { data: starredFolders = [], isLoading: foldersLoading, refetch: refetchFolders } = useStarredFolders();
   const {
     data: starredAssetsData,
@@ -346,9 +345,77 @@ export default function StarredPage() {
                   title="No starred items"
                   description="Star files and folders to access them quickly"
                 />
+              ) : viewMode === "grid" ? (
+                /* Grid View - Folders first (compact), then Files */
+                <div className="space-y-6">
+                  {/* Folders Section */}
+                  {starredFolders.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                        {starredFolders.map((folder, index) => (
+                          <DraggableFolderItem
+                            key={folder.id}
+                            folder={folder}
+                            onOpen={handleNavigate}
+                            onRename={(f) => setRenameItem({ item: f, type: "folder" })}
+                            onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
+                            onMove={(f) => handleMove(f, "folder")}
+                            onStar={handleStarFolder}
+                            viewMode={viewMode}
+                            index={index}
+                            isSelected={selectedItems.has(`folder-${folder.id}`)}
+                            isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
+                            onSelect={handleSelectFolder}
+                            selectionMode={selectionMode}
+                            selectedCount={selectedItems.size}
+                            onBulkDelete={handleBulkDelete}
+                            onBulkMove={handleBulkMove}
+                            showOwner
+                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Files Section */}
+                  {starredAssets.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {starredAssets.map((asset, index) => (
+                          <DraggableFileItem
+                            key={asset.id}
+                            asset={asset}
+                            onDownload={handleDownload}
+                            onRename={(a) => setRenameItem({ item: a, type: "asset" })}
+                            onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
+                            onMove={(a) => handleMove(a, "asset")}
+                            onStar={handleStarAsset}
+                            onPreview={handlePreview}
+                            viewMode={viewMode}
+                            index={starredFolders.length + index}
+                            isSelected={selectedItems.has(`asset-${asset.id}`)}
+                            isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
+                            onSelect={handleSelectAsset}
+                            selectionMode={selectionMode}
+                            selectedCount={selectedItems.size}
+                            onBulkDownload={handleBulkDownload}
+                            onBulkDelete={handleBulkDelete}
+                            onBulkMove={handleBulkMove}
+                            showOwner
+                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className={viewMode === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" : "flex flex-col"}>
-                  {viewMode === "list" && <ListHeader columns={FILE_LIST_COLUMNS} />}
+                /* List View - Combined */
+                <div className="flex flex-col">
+                  <ListHeader columns={FILE_LIST_COLUMNS} />
                   {starredFolders.map((folder, index) => (
                     <DraggableFolderItem
                       key={folder.id}
