@@ -49,6 +49,7 @@ export default function PublicSharePage() {
         }
       } catch (err) {
         setError("This share link is invalid or has expired.");
+        console.warn("Error fetching share details:", err)
       } finally {
         setLoading(false);
       }
@@ -243,7 +244,7 @@ export default function PublicSharePage() {
     return (
       <div className="min-h-screen flex flex-col bg-black">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20">
+        <div className="flex items-center justify-between px-4 py-3 bg-linear-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20">
           <div className="flex items-center gap-4 min-w-0">
             <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
               <CustomFileIcon mimeType={item.mimeType} size="sm" />
