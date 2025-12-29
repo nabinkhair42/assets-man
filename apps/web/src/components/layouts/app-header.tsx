@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import { Folder, SortBy, SortOrder } from '@/types'
+import { Folder, Asset, SortBy, SortOrder } from '@/types'
 import { LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 export interface SortConfig {
@@ -28,16 +28,10 @@ interface AppHeaderProps {
   title?: string
   sortConfig?: SortConfig
   onSortChange?: (config: SortConfig) => void
+  onPreviewAsset?: (asset: Asset) => void
 }
 
-const SORT_LABELS: Record<SortBy, string> = {
-  name: "Name",
-  size: "Size",
-  createdAt: "Date created",
-  updatedAt: "Date modified",
-}
-
-const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title, sortConfig, onSortChange }: AppHeaderProps) => {
+const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, title, sortConfig, onSortChange, onPreviewAsset }: AppHeaderProps) => {
   // Get current folder name for mobile display
   const currentFolderName = breadcrumbPath.length > 0
     ? breadcrumbPath[breadcrumbPath.length - 1]?.name
@@ -58,7 +52,7 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, titl
   return (
     <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/50 bg-background/95 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-3">
       {/* Left side - Sidebar trigger and breadcrumbs */}
-      <div className='flex items-center gap-2 sm:gap-3 flex-shrink-0 min-w-0'>
+      <div className='flex items-center gap-2 sm:gap-3 shrink-0 min-w-0'>
         <SidebarTrigger />
         <div className='w-px h-5 bg-border/60 hidden sm:block'/>
         {/* Mobile: Show current folder name or title */}
@@ -77,11 +71,11 @@ const AppHeader = ({ breadcrumbPath, handleNavigate, viewMode, setViewMode, titl
 
       {/* Center - Search (responsive) */}
       <div className="flex-1 flex justify-center min-w-0">
-        <SearchCommand onNavigateToFolder={handleNavigate} />
+        <SearchCommand onNavigateToFolder={handleNavigate} onPreviewAsset={onPreviewAsset} />
       </div>
 
       {/* Right side - Sort, Theme toggle, and view toggle */}
-      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {sortConfig && onSortChange && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -4,3 +4,4 @@ export * from "./folder";
 export * from "./asset";
 export * from "./trash";
 export * from "./recent";
+export * from "./share";

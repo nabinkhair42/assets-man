@@ -56,3 +56,12 @@ export interface DownloadUrlResponse {
   url: string;
   asset: Asset;
 }
+
+export interface CopyAssetInput {
+  targetFolderId?: string | null;
+}
+
+export interface BulkDownloadInput {
+  assetIds: string[];
+  folderIds?: string[];
+}

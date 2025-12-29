@@ -9,6 +9,7 @@ import { folderRouter } from "@/features/folders/index.js";
 import { assetRouter } from "@/features/assets/index.js";
 import { trashRouter } from "@/features/trash/index.js";
 import { recentRouter } from "@/features/recent/index.js";
+import { shareRouter } from "@/features/shares/index.js";
 import { validateServices } from "@/service-validator/index.js";
 
 const app = express();
@@ -31,6 +32,7 @@ app.use("/api/folders", folderRouter);
 app.use("/api/assets", assetRouter);
 app.use("/api/trash", trashRouter);
 app.use("/api/recent", recentRouter);
+app.use("/api/shares", shareRouter);
 
 // 404 handler
 app.use(notFoundHandler);

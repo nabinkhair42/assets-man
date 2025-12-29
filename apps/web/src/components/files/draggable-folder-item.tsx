@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Folder as FolderIcon, MoreVertical, Pencil, Trash2, FolderInput, Star } from "lucide-react";
+import { Folder as FolderIcon, MoreVertical, Pencil, Trash2, FolderInput, Star, Copy, Share2 } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -18,9 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { FileIcon } from "@/components/shared";
+import { SingleAvatar } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime, truncateFileName } from "@/lib/formatters";
 import type { Folder } from "@/types";
+
+export interface OwnerInfo {
+  id: string;
+  name: string;
+}
 
 interface DraggableFolderItemProps {
   folder: Folder;
@@ -28,6 +34,8 @@ interface DraggableFolderItemProps {
   onRename: (folder: Folder) => void;
   onDelete: (folder: Folder) => void;
   onMove: (folder: Folder) => void;
+  onCopy?: (folder: Folder) => void;
+  onShare?: (folder: Folder) => void;
   onStar?: (folder: Folder) => void;
   viewMode?: "grid" | "list";
   index?: number;
@@ -38,6 +46,8 @@ interface DraggableFolderItemProps {
   selectedCount?: number;
   onBulkDelete?: () => void;
   onBulkMove?: () => void;
+  owner?: OwnerInfo;
+  showOwner?: boolean;
 }
 
 export function DraggableFolderItem({
@@ -46,6 +56,8 @@ export function DraggableFolderItem({
   onRename,
   onDelete,
   onMove,
+  onCopy,
+  onShare,
   onStar,
   viewMode = "grid",
   isSelected = false,
@@ -54,6 +66,8 @@ export function DraggableFolderItem({
   selectedCount = 0,
   onBulkDelete,
   onBulkMove,
+  owner,
+  showOwner = false,
 }: DraggableFolderItemProps) {
   const isListView = viewMode === "list";
 
@@ -106,6 +120,19 @@ export function DraggableFolderItem({
         Move to
         <ContextMenuShortcut>Ctrl+M</ContextMenuShortcut>
       </ContextMenuItem>
+      {onCopy && (
+        <ContextMenuItem onClick={() => onCopy(folder)}>
+          <Copy className="mr-2 h-4 w-4" />
+          Copy to
+          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+        </ContextMenuItem>
+      )}
+      {onShare && (
+        <ContextMenuItem onClick={() => onShare(folder)}>
+          <Share2 className="mr-2 h-4 w-4" />
+          Share
+        </ContextMenuItem>
+      )}
       <ContextMenuSeparator />
       <ContextMenuItem onClick={() => onDelete(folder)} variant="destructive">
         <Trash2 className="mr-2 h-4 w-4" />
@@ -147,6 +174,18 @@ export function DraggableFolderItem({
           <FolderInput className="mr-2 h-4 w-4" />
           Move
         </DropdownMenuItem>
+        {onCopy && (
+          <DropdownMenuItem onClick={() => onCopy(folder)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy
+          </DropdownMenuItem>
+        )}
+        {onShare && (
+          <DropdownMenuItem onClick={() => onShare(folder)}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => onDelete(folder)} className="text-destructive focus:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
@@ -204,6 +243,11 @@ export function DraggableFolderItem({
                   {folder.name}
                 </p>
               </div>
+              {showOwner && owner && (
+                <div className="w-10 hidden sm:flex items-center justify-center">
+                  <SingleAvatar user={owner} size="sm" />
+                </div>
+              )}
               <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">—</div>
               <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
                 {formatRelativeTime(new Date(folder.createdAt))}
@@ -245,7 +289,14 @@ export function DraggableFolderItem({
               <FileIcon isFolder size="lg" />
             </div>
             <p className="truncate font-medium text-sm text-foreground text-center mb-1">{folder.name}</p>
-            <p className="text-xs text-muted-foreground text-center">Folder</p>
+            {showOwner && owner ? (
+              <div className="flex items-center justify-center gap-1.5">
+                <SingleAvatar user={owner} size="sm" showTooltip={false} />
+                <p className="text-xs text-muted-foreground truncate max-w-16">{owner.name}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center">Folder</p>
+            )}
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>

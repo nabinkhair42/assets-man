@@ -32,3 +32,13 @@ export interface FolderContentsParams {
   sortBy?: FolderSortBy;
   sortOrder?: SortOrder;
 }
+
+export interface CopyFolderInput {
+  targetParentId?: string | null;
+}
+
+export interface CopyFolderResult {
+  folder: Folder;
+  assetsCopied: number;
+  foldersCopied: number;
+}

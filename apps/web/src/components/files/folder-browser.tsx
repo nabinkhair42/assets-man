@@ -32,19 +32,24 @@ import {
   useToggleAssetStarred,
   useToggleFolderStarred,
   useMarqueeSelection,
+  useUser,
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
 import {
+  BulkDeleteDialog,
+  BulkMoveDialog,
+  CopyDialog,
   CreateFolderDialog,
   RenameDialog,
   DeleteDialog,
   MoveDialog,
   FilePreviewDialog,
+  ShareDialog,
 } from "@/components/dialog";
 import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, MobileFab, type SelectedItem } from "@/components/shared";
 import { toast } from "sonner";
-import type { Folder, Asset, SortBy, SortOrder } from "@/types";
+import type { Folder, Asset } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
 import { assetService, recentService } from "@/services";
 import { useFileActions } from "@/contexts";
@@ -55,12 +60,14 @@ interface FolderBrowserProps {
 
 const FILE_LIST_COLUMNS = [
   { label: "Name" },
+  { label: "Owner", width: "w-10", align: "center" as const, hideBelow: "sm" as const },
   { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
   { label: "Modified", width: "w-32", align: "right" as const, hideBelow: "md" as const },
   { label: "", width: "w-8" },
 ];
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
+  const { data: user } = useUser();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
@@ -68,7 +75,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [moveItem, setMoveItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [copyItem, setCopyItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [shareItem, setShareItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
@@ -276,32 +287,51 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   });
 
   const handleBulkDelete = useCallback(() => {
-    // For now, just show toast - bulk delete would need API support
-    toast.info(`Would delete ${selectedItems.size} items`);
-    handleClearSelection();
-  }, [selectedItems, handleClearSelection]);
+    if (selectedItems.size === 0) return;
+    setBulkDeleteOpen(true);
+  }, [selectedItems]);
 
   const handleBulkMove = useCallback(() => {
-    // For now, just show toast - bulk move would need API support
-    toast.info(`Would move ${selectedItems.size} items`);
+    if (selectedItems.size === 0) return;
+    setBulkMoveOpen(true);
+  }, [selectedItems]);
+
+  const handleBulkOperationSuccess = useCallback(() => {
     handleClearSelection();
-  }, [selectedItems, handleClearSelection]);
+    refetchFolders();
+    refetchAssets();
+  }, [handleClearSelection, refetchFolders, refetchAssets]);
 
   const handleBulkDownload = useCallback(async () => {
-    const assetItems = Array.from(selectedItems.values()).filter((item) => item.type === "asset");
-    if (assetItems.length === 0) {
-      toast.info("No files selected for download");
+    const items = Array.from(selectedItems.values());
+    const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
+    const folderIds = items.filter((item) => item.type === "folder").map((item) => item.id);
+
+    if (assetIds.length === 0 && folderIds.length === 0) {
+      toast.info("No items selected for download");
       return;
     }
 
-    for (const item of assetItems) {
-      const asset = assets.find((a) => a.id === item.id);
-      if (asset) {
-        await handleDownload(asset);
-      }
+    const toastId = toast.loading("Preparing download...");
+    try {
+      const blob = await assetService.bulkDownload({ assetIds, folderIds });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `download-${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Download started", { id: toastId });
+      handleClearSelection();
+    } catch {
+      toast.error("Failed to download files", { id: toastId });
     }
-    handleClearSelection();
-  }, [selectedItems, assets, handleClearSelection]);
+  }, [selectedItems, handleClearSelection]);
 
   const handleSelectAll = useCallback(() => {
     const newSelection = new Map<string, SelectedItem>();
@@ -447,6 +477,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         setViewMode={setViewMode}
         sortConfig={sortConfig}
         onSortChange={setSortConfig}
+        onPreviewAsset={handlePreview}
       />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -505,6 +536,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onRename={(f) => setRenameItem({ item: f, type: "folder" })}
                       onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
                       onMove={(f) => handleMove(f, "folder")}
+                      onCopy={(f) => setCopyItem({ item: f, type: "folder" })}
+                      onShare={(f) => setShareItem({ item: f, type: "folder" })}
                       onStar={handleStarFolder}
                       viewMode={viewMode}
                       index={index}
@@ -515,6 +548,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       selectedCount={selectedItems.size}
                       onBulkDelete={handleBulkDelete}
                       onBulkMove={handleBulkMove}
+                      showOwner
+                      owner={user?.name ? { id: user.id, name: user.name } : undefined}
                     />
                   ))}
                   {assets.map((asset, index) => (
@@ -525,6 +560,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onRename={(a) => setRenameItem({ item: a, type: "asset" })}
                       onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
                       onMove={(a) => handleMove(a, "asset")}
+                      onCopy={(a) => setCopyItem({ item: a, type: "asset" })}
+                      onShare={(a) => setShareItem({ item: a, type: "asset" })}
                       onStar={handleStarAsset}
                       onPreview={handlePreview}
                       viewMode={viewMode}
@@ -537,6 +574,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       onBulkDownload={handleBulkDownload}
                       onBulkDelete={handleBulkDelete}
                       onBulkMove={handleBulkMove}
+                      showOwner
+                      owner={user?.name ? { id: user.id, name: user.name } : undefined}
                     />
                   ))}
                 </div>
@@ -594,6 +633,20 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       <RenameDialog open={!!renameItem} onOpenChange={(open) => !open && setRenameItem(null)} item={renameItem?.item ?? null} itemType={renameItem?.type ?? "folder"} />
       <DeleteDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)} item={deleteItem?.item ?? null} itemType={deleteItem?.type ?? "folder"} />
       <MoveDialog open={!!moveItem} onOpenChange={(open) => !open && setMoveItem(null)} item={moveItem?.item ?? null} itemType={moveItem?.type ?? "folder"} />
+      <CopyDialog open={!!copyItem} onOpenChange={(open) => !open && setCopyItem(null)} item={copyItem?.item ?? null} itemType={copyItem?.type ?? "folder"} />
+      <ShareDialog open={!!shareItem} onOpenChange={(open) => !open && setShareItem(null)} item={shareItem?.item ?? null} itemType={shareItem?.type ?? "folder"} />
+      <BulkDeleteDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        items={Array.from(selectedItems.values())}
+        onSuccess={handleBulkOperationSuccess}
+      />
+      <BulkMoveDialog
+        open={bulkMoveOpen}
+        onOpenChange={setBulkMoveOpen}
+        items={Array.from(selectedItems.values())}
+        onSuccess={handleBulkOperationSuccess}
+      />
       <FilePreviewDialog
         open={!!previewAsset}
         onOpenChange={(open) => !open && setPreviewAsset(null)}

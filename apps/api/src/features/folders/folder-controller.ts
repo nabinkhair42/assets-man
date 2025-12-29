@@ -5,6 +5,7 @@ import type { AuthRequest } from "@/middleware/auth-middleware.js";
 import {
   folderContentsQuerySchema,
   folderSearchQuerySchema,
+  copyFolderSchema,
   type CreateFolderInput,
   type UpdateFolderInput,
   type MoveFolderInput,
@@ -228,5 +229,60 @@ export async function searchFolders(
     sendSuccess(res, { folders });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to search folders", 500);
+  }
+}
+
+export async function copyFolder(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      sendError(res, "VALIDATION_ERROR", "Folder ID is required", 400);
+      return;
+    }
+
+    const parsed = copyFolderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, "VALIDATION_ERROR", "Invalid input", 400);
+      return;
+    }
+
+    const result = await folderService.copyFolder(
+      req.userId,
+      id,
+      parsed.data.targetParentId
+    );
+    sendSuccess(
+      res,
+      {
+        folder: result.folder,
+        assetsCopied: result.assetsCopied,
+        foldersCopied: result.foldersCopied,
+      },
+      `Folder copied with ${result.assetsCopied} assets and ${result.foldersCopied} folders`,
+      201
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "NOT_FOUND") {
+      sendError(res, "NOT_FOUND", "Folder not found", 404);
+      return;
+    }
+
+    if (message === "PARENT_NOT_FOUND") {
+      sendError(res, "NOT_FOUND", "Destination folder not found", 404);
+      return;
+    }
+
+    if (message === "INVALID_COPY") {
+      sendError(res, "VALIDATION_ERROR", "Cannot copy folder to this location", 400);
+      return;
+    }
+
+    sendError(res, "INTERNAL_ERROR", "Failed to copy folder", 500);
   }
 }

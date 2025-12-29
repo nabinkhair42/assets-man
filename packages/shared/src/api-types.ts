@@ -52,6 +52,7 @@ export const ERROR_CODES = {
   // Resource errors
   NOT_FOUND: "NOT_FOUND",
   FORBIDDEN: "FORBIDDEN",
+  CONFLICT: "CONFLICT",
 
   // Server errors
   INTERNAL_ERROR: "INTERNAL_ERROR",

@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Trash2 } from "lucide-react";
+import { useState, useMemo, useRef, useCallback } from "react";
+import { Trash2, RotateCcw, X } from "lucide-react";
 import { TrashSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { EmptyTrashDialog, EmptyTrashTrigger, PermanentDeleteDialog } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger } from "@/components/shared";
+import { EmptyState, ListHeader, InfiniteScrollTrigger, type SelectedItem } from "@/components/shared";
 import { TrashItem } from "./trash-item";
-import { useInfiniteTrash, useRestoreItem } from "@/hooks";
+import { useInfiniteTrash, useRestoreItem, useMarqueeSelection, usePermanentlyDelete } from "@/hooks";
 import { toast } from "sonner";
 import type { TrashedItem } from "@/types";
 
@@ -24,6 +25,11 @@ const TRASH_LIST_COLUMNS = [
 export function TrashBrowser() {
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrashedItem | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const lastSelectedIndex = useRef<number | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+
+  const selectionMode = selectedItems.size > 0;
 
   const {
     data: trashData,
@@ -33,11 +39,22 @@ export function TrashBrowser() {
     fetchNextPage,
   } = useInfiniteTrash();
   const restoreItem = useRestoreItem();
+  const permanentlyDelete = usePermanentlyDelete();
 
   const items = useMemo(() => {
     if (!trashData?.pages) return [];
     return trashData.pages.flatMap((page) => page.items);
   }, [trashData]);
+
+  // Combined list of all items for index-based operations
+  const allItems = useMemo(() => {
+    return items.map((item) => ({
+      id: item.id,
+      type: item.itemType,
+      name: item.name,
+      data: item,
+    }));
+  }, [items]);
 
   const handleRestore = (item: TrashedItem) => {
     const toastId = toast.loading(`Restoring ${item.name}...`);
@@ -53,6 +70,133 @@ export function TrashBrowser() {
   const handlePermanentDelete = (item: TrashedItem) => {
     setDeleteItem(item);
   };
+
+  // Selection handlers
+  const handleItemSelect = useCallback((
+    index: number,
+    id: string,
+    type: "folder" | "asset",
+    name: string,
+    selected: boolean,
+    shiftKey: boolean
+  ) => {
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+      const key = `${type}-${id}`;
+
+      if (shiftKey && lastSelectedIndex.current !== null && selected) {
+        const start = Math.min(lastSelectedIndex.current, index);
+        const end = Math.max(lastSelectedIndex.current, index);
+
+        for (let i = start; i <= end; i++) {
+          const item = allItems[i];
+          if (item) {
+            next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+          }
+        }
+      } else {
+        if (selected) {
+          next.set(key, { id, type, name });
+        } else {
+          next.delete(key);
+        }
+      }
+
+      if (selected) {
+        lastSelectedIndex.current = index;
+      }
+
+      return next;
+    });
+  }, [allItems]);
+
+  const handleSelectItem = useCallback((item: TrashedItem, selected: boolean, shiftKey = false) => {
+    const index = allItems.findIndex((i) => i.type === item.itemType && i.id === item.id);
+    handleItemSelect(index, item.id, item.itemType, item.name, selected, shiftKey);
+  }, [allItems, handleItemSelect]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedItems(new Map());
+    lastSelectedIndex.current = null;
+  }, []);
+
+  const handleMarqueeSelectionChange = useCallback((selectedIds: string[]) => {
+    if (selectedIds.length === 0) {
+      handleClearSelection();
+      return;
+    }
+
+    const newSelection = new Map<string, SelectedItem>();
+    for (const id of selectedIds) {
+      const [type, ...idParts] = id.split("-");
+      const itemId = idParts.join("-");
+      const item = allItems.find((i) => i.type === type && i.id === itemId);
+      if (item) {
+        newSelection.set(id, { id: itemId, type: item.type as "folder" | "asset", name: item.name });
+      }
+    }
+    setSelectedItems(newSelection);
+  }, [allItems, handleClearSelection]);
+
+  // Marquee selection hook
+  const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
+    items: allItems,
+    getItemId: (item) => `${item.type}-${item.id}`,
+    onSelectionChange: handleMarqueeSelectionChange,
+    containerRef: contentContainerRef,
+    itemSelector: "[data-item-id]",
+  });
+
+  // Bulk operations
+  const handleBulkRestore = useCallback(async () => {
+    const selectedList = Array.from(selectedItems.values());
+    if (selectedList.length === 0) return;
+
+    const toastId = toast.loading(`Restoring ${selectedList.length} items...`);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedList) {
+      try {
+        await restoreItem.mutateAsync({ id: item.id, type: item.type });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    handleClearSelection();
+    if (failCount === 0) {
+      toast.success(`${successCount} items restored`, { id: toastId });
+    } else {
+      toast.error(`Restored ${successCount}, failed ${failCount}`, { id: toastId });
+    }
+  }, [selectedItems, restoreItem, handleClearSelection]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const selectedList = Array.from(selectedItems.values());
+    if (selectedList.length === 0) return;
+
+    const toastId = toast.loading(`Deleting ${selectedList.length} items permanently...`);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedList) {
+      try {
+        await permanentlyDelete.mutateAsync({ id: item.id, type: item.type });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    handleClearSelection();
+    if (failCount === 0) {
+      toast.success(`${successCount} items deleted permanently`, { id: toastId });
+    } else {
+      toast.error(`Deleted ${successCount}, failed ${failCount}`, { id: toastId });
+    }
+  }, [selectedItems, permanentlyDelete, handleClearSelection]);
 
   return (
     <div className="flex flex-col h-full">
@@ -81,7 +225,23 @@ export function TrashBrowser() {
 
       {/* Content */}
       <ScrollArea className="flex-1 min-h-0">
-        <div className="p-6">
+        <div
+          ref={contentContainerRef}
+          className="p-6 relative min-h-[calc(100vh-8rem)]"
+          onMouseDown={handleMarqueeMouseDown}
+        >
+          {/* Marquee selection rectangle */}
+          {isMarqueeSelecting && marqueeRect && (
+            <div
+              className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-50"
+              style={{
+                left: marqueeRect.left,
+                top: marqueeRect.top,
+                width: marqueeRect.width,
+                height: marqueeRect.height,
+              }}
+            />
+          )}
           {isLoading ? (
             <TrashSkeleton />
           ) : items.length === 0 ? (
@@ -99,6 +259,12 @@ export function TrashBrowser() {
                   item={item}
                   onRestore={handleRestore}
                   onPermanentDelete={handlePermanentDelete}
+                  isSelected={selectedItems.has(`${item.itemType}-${item.id}`)}
+                  isPendingSelection={pendingSelection.has(`${item.itemType}-${item.id}`)}
+                  onSelect={handleSelectItem}
+                  selectedCount={selectedItems.size}
+                  onBulkRestore={handleBulkRestore}
+                  onBulkDelete={handleBulkDelete}
                 />
               ))}
             </div>
@@ -113,6 +279,40 @@ export function TrashBrowser() {
           )}
         </div>
       </ScrollArea>
+
+      {/* Selection toolbar */}
+      {selectionMode && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-card border border-border shadow-lg rounded-lg px-4 py-2">
+          <span className="text-sm text-muted-foreground mr-2">
+            {selectedItems.size} selected
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBulkRestore}
+            className="gap-2"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Restore
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            className="gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleClearSelection}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <EmptyTrashDialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen} />
       <PermanentDeleteDialog

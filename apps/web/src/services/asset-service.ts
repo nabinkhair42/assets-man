@@ -10,6 +10,8 @@ import type {
   ListAssetsParams,
   PaginatedAssets,
   DownloadUrlResponse,
+  CopyAssetInput,
+  BulkDownloadInput,
 } from "@/types";
 
 export const assetService = {
@@ -79,6 +81,14 @@ export const assetService = {
     return response.data.data;
   },
 
+  // Get download URL for shared asset (or owned asset)
+  async getSharedDownloadUrl(id: string): Promise<DownloadUrlResponse> {
+    const response = await apiClient.get<ApiResponse<DownloadUrlResponse>>(
+      API_ENDPOINTS.ASSETS.SHARED_DOWNLOAD(id)
+    );
+    return response.data.data;
+  },
+
   async update(id: string, input: UpdateAssetInput): Promise<Asset> {
     const response = await apiClient.patch<ApiResponse<{ asset: Asset }>>(
       API_ENDPOINTS.ASSETS.BY_ID(id),
@@ -115,5 +125,22 @@ export const assetService = {
       assets: response.data.data,
       ...response.data.pagination,
     };
+  },
+
+  async copy(id: string, input: CopyAssetInput): Promise<Asset> {
+    const response = await apiClient.post<ApiResponse<{ asset: Asset }>>(
+      API_ENDPOINTS.ASSETS.COPY(id),
+      input
+    );
+    return response.data.data.asset;
+  },
+
+  async bulkDownload(input: BulkDownloadInput): Promise<Blob> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.ASSETS.BULK_DOWNLOAD,
+      input,
+      { responseType: "blob" }
+    );
+    return response.data;
   },
 };

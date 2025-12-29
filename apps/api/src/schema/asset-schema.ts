@@ -31,6 +31,17 @@ export const listAssetsQuerySchema = z.object({
 export type SortBy = z.infer<typeof sortBySchema>;
 export type SortOrder = z.infer<typeof sortOrderSchema>;
 
+export const copyAssetSchema = z.object({
+  targetFolderId: z.string().uuid().nullable().optional(), // null = root folder
+});
+
+export const bulkDownloadSchema = z.object({
+  assetIds: z.array(z.string().uuid()).min(1, "At least one asset is required").max(100, "Maximum 100 assets allowed"),
+  folderIds: z.array(z.string().uuid()).optional().default([]),
+});
+
 export type RequestUploadInput = z.infer<typeof requestUploadSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
 export type ListAssetsQuery = z.infer<typeof listAssetsQuerySchema>;
+export type CopyAssetInput = z.infer<typeof copyAssetSchema>;
+export type BulkDownloadInput = z.infer<typeof bulkDownloadSchema>;

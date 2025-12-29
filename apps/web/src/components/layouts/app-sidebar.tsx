@@ -32,6 +32,7 @@ import {
   Stone,
   Plus,
   Upload,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,6 +41,7 @@ import { useFileActions } from "@/contexts";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
+  { title: "Shared with me", href: "/share", icon: Users },
   { title: "Recent", href: "/recent", icon: Clock },
   { title: "Starred", href: "/starred", icon: Star },
   { title: "Trash", href: "/trash", icon: Trash2 },
@@ -50,7 +52,7 @@ export function AppSidebar() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const { triggerUpload, triggerCreateFolder, isUploading } = useFileActions();
 
-  const isFilesPage = pathname === "/files" || pathname.startsWith("/files");
+  const isTrashPage = pathname === "/trash";
 
   return (
     <>
@@ -69,8 +71,8 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
         <SidebarContent>
-          {/* New Button - Google Drive style */}
-          {isFilesPage && (
+          {/* New Button - Google Drive style (hidden on Trash page) */}
+          {!isTrashPage && (
             <SidebarGroup>
               <SidebarGroupContent>
                 <DropdownMenu>

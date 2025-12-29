@@ -33,7 +33,12 @@ export const folderSearchQuerySchema = z.object({
   limit: z.coerce.number().positive().max(50).default(10),
 });
 
+export const copyFolderSchema = z.object({
+  targetParentId: z.string().uuid().nullable().optional(), // null = root folder
+});
+
 export type CreateFolderInput = z.infer<typeof createFolderSchema>;
 export type UpdateFolderInput = z.infer<typeof updateFolderSchema>;
 export type MoveFolderInput = z.infer<typeof moveFolderSchema>;
 export type FolderSearchQuery = z.infer<typeof folderSearchQuerySchema>;
+export type CopyFolderInput = z.infer<typeof copyFolderSchema>;

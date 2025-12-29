@@ -7,6 +7,8 @@ import type {
   UpdateFolderInput,
   MoveFolderInput,
   FolderContentsParams,
+  CopyFolderInput,
+  CopyFolderResult,
 } from "@/types";
 
 export const folderService = {
@@ -80,5 +82,13 @@ export const folderService = {
       API_ENDPOINTS.FOLDERS.STARRED
     );
     return response.data.data.folders;
+  },
+
+  async copy(id: string, input: CopyFolderInput): Promise<CopyFolderResult> {
+    const response = await apiClient.post<ApiResponse<CopyFolderResult>>(
+      API_ENDPOINTS.FOLDERS.COPY(id),
+      input
+    );
+    return response.data.data;
   },
 };

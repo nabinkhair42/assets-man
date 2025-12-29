@@ -74,3 +74,10 @@ folderRouter.post(
   validateParams(folderIdParamSchema),
   wrap(folderController.toggleStarred)
 );
+
+// Copy folder
+folderRouter.post(
+  "/:id/copy",
+  validateParams(folderIdParamSchema),
+  wrap(folderController.copyFolder)
+);

@@ -50,6 +50,13 @@ assetRouter.get(
   wrap(assetController.getDownloadUrl)
 );
 
+// Get download URL for shared asset (or owned asset)
+assetRouter.get(
+  "/:id/shared-download",
+  validateParams(assetIdParamSchema),
+  wrap(assetController.getSharedDownloadUrl)
+);
+
 // Update asset (rename or move)
 assetRouter.patch(
   "/:id",
@@ -71,3 +78,13 @@ assetRouter.post(
   validateParams(assetIdParamSchema),
   wrap(assetController.toggleStarred)
 );
+
+// Copy asset
+assetRouter.post(
+  "/:id/copy",
+  validateParams(assetIdParamSchema),
+  wrap(assetController.copyAsset)
+);
+
+// Bulk download as ZIP
+assetRouter.post("/bulk-download", wrap(assetController.bulkDownload));

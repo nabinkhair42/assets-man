@@ -1,5 +1,5 @@
-import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, type SQL } from "drizzle-orm";
-import { createDb, assets, folders, type Asset } from "@repo/database";
+import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, inArray, type SQL } from "drizzle-orm";
+import { createDb, assets, folders, shares, type Asset, type Folder } from "@repo/database";
 import {
   createStorageClient,
   generateStorageKey,
@@ -119,6 +119,52 @@ export async function getDownloadUrl(
   });
 
   return { url, asset };
+}
+
+// Get download URL for an asset shared with the user (or owned by user)
+export async function getSharedAssetDownloadUrl(
+  userId: string,
+  assetId: string
+): Promise<{ url: string; asset: Asset }> {
+  // First try owned asset
+  const ownedAsset = await db.query.assets.findFirst({
+    where: and(eq(assets.id, assetId), eq(assets.ownerId, userId)),
+  });
+
+  if (ownedAsset) {
+    const storage = getStorage();
+    const { url } = await storage.getPresignedDownloadUrl({
+      key: ownedAsset.storageKey,
+      expiresIn: 3600,
+      filename: ownedAsset.name,
+    });
+    return { url, asset: ownedAsset };
+  }
+
+  // Check if asset is shared with user
+  const share = await db.query.shares.findFirst({
+    where: and(
+      eq(shares.assetId, assetId),
+      eq(shares.sharedWithUserId, userId),
+      or(isNull(shares.expiresAt), sql`${shares.expiresAt} > NOW()`)
+    ),
+    with: {
+      asset: true,
+    },
+  });
+
+  if (!share?.asset) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const storage = getStorage();
+  const { url } = await storage.getPresignedDownloadUrl({
+    key: share.asset.storageKey,
+    expiresIn: 3600,
+    filename: share.asset.name,
+  });
+
+  return { url, asset: share.asset };
 }
 
 function getAssetSortColumn(sortBy: string) {
@@ -508,4 +554,172 @@ export async function listStarredAssets(
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+export async function copyAsset(
+  userId: string,
+  assetId: string,
+  targetFolderId: string | null | undefined
+): Promise<Asset> {
+  const asset = await getAssetById(userId, assetId);
+
+  if (!asset) {
+    throw new Error("NOT_FOUND");
+  }
+
+  // Verify target folder exists if provided
+  if (targetFolderId) {
+    const folder = await db.query.folders.findFirst({
+      where: and(eq(folders.id, targetFolderId), eq(folders.ownerId, userId)),
+    });
+
+    if (!folder) {
+      throw new Error("FOLDER_NOT_FOUND");
+    }
+  }
+
+  // Generate new storage key for the copy
+  const newStorageKey = generateStorageKey(userId, asset.name, targetFolderId ?? undefined);
+
+  // Copy the file in storage
+  const storage = getStorage();
+  await storage.copyObject(asset.storageKey, newStorageKey);
+
+  // Copy thumbnail if exists
+  let newThumbnailKey: string | null = null;
+  if (asset.thumbnailKey) {
+    newThumbnailKey = generateStorageKey(userId, `thumb_${asset.name}`, targetFolderId ?? undefined);
+    await storage.copyObject(asset.thumbnailKey, newThumbnailKey);
+  }
+
+  // Generate a unique name if there's a conflict
+  let copyName = `${asset.name} (copy)`;
+  const existingWithName = await db.query.assets.findFirst({
+    where: and(
+      eq(assets.ownerId, userId),
+      eq(assets.name, copyName),
+      targetFolderId ? eq(assets.folderId, targetFolderId) : isNull(assets.folderId)
+    ),
+  });
+
+  if (existingWithName) {
+    copyName = `${asset.name} (copy ${Date.now()})`;
+  }
+
+  // Create new asset record
+  const [newAsset] = await db
+    .insert(assets)
+    .values({
+      name: copyName,
+      originalName: asset.originalName,
+      mimeType: asset.mimeType,
+      size: asset.size,
+      storageKey: newStorageKey,
+      folderId: targetFolderId ?? null,
+      ownerId: userId,
+      thumbnailKey: newThumbnailKey,
+    })
+    .returning();
+
+  if (!newAsset) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  return newAsset;
+}
+
+export interface BulkDownloadAsset {
+  asset: Asset;
+  path: string; // Path within the ZIP (includes folder structure)
+}
+
+// Helper to get all descendants of a folder
+async function getFolderDescendants(
+  userId: string,
+  folderId: string,
+  basePath: string = ""
+): Promise<{ assets: BulkDownloadAsset[]; folders: { folder: Folder; path: string }[] }> {
+  const folder = await db.query.folders.findFirst({
+    where: and(eq(folders.id, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
+  });
+
+  if (!folder) {
+    return { assets: [], folders: [] };
+  }
+
+  const folderPath = basePath ? `${basePath}/${folder.name}` : folder.name;
+  const result: { assets: BulkDownloadAsset[]; folders: { folder: Folder; path: string }[] } = {
+    assets: [],
+    folders: [{ folder, path: folderPath }],
+  };
+
+  // Get assets in this folder
+  const folderAssets = await db.query.assets.findMany({
+    where: and(eq(assets.folderId, folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt)),
+  });
+
+  for (const asset of folderAssets) {
+    result.assets.push({
+      asset,
+      path: `${folderPath}/${asset.name}`,
+    });
+  }
+
+  // Get subfolders
+  const subfolders = await db.query.folders.findMany({
+    where: and(eq(folders.parentId, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
+  });
+
+  // Recursively get descendants of subfolders
+  for (const subfolder of subfolders) {
+    const subResult = await getFolderDescendants(userId, subfolder.id, folderPath);
+    result.assets.push(...subResult.assets);
+    result.folders.push(...subResult.folders);
+  }
+
+  return result;
+}
+
+export async function getBulkDownloadAssets(
+  userId: string,
+  assetIds: string[],
+  folderIds: string[]
+): Promise<BulkDownloadAsset[]> {
+  const result: BulkDownloadAsset[] = [];
+  const addedAssetIds = new Set<string>();
+
+  // Get directly selected assets
+  if (assetIds.length > 0) {
+    const selectedAssets = await db.query.assets.findMany({
+      where: and(
+        eq(assets.ownerId, userId),
+        isNull(assets.trashedAt),
+        inArray(assets.id, assetIds)
+      ),
+    });
+
+    for (const asset of selectedAssets) {
+      if (!addedAssetIds.has(asset.id)) {
+        result.push({ asset, path: asset.name });
+        addedAssetIds.add(asset.id);
+      }
+    }
+  }
+
+  // Get assets from selected folders (including all descendants)
+  for (const folderId of folderIds) {
+    const folderContents = await getFolderDescendants(userId, folderId);
+    for (const item of folderContents.assets) {
+      if (!addedAssetIds.has(item.asset.id)) {
+        result.push(item);
+        addedAssetIds.add(item.asset.id);
+      }
+    }
+  }
+
+  return result;
+}
+
+export function getStorageForBulkDownload(): StorageClient {
+  return getStorage();
 }

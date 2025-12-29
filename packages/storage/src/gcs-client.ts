@@ -93,5 +93,9 @@ export function createGCSClient(config: StorageConfig): StorageClient {
     async copyObject(sourceKey: string, destinationKey: string): Promise<void> {
       await bucket.file(sourceKey).copy(bucket.file(destinationKey));
     },
+
+    async getObjectStream(key: string): Promise<import("stream").Readable> {
+      return bucket.file(key).createReadStream();
+    },
   };
 }

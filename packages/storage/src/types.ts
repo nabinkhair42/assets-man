@@ -1,3 +1,5 @@
+import { Readable } from "stream";
+
 export type StorageProvider = "s3" | "gcs";
 
 export interface StorageConfig {
@@ -72,4 +74,9 @@ export interface StorageClient {
    * Copy a file within storage
    */
   copyObject(sourceKey: string, destinationKey: string): Promise<void>;
+
+  /**
+   * Get a readable stream for a file
+   */
+  getObjectStream(key: string): Promise<Readable>;
 }

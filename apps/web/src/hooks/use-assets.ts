@@ -4,6 +4,7 @@ import type {
   RequestUploadInput,
   UpdateAssetInput,
   ListAssetsParams,
+  CopyAssetInput,
 } from "@/types";
 
 export const assetKeys = {
@@ -151,6 +152,18 @@ export function useStarredAssets(params?: { page?: number; limit?: number }) {
         return lastPage.page + 1;
       }
       return undefined;
+    },
+  });
+}
+
+export function useCopyAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CopyAssetInput }) =>
+      assetService.copy(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
     },
   });
 }

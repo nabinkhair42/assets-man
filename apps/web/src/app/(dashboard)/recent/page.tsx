@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { Clock } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import {
   DndContext,
   DragOverlay,
@@ -21,10 +20,14 @@ import {
   useUpdateAsset,
   useToggleAssetStarred,
   useToggleFolderStarred,
+  useUser,
+  useMarqueeSelection,
 } from "@/hooks";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
 import {
+  BulkDeleteDialog,
+  BulkMoveDialog,
   RenameDialog,
   DeleteDialog,
   MoveDialog,
@@ -38,23 +41,27 @@ import { assetService, recentService } from "@/services";
 import { useRouter } from "next/navigation";
 
 const FILE_LIST_COLUMNS = [
-  { label: "", width: "w-8" },
   { label: "Name" },
+  { label: "Owner", width: "w-10", align: "center" as const, hideBelow: "sm" as const },
   { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
   { label: "Accessed", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-10" },
+  { label: "", width: "w-8" },
 ];
 
 export default function RecentPage() {
+  const { data: user } = useUser();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [moveItem, setMoveItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
   const lastSelectedIndex = useRef<number | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const selectionMode = selectedItems.size > 0;
 
@@ -203,15 +210,48 @@ export default function RecentPage() {
     lastSelectedIndex.current = null;
   }, []);
 
+  const handleMarqueeSelectionChange = useCallback((selectedIds: string[]) => {
+    if (selectedIds.length === 0) {
+      handleClearSelection();
+      return;
+    }
+
+    const newSelection = new Map<string, SelectedItem>();
+    for (const id of selectedIds) {
+      const [type, ...idParts] = id.split("-");
+      const itemId = idParts.join("-");
+      const item = allItems.find((i) => i.type === type && i.id === itemId);
+      if (item) {
+        newSelection.set(id, { id: itemId, type: item.type, name: item.name });
+      }
+    }
+    setSelectedItems(newSelection);
+  }, [allItems, handleClearSelection]);
+
+  // Marquee selection hook
+  const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
+    items: allItems,
+    getItemId: (item) => `${item.type}-${item.id}`,
+    onSelectionChange: handleMarqueeSelectionChange,
+    containerRef: contentContainerRef,
+    itemSelector: "[data-item-id]",
+    disabled: !!activeItem,
+  });
+
   const handleBulkDelete = useCallback(() => {
-    toast.info(`Would delete ${selectedItems.size} items`);
-    handleClearSelection();
-  }, [selectedItems, handleClearSelection]);
+    if (selectedItems.size === 0) return;
+    setBulkDeleteOpen(true);
+  }, [selectedItems]);
 
   const handleBulkMove = useCallback(() => {
-    toast.info(`Would move ${selectedItems.size} items`);
+    if (selectedItems.size === 0) return;
+    setBulkMoveOpen(true);
+  }, [selectedItems]);
+
+  const handleBulkOperationSuccess = useCallback(() => {
     handleClearSelection();
-  }, [selectedItems, handleClearSelection]);
+    refetchRecent();
+  }, [handleClearSelection, refetchRecent]);
 
   const handleBulkDownload = useCallback(async () => {
     const assetItems = Array.from(selectedItems.values()).filter((item) => item.type === "asset");
@@ -282,12 +322,29 @@ export default function RecentPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         title="Recent"
+        onPreviewAsset={handlePreview}
       />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex-1 min-h-0 relative">
           <ScrollArea className="h-full">
-            <div className="p-6">
+            <div
+              ref={contentContainerRef}
+              className="p-6 relative min-h-[calc(100vh-8rem)]"
+              onMouseDown={handleMarqueeMouseDown}
+            >
+              {/* Marquee selection rectangle */}
+              {isMarqueeSelecting && marqueeRect && (
+                <div
+                  className="absolute border-2 border-primary bg-primary/10 pointer-events-none z-50"
+                  style={{
+                    left: marqueeRect.left,
+                    top: marqueeRect.top,
+                    width: marqueeRect.width,
+                    height: marqueeRect.height,
+                  }}
+                />
+              )}
               {isLoading ? (
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : allItems.length === 0 ? (
@@ -312,11 +369,14 @@ export default function RecentPage() {
                         viewMode={viewMode}
                         index={index}
                         isSelected={selectedItems.has(`folder-${item.id}`)}
+                        isPendingSelection={pendingSelection.has(`folder-${item.id}`)}
                         onSelect={handleSelectFolder}
                         selectionMode={selectionMode}
                         selectedCount={selectedItems.size}
                         onBulkDelete={handleBulkDelete}
                         onBulkMove={handleBulkMove}
+                        showOwner
+                        owner={user?.name ? { id: user.id, name: user.name } : undefined}
                       />
                     ) : (
                       <DraggableFileItem
@@ -331,12 +391,15 @@ export default function RecentPage() {
                         viewMode={viewMode}
                         index={index}
                         isSelected={selectedItems.has(`asset-${item.id}`)}
+                        isPendingSelection={pendingSelection.has(`asset-${item.id}`)}
                         onSelect={handleSelectAsset}
                         selectionMode={selectionMode}
                         selectedCount={selectedItems.size}
                         onBulkDownload={handleBulkDownload}
                         onBulkDelete={handleBulkDelete}
                         onBulkMove={handleBulkMove}
+                        showOwner
+                        owner={user?.name ? { id: user.id, name: user.name } : undefined}
                       />
                     )
                   ))}
@@ -359,6 +422,18 @@ export default function RecentPage() {
       <RenameDialog open={!!renameItem} onOpenChange={(open) => !open && setRenameItem(null)} item={renameItem?.item ?? null} itemType={renameItem?.type ?? "folder"} />
       <DeleteDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)} item={deleteItem?.item ?? null} itemType={deleteItem?.type ?? "folder"} />
       <MoveDialog open={!!moveItem} onOpenChange={(open) => !open && setMoveItem(null)} item={moveItem?.item ?? null} itemType={moveItem?.type ?? "folder"} />
+      <BulkDeleteDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        items={Array.from(selectedItems.values())}
+        onSuccess={handleBulkOperationSuccess}
+      />
+      <BulkMoveDialog
+        open={bulkMoveOpen}
+        onOpenChange={setBulkMoveOpen}
+        items={Array.from(selectedItems.values())}
+        onSuccess={handleBulkOperationSuccess}
+      />
       <FilePreviewDialog
         open={!!previewAsset}
         onOpenChange={(open) => !open && setPreviewAsset(null)}

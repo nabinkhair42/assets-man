@@ -35,14 +35,12 @@ export function SelectionToolbar({
   return (
     <div
       className={cn(
-        "fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-50",
-        "flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg",
-        "bg-card border border-border shadow-lg",
+        "fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-background/30 backdrop-blur-2xl rounded-xl",
         className
       )}
     >
-      <div className="flex items-center gap-2 pr-2 border-r border-border">
-        <Button variant="ghost" size="icon-sm" onClick={onClearSelection}>
+      <div className="flex items-center gap-2 pr-2 border-r">
+        <Button variant="ghost" size="icon-sm" onClick={onClearSelection} className="rounded-full">
           <X className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium whitespace-nowrap">

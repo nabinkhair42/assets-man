@@ -5,6 +5,7 @@ import type {
   UpdateFolderInput,
   MoveFolderInput,
   FolderContentsParams,
+  CopyFolderInput,
 } from "@/types";
 
 export const folderKeys = {
@@ -103,5 +104,17 @@ export function useStarredFolders() {
   return useQuery({
     queryKey: ["starred", "folders"],
     queryFn: () => folderService.listStarred(),
+  });
+}
+
+export function useCopyFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: CopyFolderInput }) =>
+      folderService.copy(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: folderKeys.lists() });
+    },
   });
 }

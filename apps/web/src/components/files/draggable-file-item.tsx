@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { MoreVertical, Download, Pencil, Trash2, FolderInput, Star } from "lucide-react";
+import { MoreVertical, Download, Pencil, Trash2, FolderInput, Star, Copy, Share2 } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -18,9 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { FileIcon } from "@/components/shared";
+import { SingleAvatar, type AvatarUser } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
 import { formatFileSize, formatRelativeTime, truncateFileName } from "@/lib/formatters";
 import type { Asset } from "@/types";
+
+export interface OwnerInfo {
+  id: string;
+  name: string;
+}
 
 interface DraggableFileItemProps {
   asset: Asset;
@@ -28,6 +34,8 @@ interface DraggableFileItemProps {
   onRename: (asset: Asset) => void;
   onDelete: (asset: Asset) => void;
   onMove: (asset: Asset) => void;
+  onCopy?: (asset: Asset) => void;
+  onShare?: (asset: Asset) => void;
   onStar?: (asset: Asset) => void;
   onPreview?: (asset: Asset) => void;
   viewMode?: "grid" | "list";
@@ -40,6 +48,8 @@ interface DraggableFileItemProps {
   onBulkDownload?: () => void;
   onBulkDelete?: () => void;
   onBulkMove?: () => void;
+  owner?: OwnerInfo;
+  showOwner?: boolean;
 }
 
 export function DraggableFileItem({
@@ -48,6 +58,8 @@ export function DraggableFileItem({
   onRename,
   onDelete,
   onMove,
+  onCopy,
+  onShare,
   onStar,
   onPreview,
   viewMode = "grid",
@@ -58,6 +70,8 @@ export function DraggableFileItem({
   onBulkDownload,
   onBulkDelete,
   onBulkMove,
+  owner,
+  showOwner = false,
 }: DraggableFileItemProps) {
   const isListView = viewMode === "list";
 
@@ -111,6 +125,19 @@ export function DraggableFileItem({
         Move to
         <ContextMenuShortcut>Ctrl+M</ContextMenuShortcut>
       </ContextMenuItem>
+      {onCopy && (
+        <ContextMenuItem onClick={() => onCopy(asset)}>
+          <Copy className="mr-2 h-4 w-4" />
+          Copy to
+          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+        </ContextMenuItem>
+      )}
+      {onShare && (
+        <ContextMenuItem onClick={() => onShare(asset)}>
+          <Share2 className="mr-2 h-4 w-4" />
+          Share
+        </ContextMenuItem>
+      )}
       <ContextMenuSeparator />
       <ContextMenuItem onClick={() => onDelete(asset)} variant="destructive">
         <Trash2 className="mr-2 h-4 w-4" />
@@ -152,6 +179,18 @@ export function DraggableFileItem({
           <FolderInput className="mr-2 h-4 w-4" />
           Move
         </DropdownMenuItem>
+        {onCopy && (
+          <DropdownMenuItem onClick={() => onCopy(asset)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy
+          </DropdownMenuItem>
+        )}
+        {onShare && (
+          <DropdownMenuItem onClick={() => onShare(asset)}>
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => onDelete(asset)} className="text-destructive focus:text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           Delete
@@ -211,6 +250,11 @@ export function DraggableFileItem({
                 {asset.name}
               </p>
             </div>
+            {showOwner && owner && (
+              <div className="w-10 hidden sm:flex items-center justify-center">
+                <SingleAvatar user={owner} size="sm" />
+              </div>
+            )}
             <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
               {formatFileSize(asset.size)}
             </div>
@@ -251,7 +295,14 @@ export function DraggableFileItem({
             <FileIcon mimeType={asset.mimeType} size="lg" />
           </div>
           <p className="truncate font-medium text-sm text-foreground text-center mb-1">{asset.name}</p>
-          <p className="text-xs text-muted-foreground text-center">{formatFileSize(asset.size)}</p>
+          {showOwner && owner ? (
+            <div className="flex items-center justify-center gap-1.5">
+              <SingleAvatar user={owner} size="sm" showTooltip={false} />
+              <p className="text-xs text-muted-foreground truncate max-w-16">{owner.name}</p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">{formatFileSize(asset.size)}</p>
+          )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>
