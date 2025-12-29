@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Download, Folder, Lock, AlertCircle, Loader2, User, Calendar, HardDrive, Info } from "lucide-react";
+import { Download, Folder, Lock, AlertCircle, Loader2, User, Calendar, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileIcon as CustomFileIcon } from "@/components/shared";
+import { FileIcon as CustomFileIcon, ShareInfoPopover } from "@/components/shared";
 import { shareService } from "@/services";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
@@ -35,7 +35,6 @@ export default function PublicSharePage() {
   const [downloading, setDownloading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     async function fetchDetails() {
@@ -250,22 +249,29 @@ export default function PublicSharePage() {
               <CustomFileIcon mimeType={item.mimeType} size="sm" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-white font-medium truncate max-w-md">{item.name}</h1>
-              <p className="text-white/50 text-xs">
+              <h1 className="text-muted-foreground font-medium truncate max-w-md">{item.name}</h1>
+              <p className="text-muted-foreground text-xs">
                 {formatFileSize(item.size || 0)} • Shared by {share.ownerName}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
-              onClick={() => setShowInfo(!showInfo)}
-            >
-              <Info className="h-5 w-5" />
-            </Button>
+            <ShareInfoPopover
+              share={{
+                ownerName: share.ownerName,
+                permission: share.permission,
+                expiresAt: share.expiresAt,
+              }}
+              item={{
+                name: item.name,
+                type: item.type,
+                size: item.size,
+                mimeType: item.mimeType,
+                createdAt: item.createdAt,
+              }}
+              variant="dark"
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -281,38 +287,6 @@ export default function PublicSharePage() {
             </Button>
           </div>
         </div>
-
-        {/* Info panel */}
-        {showInfo && (
-          <div className="absolute top-16 right-4 z-30 w-80 rounded-lg bg-gray-900/95 backdrop-blur-md border border-white/10 shadow-xl">
-            <div className="p-4 space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <User className="h-4 w-4 text-white/50" />
-                <span className="text-white/50">Shared by:</span>
-                <span className="text-white font-medium">{share.ownerName}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <HardDrive className="h-4 w-4 text-white/50" />
-                <span className="text-white/50">Size:</span>
-                <span className="text-white font-medium">{formatFileSize(item.size || 0)}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Calendar className="h-4 w-4 text-white/50" />
-                <span className="text-white/50">Created:</span>
-                <span className="text-white font-medium">{formatRelativeTime(new Date(item.createdAt))}</span>
-              </div>
-              {share.expiresAt && (
-                <div className="flex items-center gap-3 text-sm">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <span className="text-white/50">Expires:</span>
-                  <span className="text-amber-400 font-medium">
-                    {formatRelativeTime(new Date(share.expiresAt))}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Preview area */}
         <div className="flex-1 flex items-center justify-center pt-20 pb-4 px-4 min-h-0">

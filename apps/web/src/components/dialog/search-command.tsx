@@ -21,7 +21,6 @@ import {
   Folder as FolderIcon,
   Search,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { assetService, folderService } from "@/services";
 import type { Asset, Folder } from "@/types";
 import { cn } from "@/lib/utils";
@@ -44,8 +43,6 @@ function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
-
-
 
 interface SearchCommandProps {
   onNavigateToFolder?: (folderId: string | null) => void;
@@ -112,11 +109,9 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
   const handleSelectAsset = useCallback((asset: Asset) => {
     setOpen(false);
     setQuery("");
-    // If preview callback is provided, open preview
     if (onPreviewAsset) {
       onPreviewAsset(asset);
     } else if (onNavigateToFolder) {
-      // Navigate to the folder containing the asset
       onNavigateToFolder(asset.folderId);
     } else if (asset.folderId) {
       router.push(`/files?folderId=${asset.folderId}`);
@@ -136,19 +131,27 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="relative h-8 w-full justify-start rounded-md bg-muted/50 text-sm font-normal text-muted-foreground shadow-none sm:w-64 md:w-80"
+      {/* Search trigger button */}
+      <button
         onClick={() => setOpen(true)}
+        className={cn(
+          "group flex items-center gap-2 h-9 w-full max-w-md px-3",
+          "rounded-lg border border-border/50 bg-muted/30",
+          "text-sm text-muted-foreground",
+          "transition-all duration-200",
+          "hover:bg-muted/50 hover:border-border",
+          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+        )}
       >
-        <Search className="mr-2 h-4 w-4" />
-        <span className="hidden lg:inline-flex">Search files and folders...</span>
-        <span className="inline-flex lg:hidden">Search...</span>
-        <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <Search className="h-4 w-4 shrink-0 opacity-50" />
+        <span className="flex-1 text-left truncate">
+          <span className="hidden md:inline">Search files and folders...</span>
+          <span className="md:hidden">Search...</span>
+        </span>
+        <kbd className="hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border/50 bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
           <span className="text-xs">⌘</span>K
         </kbd>
-      </Button>
+      </button>
 
       <CommandDialog
         open={open}
@@ -158,34 +161,45 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
         showCloseButton={false}
       >
         <CommandInput
-          placeholder="Type to search files and folders..."
+          placeholder="Search files and folders..."
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
           {query.length < 2 ? (
-            <CommandEmpty>Type at least 2 characters to search...</CommandEmpty>
+            <div className="py-14 text-center">
+              <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">Type to search your files</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Enter at least 2 characters</p>
+            </div>
           ) : isLoading ? (
-            <CommandEmpty>Searching...</CommandEmpty>
+            <div className="py-14 text-center">
+              <div className="h-6 w-6 mx-auto mb-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Searching...</p>
+            </div>
           ) : assets.length === 0 && folders.length === 0 ? (
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>
+              <div className="py-8">
+                <p className="text-muted-foreground">No results found for &quot;{query}&quot;</p>
+              </div>
+            </CommandEmpty>
           ) : (
             <>
               {folders.length > 0 && (
                 <CommandGroup heading="Folders">
-                  {folders.map((folder) => {
-                    return (
-                      <CommandItem
-                        key={`folder-${folder.id}`}
-                        value={`folder-${folder.name}`}
-                        onSelect={() => handleSelectFolder(folder)}
-                        className="cursor-pointer"
-                      >
-                        <FolderIcon className="mr-2 h-4 w-4 text-primary" />
-                        <span className="flex-1 truncate">{folder.name}</span>
-                      </CommandItem>
-                    );
-                  })}
+                  {folders.map((folder) => (
+                    <CommandItem
+                      key={`folder-${folder.id}`}
+                      value={`folder-${folder.name}`}
+                      onSelect={() => handleSelectFolder(folder)}
+                      className="cursor-pointer gap-3 py-2.5"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                        <FolderIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="flex-1 truncate font-medium">{folder.name}</span>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
               )}
               {folders.length > 0 && assets.length > 0 && <CommandSeparator />}
@@ -198,13 +212,15 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
                         key={`asset-${asset.id}`}
                         value={`asset-${asset.name}`}
                         onSelect={() => handleSelectAsset(asset)}
-                        className="cursor-pointer"
+                        className="cursor-pointer gap-3 py-2.5"
                       >
-                        <Icon className={cn("mr-2 h-4 w-4", color)} />
-                        <span className="flex-1 truncate">{asset.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {formatFileSize(asset.size)}
-                        </span>
+                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-muted")}>
+                          <Icon className={cn("h-4 w-4", color)} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate font-medium">{asset.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</p>
+                        </div>
                       </CommandItem>
                     );
                   })}

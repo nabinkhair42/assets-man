@@ -4,3 +4,4 @@ export { ListHeader } from "./list-header";
 export { InfiniteScrollTrigger } from "./infinite-scroll-trigger";
 export { SelectionToolbar, type SelectedItem } from "./selection-toolbar";
 export { MobileFab } from "./mobile-fab";
+export { ShareInfoPopover } from "./share-info-popover";
