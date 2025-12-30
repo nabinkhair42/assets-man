@@ -26,7 +26,7 @@ export function VideoPreview({ asset, previewUrl, className, autoPlay = true }: 
         src={previewUrl}
         controls
         autoPlay={autoPlay}
-        className="max-h-full max-w-full rounded-lg shadow-2xl bg-black"
+        className="max-h-full max-w-full rounded-lg shadow-2xl bg-card"
         style={{ maxHeight: "calc(100vh - 160px)" }}
       >
         Your browser does not support the video tag.

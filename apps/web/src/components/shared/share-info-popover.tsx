@@ -49,7 +49,7 @@ export function ShareInfoPopover({
           className={cn(
             "h-10 w-10 rounded-full",
             variant === "dark"
-              ? "text-white/80 hover:text-white hover:bg-white/10"
+              ? "text-foreground/80 hover:text-foreground hover:bg-accent"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",
             className
           )}
@@ -62,7 +62,7 @@ export function ShareInfoPopover({
         sideOffset={8}
         className={cn(
           "w-80 p-0 overflow-hidden",
-          variant === "dark" && "bg-background/95 backdrop-blur-xl border-white/10"
+          variant === "dark" && "bg-background/95 backdrop-blur-xl border-border"
         )}
       >
         {/* Header */}

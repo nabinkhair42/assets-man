@@ -132,7 +132,7 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
 
       {/* Zoom controller - Bottom center */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-        <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-background/30 backdrop-blur-2xl rounded-xl">
+        <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-background/80 backdrop-blur-xl border border-border">
           <Button
             variant="ghost"
             size="icon"
@@ -145,7 +145,7 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
 
           <button
             onClick={handleReset}
-            className="min-w-14 px-2 py-1 text-sm font-medium rounded transition-colors"
+            className="min-w-14 px-2 py-1 text-sm font-medium rounded transition-colors text-foreground hover:bg-accent"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -160,7 +160,7 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
             <ZoomIn className="size-4" />
           </Button>
 
-          <div className="w-px h-5 bg-white/20 mx-1" />
+          <div className="w-px h-5 bg-border mx-1" />
 
           <Button
             variant="ghost"

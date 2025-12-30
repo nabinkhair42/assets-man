@@ -178,26 +178,26 @@ export function FilePreviewDialog({
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         {/* Full-screen dark overlay */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/95 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/95 dark data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none">
+        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none dark">
           {/* Header - Floating style */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
+          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent">
             <div className="flex items-center gap-4 min-w-0">
               <DialogPrimitive.Close asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+                  className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </DialogPrimitive.Close>
               <div className="min-w-0">
-                <DialogPrimitive.Title className="text-white font-medium truncate max-w-md">
+                <DialogPrimitive.Title className="text-foreground font-medium truncate max-w-md">
                   {asset.name}
                 </DialogPrimitive.Title>
-                <p className="text-white/50 text-xs">
+                <p className="text-muted-foreground text-xs">
                   {formatFileSize(asset.size)}
                   {assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
                 </p>
@@ -208,7 +208,7 @@ export function FilePreviewDialog({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+                className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
                 onClick={handleDownload}
               >
                 <Download className="h-5 w-5" />
@@ -230,10 +230,10 @@ export function FilePreviewDialog({
                 className={cn(
                   "absolute left-4 top-1/2 -translate-y-1/2 z-10",
                   "h-12 w-12 rounded-full flex items-center justify-center",
-                  "bg-white/10 hover:bg-white/20 backdrop-blur-sm",
-                  "text-white transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-white/30",
-                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-white/10"
+                  "bg-accent hover:bg-accent/80 backdrop-blur-sm",
+                  "text-foreground transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-ring/30",
+                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-accent"
                 )}
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -244,10 +244,10 @@ export function FilePreviewDialog({
                 className={cn(
                   "absolute right-4 top-1/2 -translate-y-1/2 z-10",
                   "h-12 w-12 rounded-full flex items-center justify-center",
-                  "bg-white/10 hover:bg-white/20 backdrop-blur-sm",
-                  "text-white transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-white/30",
-                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-white/10"
+                  "bg-accent hover:bg-accent/80 backdrop-blur-sm",
+                  "text-foreground transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-ring/30",
+                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-accent"
                 )}
               >
                 <ChevronRight className="h-6 w-6" />

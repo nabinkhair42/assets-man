@@ -446,9 +446,9 @@ export default function PublicSharePage() {
     };
 
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col dark bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-linear-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent absolute top-0 left-0 right-0 z-20">
           <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
@@ -458,14 +458,14 @@ export default function PublicSharePage() {
             >
               <ChevronRight className="h-5 w-5 rotate-180" />
             </Button>
-            <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
               <CustomFileIcon mimeType={previewingAsset.mimeType} size="sm" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-medium truncate max-w-md">
+              <h1 className="font-medium truncate max-w-md text-foreground">
                 {previewingAsset.name}
               </h1>
-              <p className="text-white/60 text-xs">
+              <p className="text-muted-foreground text-xs">
                 {formatFileSize(previewingAsset.size)} • Shared by {share.ownerName}
               </p>
             </div>
@@ -475,7 +475,7 @@ export default function PublicSharePage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+              className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
               onClick={() =>
                 handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
               }
@@ -501,16 +501,16 @@ export default function PublicSharePage() {
   // Full-screen preview for previewable assets
   if (canPreview) {
     return (
-      <div className="min-h-screen flex flex-col bg-black">
+      <div className="min-h-screen flex flex-col dark bg-background">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-20">
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent absolute top-0 left-0 right-0 z-20">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
               <CustomFileIcon mimeType={item.mimeType} size="sm" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-white font-medium truncate max-w-md">{item.name}</h1>
-              <p className="text-white/60 text-xs">
+              <h1 className="text-foreground font-medium truncate max-w-md">{item.name}</h1>
+              <p className="text-muted-foreground text-xs">
                 {formatFileSize(item.size || 0)} • Shared by {share.ownerName}
               </p>
             </div>
@@ -535,7 +535,7 @@ export default function PublicSharePage() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+              className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
               onClick={handleDownload}
               disabled={downloading}
             >

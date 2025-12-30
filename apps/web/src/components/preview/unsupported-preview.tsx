@@ -17,26 +17,26 @@ function FileTypeIcon({ mimeType, className }: { mimeType: string; className?: s
 
   switch (fileType) {
     case "image":
-      return <FileImage className={cn(className, "text-pink-400")} />;
+      return <FileImage className={cn(className, "text-pink-500")} />;
     case "video":
-      return <Film className={cn(className, "text-purple-400")} />;
+      return <Film className={cn(className, "text-purple-500")} />;
     case "audio":
-      return <Music className={cn(className, "text-green-400")} />;
+      return <Music className={cn(className, "text-green-500")} />;
     case "code":
-      return <FileCode className={cn(className, "text-yellow-400")} />;
+      return <FileCode className={cn(className, "text-yellow-500")} />;
     case "text":
       return mimeType.includes("csv")
-        ? <FileSpreadsheet className={cn(className, "text-emerald-400")} />
-        : <FileText className={cn(className, "text-orange-400")} />;
+        ? <FileSpreadsheet className={cn(className, "text-emerald-500")} />
+        : <FileText className={cn(className, "text-orange-500")} />;
     case "pdf":
-      return <FileText className={cn(className, "text-red-400")} />;
+      return <FileText className={cn(className, "text-red-500")} />;
     case "document":
-      return <FileText className={cn(className, "text-blue-400")} />;
+      return <FileText className={cn(className, "text-blue-500")} />;
     default:
       if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("archive") || mimeType.includes("tar") || mimeType.includes("gz")) {
-        return <FileArchive className={cn(className, "text-amber-400")} />;
+        return <FileArchive className={cn(className, "text-amber-500")} />;
       }
-      return <File className={cn(className, "text-gray-400")} />;
+      return <File className={cn(className, "text-muted-foreground")} />;
   }
 }
 
@@ -50,27 +50,27 @@ export function UnsupportedPreview({
     <div className={cn("flex flex-col items-center justify-center gap-6 p-8", className)}>
       {/* File icon with animated background */}
       <div className="relative">
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 blur-xl animate-pulse" />
-        <div className="relative p-8 rounded-2xl bg-white/5 border border-white/10">
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 blur-xl animate-pulse" />
+        <div className="relative p-8 rounded-2xl bg-muted/50 border border-border">
           <FileTypeIcon mimeType={asset.mimeType} className="h-24 w-24" />
         </div>
       </div>
 
       {/* File info */}
       <div className="text-center max-w-md">
-        <p className="text-white font-medium text-lg mb-1 break-all">{asset.name}</p>
-        <p className="text-white/50 text-sm mb-1">{formatFileSize(asset.size)}</p>
-        <p className="text-white/40 text-sm">{message}</p>
+        <p className="text-foreground font-medium text-lg mb-1 break-all">{asset.name}</p>
+        <p className="text-muted-foreground text-sm mb-1">{formatFileSize(asset.size)}</p>
+        <p className="text-muted-foreground/70 text-sm">{message}</p>
       </div>
 
       {/* Download button */}
-      <Button onClick={onDownload} className="bg-white text-black hover:bg-white/90">
+      <Button onClick={onDownload}>
         <Download className="mr-2 h-4 w-4" />
         Download to view
       </Button>
 
       {/* File type info */}
-      <p className="text-white/30 text-xs">
+      <p className="text-muted-foreground/50 text-xs">
         {asset.mimeType || "Unknown file type"}
       </p>
     </div>

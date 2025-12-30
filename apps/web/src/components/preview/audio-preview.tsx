@@ -27,7 +27,7 @@ export function AudioPreview({ asset, previewUrl, onDownload, className, autoPla
       {/* Animated audio icon */}
       <div className="relative">
         <div className="p-12 rounded-full bg-gradient-to-br from-green-500/20 to-green-600/10 border border-green-500/20">
-          <Music className="h-20 w-20 text-green-400" />
+          <Music className="h-20 w-20 text-green-500" />
         </div>
         {/* Animated rings */}
         <div className="absolute inset-0 rounded-full border-2 border-green-500/20 animate-ping" style={{ animationDuration: "2s" }} />
@@ -36,8 +36,8 @@ export function AudioPreview({ asset, previewUrl, onDownload, className, autoPla
 
       {/* File info */}
       <div className="text-center">
-        <p className="text-white font-medium text-lg mb-1 max-w-md truncate">{asset.name}</p>
-        <p className="text-white/50 text-sm">{formatFileSize(asset.size)}</p>
+        <p className="text-foreground font-medium text-lg mb-1 max-w-md truncate">{asset.name}</p>
+        <p className="text-muted-foreground text-sm">{formatFileSize(asset.size)}</p>
       </div>
 
       {/* Audio player */}
@@ -55,7 +55,6 @@ export function AudioPreview({ asset, previewUrl, onDownload, className, autoPla
       <Button
         onClick={onDownload}
         variant="outline"
-        className="border-white/20 text-white hover:bg-white/10"
       >
         <Download className="mr-2 h-4 w-4" />
         Download
