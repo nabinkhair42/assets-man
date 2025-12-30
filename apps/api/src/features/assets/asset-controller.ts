@@ -342,3 +342,73 @@ export async function bulkDownload(
     }
   }
 }
+
+// Bulk download shared assets as ZIP
+export async function sharedBulkDownload(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const parsed = bulkDownloadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, "VALIDATION_ERROR", "Invalid input", 400);
+      return;
+    }
+
+    const { assetIds } = parsed.data;
+
+    // Get shared assets the user has access to
+    const downloadAssets = await assetService.getSharedBulkDownloadAssets(
+      req.userId,
+      assetIds
+    );
+
+    if (downloadAssets.length === 0) {
+      sendError(res, "NOT_FOUND", "No accessible assets found to download", 404);
+      return;
+    }
+
+    // Set response headers for ZIP download
+    const filename = downloadAssets.length === 1
+      ? downloadAssets[0]!.asset.name
+      : `shared-${Date.now()}.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+
+    // Create archive
+    const archive = archiver("zip", { zlib: { level: 5 } });
+
+    // Handle archive errors
+    archive.on("error", (err) => {
+      console.error("Archive error:", err);
+      if (!res.headersSent) {
+        sendError(res, "INTERNAL_ERROR", "Failed to create archive", 500);
+      }
+    });
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Add files to archive
+    const storage = assetService.getStorageForBulkDownload();
+
+    for (const item of downloadAssets) {
+      try {
+        const stream = await storage.getObjectStream(item.asset.storageKey);
+        archive.append(stream, { name: item.path });
+      } catch (err) {
+        console.error(`Failed to add ${item.path} to archive:`, err);
+        // Continue with other files
+      }
+    }
+
+    // Finalize archive
+    await archive.finalize();
+  } catch (error) {
+    console.error("Shared bulk download error:", error);
+    if (!res.headersSent) {
+      sendError(res, "INTERNAL_ERROR", "Failed to create download", 500);
+    }
+  }
+}

@@ -11,6 +11,7 @@ import type {
   LinkShareAccess,
   SharedItemDetails,
   SharedAssetDownload,
+  SharedFolderContents,
 } from "@/types";
 
 export const shareService = {
@@ -95,5 +96,45 @@ export const shareService = {
 
   generateShareLink(token: string): string {
     return `${window.location.origin}/share/public/${token}`;
+  },
+
+  async getSharedFolderContents(
+    token: string,
+    folderId?: string,
+    password?: string
+  ): Promise<SharedFolderContents> {
+    const params = new URLSearchParams();
+    if (folderId) params.set("folderId", folderId);
+    if (password) params.set("password", password);
+
+    const url = `${API_ENDPOINTS.SHARES.LINK_FOLDER(token)}${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await apiClient.get<ApiResponse<SharedFolderContents>>(url);
+    return response.data.data;
+  },
+
+  async downloadSharedFolderAsset(
+    token: string,
+    assetId: string,
+    password?: string
+  ): Promise<SharedAssetDownload> {
+    const response = await apiClient.post<ApiResponse<SharedAssetDownload>>(
+      API_ENDPOINTS.SHARES.LINK_FOLDER_ASSET(token, assetId),
+      password ? { password } : {}
+    );
+    return response.data.data;
+  },
+
+  async downloadSharedFolderZip(
+    token: string,
+    folderId?: string,
+    password?: string
+  ): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (folderId) params.set("folderId", folderId);
+    if (password) params.set("password", password);
+
+    const url = `${API_ENDPOINTS.SHARES.LINK_FOLDER_DOWNLOAD(token)}${params.toString() ? `?${params.toString()}` : ""}`;
+    const response = await apiClient.get(url, { responseType: "blob" });
+    return response.data;
   },
 };

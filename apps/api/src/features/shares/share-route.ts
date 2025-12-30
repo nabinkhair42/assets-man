@@ -23,6 +23,15 @@ shareRouter.get("/link/:token/details", wrapPublic(shareController.getShareItemD
 // Download shared asset (public)
 shareRouter.post("/link/:token/download", wrapPublic(shareController.downloadSharedAsset));
 
+// Get shared folder contents (public)
+shareRouter.get("/link/:token/folder", wrapPublic(shareController.getSharedFolderContents));
+
+// Download asset from shared folder (public)
+shareRouter.post("/link/:token/folder/asset/:assetId", wrapPublic(shareController.downloadSharedFolderAsset));
+
+// Download shared folder as ZIP (public)
+shareRouter.get("/link/:token/folder/download", wrapPublic(shareController.downloadSharedFolderZip));
+
 // All other routes require authentication
 shareRouter.use(authenticate);
 

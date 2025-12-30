@@ -143,4 +143,13 @@ export const assetService = {
     );
     return response.data;
   },
+
+  async sharedBulkDownload(assetIds: string[]): Promise<Blob> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.ASSETS.SHARED_BULK_DOWNLOAD,
+      { assetIds },
+      { responseType: "blob" }
+    );
+    return response.data;
+  },
 };

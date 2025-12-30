@@ -88,3 +88,6 @@ assetRouter.post(
 
 // Bulk download as ZIP
 assetRouter.post("/bulk-download", wrap(assetController.bulkDownload));
+
+// Bulk download shared assets as ZIP
+assetRouter.post("/shared-bulk-download", wrap(assetController.sharedBulkDownload));

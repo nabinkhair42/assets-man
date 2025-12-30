@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     STARRED: "/api/assets/starred",
     COPY: (id: string) => `/api/assets/${id}/copy`,
     BULK_DOWNLOAD: "/api/assets/bulk-download",
+    SHARED_BULK_DOWNLOAD: "/api/assets/shared-bulk-download",
   },
 
   // Trash
@@ -57,5 +58,8 @@ export const API_ENDPOINTS = {
     ACCESS_LINK: (token: string) => `/api/shares/link/${token}/access`,
     LINK_DETAILS: (token: string) => `/api/shares/link/${token}/details`,
     LINK_DOWNLOAD: (token: string) => `/api/shares/link/${token}/download`,
+    LINK_FOLDER: (token: string) => `/api/shares/link/${token}/folder`,
+    LINK_FOLDER_ASSET: (token: string, assetId: string) => `/api/shares/link/${token}/folder/asset/${assetId}`,
+    LINK_FOLDER_DOWNLOAD: (token: string) => `/api/shares/link/${token}/folder/download`,
   },
 } as const;

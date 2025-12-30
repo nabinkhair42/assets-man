@@ -1,4 +1,5 @@
 import type { Response, Request } from "express";
+import archiver from "archiver";
 import { sendSuccess, sendError } from "@/utils/response-utils.js";
 import * as shareService from "./share-services.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
@@ -344,5 +345,211 @@ export async function downloadSharedAsset(req: Request, res: Response): Promise<
     sendSuccess(res, { url: result.url, name: share.asset.name });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to download shared asset", 500);
+  }
+}
+
+// Get shared folder contents (public)
+export async function getSharedFolderContents(req: Request, res: Response): Promise<void> {
+  try {
+    const { token } = req.params;
+    const { folderId, password } = req.query;
+
+    if (!token) {
+      sendError(res, "VALIDATION_ERROR", "Share token is required", 400);
+      return;
+    }
+
+    // Verify share exists and is for a folder
+    const share = await shareService.getShareWithItemByToken(token);
+    if (!share) {
+      sendError(res, "NOT_FOUND", "Share not found or expired", 404);
+      return;
+    }
+
+    if (!share.folder) {
+      sendError(res, "VALIDATION_ERROR", "This share is not for a folder", 400);
+      return;
+    }
+
+    // Check password if required
+    if (share.linkPassword) {
+      const pwd = typeof password === "string" ? password : undefined;
+      if (!pwd) {
+        sendError(res, "UNAUTHORIZED", "Password required", 401);
+        return;
+      }
+
+      const isValid = await shareService.verifyLinkPassword(share.id, pwd);
+      if (!isValid) {
+        sendError(res, "UNAUTHORIZED", "Invalid password", 401);
+        return;
+      }
+    }
+
+    const contents = await shareService.getSharedFolderContents(
+      token,
+      typeof folderId === "string" ? folderId : undefined
+    );
+
+    if (!contents) {
+      sendError(res, "NOT_FOUND", "Folder not found", 404);
+      return;
+    }
+
+    sendSuccess(res, contents);
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to get folder contents", 500);
+  }
+}
+
+// Download asset from shared folder (public)
+export async function downloadSharedFolderAsset(req: Request, res: Response): Promise<void> {
+  try {
+    const { token, assetId } = req.params;
+
+    if (!token || !assetId) {
+      sendError(res, "VALIDATION_ERROR", "Token and asset ID are required", 400);
+      return;
+    }
+
+    // Verify share exists and is for a folder
+    const share = await shareService.getShareWithItemByToken(token);
+    if (!share) {
+      sendError(res, "NOT_FOUND", "Share not found or expired", 404);
+      return;
+    }
+
+    if (!share.folder) {
+      sendError(res, "VALIDATION_ERROR", "This share is not for a folder", 400);
+      return;
+    }
+
+    // Check password if required
+    if (share.linkPassword) {
+      const parsed = accessLinkShareSchema.safeParse(req.body);
+      const password = parsed.success ? parsed.data.password : undefined;
+
+      if (!password) {
+        sendError(res, "UNAUTHORIZED", "Password required", 401);
+        return;
+      }
+
+      const isValid = await shareService.verifyLinkPassword(share.id, password);
+      if (!isValid) {
+        sendError(res, "UNAUTHORIZED", "Invalid password", 401);
+        return;
+      }
+    }
+
+    const assetInfo = await shareService.getSharedFolderAssetDownloadUrl(token, assetId);
+    if (!assetInfo) {
+      sendError(res, "NOT_FOUND", "Asset not found or not accessible", 404);
+      return;
+    }
+
+    // Generate download URL
+    const storage = getStorage();
+    const result = await storage.getPresignedDownloadUrl({
+      key: assetInfo.url, // storageKey
+      expiresIn: 3600,
+      filename: assetInfo.name,
+    });
+
+    sendSuccess(res, { url: result.url, name: assetInfo.name });
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to download asset", 500);
+  }
+}
+
+// Download shared folder as ZIP (public)
+export async function downloadSharedFolderZip(req: Request, res: Response): Promise<void> {
+  try {
+    const { token } = req.params;
+    const { folderId, password } = req.query;
+
+    if (!token) {
+      sendError(res, "VALIDATION_ERROR", "Share token is required", 400);
+      return;
+    }
+
+    // Verify share exists and is for a folder
+    const share = await shareService.getShareWithItemByToken(token);
+    if (!share) {
+      sendError(res, "NOT_FOUND", "Share not found or expired", 404);
+      return;
+    }
+
+    if (!share.folder) {
+      sendError(res, "VALIDATION_ERROR", "This share is not for a folder", 400);
+      return;
+    }
+
+    // Check password if required
+    if (share.linkPassword) {
+      const pwd = typeof password === "string" ? password : undefined;
+      if (!pwd) {
+        sendError(res, "UNAUTHORIZED", "Password required", 401);
+        return;
+      }
+
+      const isValid = await shareService.verifyLinkPassword(share.id, pwd);
+      if (!isValid) {
+        sendError(res, "UNAUTHORIZED", "Invalid password", 401);
+        return;
+      }
+    }
+
+    // Get all assets in the folder
+    const assets = await shareService.getSharedFolderAssetsForDownload(
+      token,
+      typeof folderId === "string" ? folderId : undefined
+    );
+
+    if (!assets || assets.length === 0) {
+      sendError(res, "NOT_FOUND", "No files found in folder", 404);
+      return;
+    }
+
+    // Set response headers for ZIP download
+    const folderName = share.folder.name;
+    const filename = `${folderName}-${Date.now()}.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+
+    // Create archive
+    const archive = archiver("zip", { zlib: { level: 5 } });
+
+    // Handle archive errors
+    archive.on("error", (err) => {
+      console.error("Archive error:", err);
+      if (!res.headersSent) {
+        sendError(res, "INTERNAL_ERROR", "Failed to create archive", 500);
+      }
+    });
+
+    // Pipe archive to response
+    archive.pipe(res);
+
+    // Add files to archive
+    const storage = getStorage();
+
+    for (const item of assets) {
+      try {
+        const stream = await storage.getObjectStream(item.asset.storageKey);
+        archive.append(stream, { name: item.path });
+      } catch (err) {
+        console.error(`Failed to add ${item.path} to archive:`, err);
+        // Continue with other files
+      }
+    }
+
+    // Finalize archive
+    await archive.finalize();
+  } catch (error) {
+    console.error("Shared folder ZIP download error:", error);
+    if (!res.headersSent) {
+      sendError(res, "INTERNAL_ERROR", "Failed to create download", 500);
+    }
   }
 }

@@ -81,3 +81,30 @@ export interface SharedAssetDownload {
   url: string;
   name: string;
 }
+
+export interface SharedFolderContents {
+  folders: {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  assets: {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    storageKey: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  currentFolder: {
+    id: string;
+    name: string;
+    path: string;
+  };
+  breadcrumbs: {
+    id: string;
+    name: string;
+  }[];
+}

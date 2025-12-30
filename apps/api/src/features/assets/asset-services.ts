@@ -1,5 +1,5 @@
 import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, inArray, type SQL } from "drizzle-orm";
-import { createDb, assets, folders, shares, type Asset, type Folder } from "@repo/database";
+import { createDb, assets, folders, shares, users, type Asset, type Folder } from "@repo/database";
 import {
   createStorageClient,
   generateStorageKey,
@@ -722,4 +722,48 @@ export async function getBulkDownloadAssets(
 
 export function getStorageForBulkDownload(): StorageClient {
   return getStorage();
+}
+
+// Get shared assets for bulk download (assets shared with the user, not owned by them)
+export async function getSharedBulkDownloadAssets(
+  userId: string,
+  assetIds: string[]
+): Promise<BulkDownloadAsset[]> {
+  if (assetIds.length === 0) return [];
+
+  // Get user email for share lookup
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) return [];
+
+  const result: BulkDownloadAsset[] = [];
+
+  // For each asset, check if it's shared with the user
+  for (const assetId of assetIds) {
+    // Check if there's a share for this asset that the user has access to
+    const share = await db.query.shares.findFirst({
+      where: and(
+        eq(shares.assetId, assetId),
+        eq(shares.shareType, "user"),
+        or(
+          eq(shares.sharedWithUserId, userId),
+          eq(shares.sharedWithEmail, user.email)
+        )
+      ),
+      with: {
+        asset: true,
+      },
+    });
+
+    if (share?.asset && !share.asset.trashedAt) {
+      result.push({
+        asset: share.asset,
+        path: share.asset.name,
+      });
+    }
+  }
+
+  return result;
 }

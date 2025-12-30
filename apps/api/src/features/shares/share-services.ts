@@ -385,3 +385,287 @@ export async function checkShareAccess(
 
   return true;
 }
+
+// Get shared folder contents (for public share browsing)
+export interface SharedFolderContents {
+  folders: {
+    id: string;
+    name: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  assets: {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    storageKey: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  currentFolder: {
+    id: string;
+    name: string;
+    path: string;
+  };
+  breadcrumbs: {
+    id: string;
+    name: string;
+  }[];
+}
+
+export async function getSharedFolderContents(
+  token: string,
+  subfolderId?: string
+): Promise<SharedFolderContents | null> {
+  // Get the share by token
+  const share = await getShareWithItemByToken(token);
+  if (!share || !share.folder) return null;
+
+  const sharedFolder = share.folder;
+  const ownerId = share.ownerId;
+
+  // Determine which folder to list contents from
+  let targetFolder = sharedFolder;
+
+  if (subfolderId && subfolderId !== sharedFolder.id) {
+    // Verify the subfolder is within the shared folder hierarchy
+    const subFolder = await db.query.folders.findFirst({
+      where: and(
+        eq(folders.id, subfolderId),
+        eq(folders.ownerId, ownerId)
+      ),
+    });
+
+    if (!subFolder) return null;
+
+    // Check if subfolder's path starts with shared folder's path
+    const sharedPath = sharedFolder.path;
+    if (!subFolder.path.startsWith(sharedPath + "/") && subFolder.path !== sharedPath) {
+      return null; // Subfolder is not within shared folder
+    }
+
+    targetFolder = subFolder;
+  }
+
+  // Get subfolders
+  const subFolders = await db.query.folders.findMany({
+    where: and(
+      eq(folders.ownerId, ownerId),
+      eq(folders.parentId, targetFolder.id),
+      isNull(folders.trashedAt)
+    ),
+    columns: {
+      id: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: (f, { asc }) => [asc(f.name)],
+  });
+
+  // Get assets in the folder
+  const folderAssets = await db.query.assets.findMany({
+    where: and(
+      eq(assets.ownerId, ownerId),
+      eq(assets.folderId, targetFolder.id),
+      isNull(assets.trashedAt)
+    ),
+    columns: {
+      id: true,
+      name: true,
+      mimeType: true,
+      size: true,
+      storageKey: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: (a, { asc }) => [asc(a.name)],
+  });
+
+  // Build breadcrumbs from shared folder to current folder
+  const breadcrumbs: { id: string; name: string }[] = [];
+
+  if (targetFolder.id !== sharedFolder.id) {
+    // Build path from shared folder to target folder
+    const sharedPath = sharedFolder.path;
+    const targetPath = targetFolder.path;
+    const relativePath = targetPath.substring(sharedPath.length);
+    const pathParts = relativePath.split("/").filter(Boolean);
+
+    // Start with the shared folder
+    breadcrumbs.push({ id: sharedFolder.id, name: sharedFolder.name });
+
+    // Add each folder in the path
+    let currentPath = sharedPath;
+    for (const part of pathParts) {
+      currentPath += "/" + part;
+      const pathFolder = await db.query.folders.findFirst({
+        where: and(
+          eq(folders.ownerId, ownerId),
+          eq(folders.path, currentPath)
+        ),
+        columns: { id: true, name: true },
+      });
+      if (pathFolder) {
+        breadcrumbs.push({ id: pathFolder.id, name: pathFolder.name });
+      }
+    }
+  } else {
+    breadcrumbs.push({ id: sharedFolder.id, name: sharedFolder.name });
+  }
+
+  return {
+    folders: subFolders,
+    assets: folderAssets,
+    currentFolder: {
+      id: targetFolder.id,
+      name: targetFolder.name,
+      path: targetFolder.path,
+    },
+    breadcrumbs,
+  };
+}
+
+// Get asset download URL for shared folder contents
+export async function getSharedFolderAssetDownloadUrl(
+  token: string,
+  assetId: string
+): Promise<{ url: string; name: string } | null> {
+  // Get the share by token
+  const share = await getShareWithItemByToken(token);
+  if (!share || !share.folder) return null;
+
+  const sharedFolder = share.folder;
+  const ownerId = share.ownerId;
+
+  // Get the asset
+  const asset = await db.query.assets.findFirst({
+    where: and(
+      eq(assets.id, assetId),
+      eq(assets.ownerId, ownerId),
+      isNull(assets.trashedAt)
+    ),
+  });
+
+  if (!asset) return null;
+
+  // Verify asset is within shared folder hierarchy
+  if (asset.folderId) {
+    // Get the asset's folder
+    const assetFolder = await db.query.folders.findFirst({
+      where: eq(folders.id, asset.folderId),
+    });
+
+    if (!assetFolder) return null;
+
+    // Check if asset's folder is within shared folder
+    const sharedPath = sharedFolder.path;
+    if (
+      assetFolder.id !== sharedFolder.id &&
+      !assetFolder.path.startsWith(sharedPath + "/")
+    ) {
+      return null; // Asset is not within shared folder
+    }
+  } else {
+    // Asset is in root, but we're sharing a folder - not accessible
+    return null;
+  }
+
+  return {
+    url: asset.storageKey,
+    name: asset.name,
+  };
+}
+
+// Get all assets in a shared folder (for ZIP download)
+export interface SharedFolderAssetForDownload {
+  asset: {
+    id: string;
+    name: string;
+    storageKey: string;
+  };
+  path: string;
+}
+
+export async function getSharedFolderAssetsForDownload(
+  token: string,
+  subfolderId?: string
+): Promise<SharedFolderAssetForDownload[] | null> {
+  // Get the share by token
+  const share = await getShareWithItemByToken(token);
+  if (!share || !share.folder) return null;
+
+  const sharedFolder = share.folder;
+  const ownerId = share.ownerId;
+
+  // Determine starting folder
+  let targetFolder = sharedFolder;
+
+  if (subfolderId && subfolderId !== sharedFolder.id) {
+    const subFolder = await db.query.folders.findFirst({
+      where: and(
+        eq(folders.id, subfolderId),
+        eq(folders.ownerId, ownerId)
+      ),
+    });
+
+    if (!subFolder) return null;
+
+    // Check if subfolder is within shared folder
+    const sharedPath = sharedFolder.path;
+    if (!subFolder.path.startsWith(sharedPath + "/") && subFolder.path !== sharedPath) {
+      return null;
+    }
+
+    targetFolder = subFolder;
+  }
+
+  const result: SharedFolderAssetForDownload[] = [];
+
+  // Helper to get all assets recursively
+  async function collectAssets(folderId: string, relativePath: string) {
+    // Get assets in current folder
+    const folderAssets = await db.query.assets.findMany({
+      where: and(
+        eq(assets.ownerId, ownerId),
+        eq(assets.folderId, folderId),
+        isNull(assets.trashedAt)
+      ),
+      columns: {
+        id: true,
+        name: true,
+        storageKey: true,
+      },
+    });
+
+    for (const asset of folderAssets) {
+      result.push({
+        asset,
+        path: relativePath ? `${relativePath}/${asset.name}` : asset.name,
+      });
+    }
+
+    // Get subfolders
+    const subFolders = await db.query.folders.findMany({
+      where: and(
+        eq(folders.ownerId, ownerId),
+        eq(folders.parentId, folderId),
+        isNull(folders.trashedAt)
+      ),
+      columns: {
+        id: true,
+        name: true,
+      },
+    });
+
+    for (const subfolder of subFolders) {
+      const newRelativePath = relativePath ? `${relativePath}/${subfolder.name}` : subfolder.name;
+      await collectAssets(subfolder.id, newRelativePath);
+    }
+  }
+
+  await collectAssets(targetFolder.id, "");
+
+  return result;
+}

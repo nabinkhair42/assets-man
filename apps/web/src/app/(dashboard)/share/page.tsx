@@ -225,13 +225,38 @@ export default function SharedWithMePage() {
       return;
     }
 
-    for (const item of assetItems) {
-      const sharedItem = allItems.find((i) => i.id === item.id);
-      if (sharedItem) {
-        await handleDownload(sharedItem);
-      }
+    // Get the actual item IDs (not share IDs)
+    const assetIds = assetItems
+      .map((item) => {
+        const sharedItem = allItems.find((i) => i.id === item.id);
+        return sharedItem?.itemId;
+      })
+      .filter((id): id is string => !!id);
+
+    if (assetIds.length === 0) {
+      toast.info("No files selected for download");
+      return;
     }
-    handleClearSelection();
+
+    const toastId = toast.loading("Preparing download...");
+    try {
+      const blob = await assetService.sharedBulkDownload(assetIds);
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `shared-${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Download started", { id: toastId });
+      handleClearSelection();
+    } catch {
+      toast.error("Failed to download files", { id: toastId });
+    }
   }, [selectedItems, allItems, handleClearSelection]);
 
   const renderDropdownMenu = (item: SharedItem) => (

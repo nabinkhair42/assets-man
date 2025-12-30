@@ -254,20 +254,35 @@ export default function RecentPage() {
   }, [handleClearSelection, refetchRecent]);
 
   const handleBulkDownload = useCallback(async () => {
-    const assetItems = Array.from(selectedItems.values()).filter((item) => item.type === "asset");
-    if (assetItems.length === 0) {
-      toast.info("No files selected for download");
+    const items = Array.from(selectedItems.values());
+    const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
+    const folderIds = items.filter((item) => item.type === "folder").map((item) => item.id);
+
+    if (assetIds.length === 0 && folderIds.length === 0) {
+      toast.info("No items selected for download");
       return;
     }
 
-    for (const item of assetItems) {
-      const asset = recentAssets.find((a) => a.id === item.id);
-      if (asset) {
-        await handleDownload(asset);
-      }
+    const toastId = toast.loading("Preparing download...");
+    try {
+      const blob = await assetService.bulkDownload({ assetIds, folderIds });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `recent-${Date.now()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Download started", { id: toastId });
+      handleClearSelection();
+    } catch {
+      toast.error("Failed to download files", { id: toastId });
     }
-    handleClearSelection();
-  }, [selectedItems, recentAssets, handleClearSelection]);
+  }, [selectedItems, handleClearSelection]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
