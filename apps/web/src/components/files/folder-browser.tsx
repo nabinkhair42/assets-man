@@ -2,6 +2,18 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Upload, Folder as FolderIcon, FolderPlus, CheckSquare, RefreshCw } from "lucide-react";
+
+// Types for FileSystem API (folder drag & drop)
+interface FileWithPath {
+  file: File;
+  relativePath: string;
+}
+
+interface FolderStructure {
+  name: string;
+  path: string;
+  children: FolderStructure[];
+}
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -53,8 +65,77 @@ import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderCont
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
-import { assetService, recentService } from "@/services";
+import { assetService, recentService, folderService } from "@/services";
 import { useFileActions } from "@/contexts";
+
+// Helper function to read all entries from a directory
+async function readAllDirectoryEntries(directoryReader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+  const entries: FileSystemEntry[] = [];
+  let batch: FileSystemEntry[];
+
+  do {
+    batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+      directoryReader.readEntries(resolve, reject);
+    });
+    entries.push(...batch);
+  } while (batch.length > 0);
+
+  return entries;
+}
+
+// Recursively read a folder entry and collect all files with their paths
+async function readFolderEntry(
+  entry: FileSystemDirectoryEntry,
+  basePath: string = ""
+): Promise<{ files: FileWithPath[]; folders: FolderStructure }> {
+  const files: FileWithPath[] = [];
+  const currentPath = basePath ? `${basePath}/${entry.name}` : entry.name;
+  const folderStructure: FolderStructure = {
+    name: entry.name,
+    path: currentPath,
+    children: [],
+  };
+
+  const directoryReader = entry.createReader();
+  const entries = await readAllDirectoryEntries(directoryReader);
+
+  for (const childEntry of entries) {
+    if (childEntry.isFile) {
+      const fileEntry = childEntry as FileSystemFileEntry;
+      const file = await new Promise<File>((resolve, reject) => {
+        fileEntry.file(resolve, reject);
+      });
+      files.push({ file, relativePath: `${currentPath}/${file.name}` });
+    } else if (childEntry.isDirectory) {
+      const dirEntry = childEntry as FileSystemDirectoryEntry;
+      const result = await readFolderEntry(dirEntry, currentPath);
+      files.push(...result.files);
+      folderStructure.children.push(result.folders);
+    }
+  }
+
+  return { files, folders: folderStructure };
+}
+
+// Create folder structure recursively and return a map of path -> folderId
+async function createFolderStructure(
+  structure: FolderStructure,
+  parentFolderId: string | null,
+  folderMap: Map<string, string> = new Map()
+): Promise<Map<string, string>> {
+  const createdFolder = await folderService.create({
+    name: structure.name,
+    parentId: parentFolderId ?? undefined,
+  });
+
+  folderMap.set(structure.path, createdFolder.id);
+
+  for (const child of structure.children) {
+    await createFolderStructure(child, createdFolder.id, folderMap);
+  }
+
+  return folderMap;
+}
 
 interface FolderBrowserProps {
   initialFolderId?: string | null;
@@ -387,37 +468,34 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   );
 
   const processFiles = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
       if (files.length === 0) return;
       const totalFiles = files.length;
       let successCount = 0;
       let failCount = 0;
       setUploadingCount((prev) => prev + totalFiles);
 
-      for (const file of files) {
+      // Process files concurrently with individual toast tracking
+      const uploadPromises = files.map(async (file) => {
         const toastId = toast.loading(`Uploading ${file.name}... 0%`);
-        uploadFile.mutate(
-          {
+        try {
+          await uploadFile.mutateAsync({
             file,
             folderId: currentFolderId ?? undefined,
             onProgress: (progress) => toast.loading(`Uploading ${file.name}... ${progress}%`, { id: toastId }),
-          },
-          {
-            onSuccess: () => {
-              successCount++;
-              setUploadingCount((prev) => prev - 1);
-              toast.success(`${file.name} uploaded`, { id: toastId });
-              if (successCount + failCount === totalFiles) refetchAssets();
-            },
-            onError: () => {
-              failCount++;
-              setUploadingCount((prev) => prev - 1);
-              toast.error(`Failed to upload ${file.name}`, { id: toastId });
-              if (successCount + failCount === totalFiles) refetchAssets();
-            },
-          }
-        );
-      }
+          });
+          successCount++;
+          setUploadingCount((prev) => prev - 1);
+          toast.success(`${file.name} uploaded`, { id: toastId });
+        } catch {
+          failCount++;
+          setUploadingCount((prev) => prev - 1);
+          toast.error(`Failed to upload ${file.name}`, { id: toastId });
+        }
+      });
+
+      await Promise.all(uploadPromises);
+      refetchAssets();
     },
     [currentFolderId, uploadFile, refetchAssets]
   );
@@ -448,16 +526,114 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     e.stopPropagation();
   }, []);
 
+  // Process a dropped folder: create folder structure, then upload files
+  const processFolderUpload = useCallback(
+    async (entry: FileSystemDirectoryEntry) => {
+      const toastId = toast.loading(`Reading folder "${entry.name}"...`);
+
+      try {
+        // Read all files and folder structure
+        const { files, folders } = await readFolderEntry(entry);
+
+        if (files.length === 0) {
+          toast.info(`Folder "${entry.name}" is empty`, { id: toastId });
+          return;
+        }
+
+        toast.loading(`Creating ${folders.children.length + 1} folder(s)...`, { id: toastId });
+
+        // Create folder structure and get path -> folderId mapping
+        const folderMap = await createFolderStructure(folders, currentFolderId);
+
+        toast.loading(`Uploading ${files.length} file(s)...`, { id: toastId });
+
+        // Upload files to their respective folders concurrently
+        let successCount = 0;
+        let failCount = 0;
+        setUploadingCount((prev) => prev + files.length);
+
+        const uploadPromises = files.map(async ({ file, relativePath }) => {
+          // Get parent folder path from file's relative path
+          const pathParts = relativePath.split("/");
+          pathParts.pop(); // Remove filename
+          const folderPath = pathParts.join("/");
+          const targetFolderId = folderMap.get(folderPath) ?? currentFolderId;
+
+          try {
+            await uploadFile.mutateAsync({
+              file,
+              folderId: targetFolderId ?? undefined,
+              onProgress: () => {
+                // Progress handled silently for batch uploads
+              },
+            });
+            successCount++;
+            setUploadingCount((prev) => prev - 1);
+          } catch {
+            failCount++;
+            setUploadingCount((prev) => prev - 1);
+          }
+        });
+
+        await Promise.all(uploadPromises);
+
+        refetchFolders();
+        refetchAssets();
+
+        if (failCount === 0) {
+          toast.success(`Uploaded ${successCount} file(s) from "${entry.name}"`, { id: toastId });
+        } else {
+          toast.warning(`Uploaded ${successCount} file(s), ${failCount} failed`, { id: toastId });
+        }
+      } catch (error) {
+        console.error("Folder upload error:", error);
+        toast.error(`Failed to upload folder "${entry.name}"`, { id: toastId });
+      }
+    },
+    [currentFolderId, uploadFile, refetchFolders, refetchAssets]
+  );
+
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    async (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(false);
       dragCounter.current = 0;
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length > 0) processFiles(files);
+
+      const items = e.dataTransfer.items;
+      const regularFiles: File[] = [];
+      const folderEntries: FileSystemDirectoryEntry[] = [];
+
+      // Check if any items are folders using webkitGetAsEntry
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === "file") {
+            const entry = item.webkitGetAsEntry?.();
+            if (entry?.isDirectory) {
+              folderEntries.push(entry as FileSystemDirectoryEntry);
+            } else {
+              const file = item.getAsFile();
+              if (file) regularFiles.push(file);
+            }
+          }
+        }
+      } else {
+        // Fallback for browsers without webkitGetAsEntry
+        regularFiles.push(...Array.from(e.dataTransfer.files));
+      }
+
+      // Process regular files
+      if (regularFiles.length > 0) {
+        processFiles(regularFiles);
+      }
+
+      // Process folders sequentially
+      for (const folderEntry of folderEntries) {
+        await processFolderUpload(folderEntry);
+      }
     },
-    [processFiles]
+    [processFiles, processFolderUpload]
   );
 
   // Keyboard shortcut handlers
@@ -549,7 +725,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg m-2">
               <div className="flex flex-col items-center gap-2 text-primary">
                 <Upload className="h-12 w-12" />
-                <p className="text-lg font-medium">Drop files here to upload</p>
+                <p className="text-lg font-medium">Drop files or folders here to upload</p>
               </div>
             </div>
           )}
