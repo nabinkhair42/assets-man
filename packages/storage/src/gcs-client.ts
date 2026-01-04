@@ -3,6 +3,7 @@ import type {
   StorageConfig,
   StorageClient,
   UploadOptions,
+  UploadBufferOptions,
   DownloadOptions,
   PresignedUploadResult,
   PresignedDownloadResult,
@@ -56,6 +57,13 @@ export function createGCSClient(config: StorageConfig): StorageClient {
       });
 
       return { url, expiresIn };
+    },
+
+    async uploadBuffer(options: UploadBufferOptions): Promise<void> {
+      const file = bucket.file(options.key);
+      await file.save(options.buffer, {
+        contentType: options.contentType,
+      });
     },
 
     async deleteObject(key: string): Promise<DeleteResult> {

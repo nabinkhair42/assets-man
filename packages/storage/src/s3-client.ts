@@ -12,6 +12,7 @@ import type {
   StorageConfig,
   StorageClient,
   UploadOptions,
+  UploadBufferOptions,
   DownloadOptions,
   PresignedUploadResult,
   PresignedDownloadResult,
@@ -71,6 +72,17 @@ export function createS3Client(config: StorageConfig): StorageClient {
       const url = await getSignedUrl(client, command, { expiresIn });
 
       return { url, expiresIn };
+    },
+
+    async uploadBuffer(options: UploadBufferOptions): Promise<void> {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: options.key,
+          Body: options.buffer,
+          ContentType: options.contentType,
+        })
+      );
     },
 
     async deleteObject(key: string): Promise<DeleteResult> {

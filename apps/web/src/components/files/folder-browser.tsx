@@ -33,6 +33,7 @@ import {
   useToggleFolderStarred,
   useMarqueeSelection,
   useUser,
+  useFileBrowserShortcuts,
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
@@ -47,7 +48,8 @@ import {
   FilePreviewDialog,
   ShareDialog,
 } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, MobileFab, type SelectedItem } from "@/components/shared";
+import { EmptyState, InfiniteScrollTrigger, SelectionToolbar, MobileFab, FILE_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
@@ -57,14 +59,6 @@ import { useFileActions } from "@/contexts";
 interface FolderBrowserProps {
   initialFolderId?: string | null;
 }
-
-const FILE_LIST_COLUMNS = [
-  { label: "Name" },
-  { label: "Owner", width: "w-10", align: "center" as const, hideBelow: "sm" as const },
-  { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
-  { label: "Modified", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-8" },
-];
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
@@ -466,6 +460,69 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     [processFiles]
   );
 
+  // Keyboard shortcut handlers
+  const handleKeyboardStar = useCallback(() => {
+    if (selectedItems.size === 0) return;
+    const items = Array.from(selectedItems.values());
+    // Star first item (for single selection, or toggle all for batch)
+    for (const item of items) {
+      if (item.type === "folder") {
+        const folder = folders.find((f) => f.id === item.id);
+        if (folder) toggleFolderStarred.mutate(folder.id);
+      } else {
+        const asset = assets.find((a) => a.id === item.id);
+        if (asset) toggleAssetStarred.mutate(asset.id);
+      }
+    }
+  }, [selectedItems, folders, assets, toggleFolderStarred, toggleAssetStarred]);
+
+  const handleKeyboardRename = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const item = Array.from(selectedItems.values())[0];
+    if (!item) return;
+
+    if (item.type === "folder") {
+      const folder = folders.find((f) => f.id === item.id);
+      if (folder) setRenameItem({ item: folder, type: "folder" });
+    } else {
+      const asset = assets.find((a) => a.id === item.id);
+      if (asset) setRenameItem({ item: asset, type: "asset" });
+    }
+  }, [selectedItems, folders, assets]);
+
+  const handleKeyboardPreview = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const item = Array.from(selectedItems.values())[0];
+    if (!item) return;
+
+    if (item.type === "folder") {
+      // Open folder
+      handleNavigate(item.id);
+    } else {
+      // Preview asset
+      const asset = assets.find((a) => a.id === item.id);
+      if (asset) setPreviewAsset(asset);
+    }
+  }, [selectedItems, assets, handleNavigate]);
+
+  // Keyboard shortcuts
+  useFileBrowserShortcuts(
+    {
+      onNewFolder: () => setCreateFolderOpen(true),
+      onUpload: () => fileInputRef.current?.click(),
+      onSelectAll: handleSelectAll,
+      onDownload: handleBulkDownload,
+      onStar: handleKeyboardStar,
+      onRename: handleKeyboardRename,
+      onDelete: handleBulkDelete,
+      onMove: handleBulkMove,
+      onRefresh: handleRefresh,
+      onEscape: handleClearSelection,
+      onPreview: handleKeyboardPreview,
+    },
+    { enabled: true, hasSelection: selectedItems.size > 0 }
+  );
+
   return (
     <div className="flex flex-col h-full overflow-clip">
       <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
@@ -527,12 +584,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */
-                <div className="space-y-6">
+                <DataGrid>
                   {/* Folders Section */}
                   {folders.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    <DataGridSection title="Folders">
+                      <DataGridFolderContainer>
                         {folders.map((folder, index) => (
                           <DraggableFolderItem
                             key={folder.id}
@@ -557,15 +613,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                             owner={user?.name ? { id: user.id, name: user.name } : undefined}
                           />
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFolderContainer>
+                    </DataGridSection>
                   )}
 
                   {/* Files Section */}
                   {assets.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <DataGridSection title="Files">
+                      <DataGridFileContainer>
                         {assets.map((asset, index) => (
                           <DraggableFileItem
                             key={asset.id}
@@ -592,14 +647,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                             owner={user?.name ? { id: user.id, name: user.name } : undefined}
                           />
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFileContainer>
+                    </DataGridSection>
                   )}
-                </div>
+                </DataGrid>
               ) : (
                 /* List View - Combined */
-                <div className="flex flex-col">
-                  <ListHeader columns={FILE_LIST_COLUMNS} />
+                <DataList>
+                  <DataListHeader columns={FILE_LIST_COLUMNS} />
                   {folders.map((folder, index) => (
                     <DraggableFolderItem
                       key={folder.id}
@@ -650,7 +705,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                       owner={user?.name ? { id: user.id, name: user.name } : undefined}
                     />
                   ))}
-                </div>
+                </DataList>
               )}
 
                   {!isLoading && (folders.length > 0 || assets.length > 0) && (

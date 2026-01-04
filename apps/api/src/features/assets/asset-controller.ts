@@ -2,6 +2,7 @@ import type { Response } from "express";
 import archiver from "archiver";
 import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js";
 import * as assetService from "./asset-services.js";
+import * as thumbnailService from "./thumbnail-service.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
 import type {
   RequestUploadInput,
@@ -410,5 +411,86 @@ export async function sharedBulkDownload(
     if (!res.headersSent) {
       sendError(res, "INTERNAL_ERROR", "Failed to create download", 500);
     }
+  }
+}
+
+// Generate thumbnail for an asset
+export async function generateThumbnail(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      sendError(res, "VALIDATION_ERROR", "Asset ID is required", 400);
+      return;
+    }
+
+    // Verify the user owns this asset
+    const asset = await assetService.getAssetById(req.userId, id);
+    if (!asset) {
+      sendError(res, "NOT_FOUND", "Asset not found", 404);
+      return;
+    }
+
+    // Check if thumbnail generation is supported for this file type
+    if (!thumbnailService.canGenerateThumbnail(asset.mimeType)) {
+      sendError(res, "VALIDATION_ERROR", `Thumbnails not supported for ${asset.mimeType}`, 400);
+      return;
+    }
+
+    // Generate thumbnail
+    const result = await thumbnailService.generateThumbnail(id);
+
+    if (!result.success) {
+      sendError(res, "INTERNAL_ERROR", result.error ?? "Failed to generate thumbnail", 500);
+      return;
+    }
+
+    sendSuccess(res, { thumbnailKey: result.thumbnailKey }, "Thumbnail generated");
+  } catch (error) {
+    console.error("Generate thumbnail error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to generate thumbnail", 500);
+  }
+}
+
+// Get thumbnail URL for an asset
+export async function getThumbnailUrl(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      sendError(res, "VALIDATION_ERROR", "Asset ID is required", 400);
+      return;
+    }
+
+    // Verify the user owns this asset or has access to it
+    const asset = await assetService.getAssetById(req.userId, id);
+    if (!asset) {
+      sendError(res, "NOT_FOUND", "Asset not found", 404);
+      return;
+    }
+
+    // Get thumbnail URL
+    const url = await thumbnailService.getThumbnailUrl(id);
+
+    if (!url) {
+      // No thumbnail exists - try to generate one if possible
+      if (thumbnailService.canGenerateThumbnail(asset.mimeType)) {
+        sendSuccess(res, { url: null, canGenerate: true }, "Thumbnail not available");
+      } else {
+        sendSuccess(res, { url: null, canGenerate: false }, "Thumbnail not available");
+      }
+      return;
+    }
+
+    sendSuccess(res, { url });
+  } catch (error) {
+    console.error("Get thumbnail URL error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to get thumbnail URL", 500);
   }
 }

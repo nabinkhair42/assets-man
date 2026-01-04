@@ -152,4 +152,21 @@ export const assetService = {
     );
     return response.data;
   },
+
+  async getThumbnailUrl(id: string): Promise<{ url: string | null; canGenerate: boolean }> {
+    const response = await apiClient.get<ApiResponse<{ url: string | null; canGenerate?: boolean }>>(
+      API_ENDPOINTS.ASSETS.THUMBNAIL(id)
+    );
+    return {
+      url: response.data.data.url,
+      canGenerate: response.data.data.canGenerate ?? false,
+    };
+  },
+
+  async generateThumbnail(id: string): Promise<{ thumbnailKey: string }> {
+    const response = await apiClient.post<ApiResponse<{ thumbnailKey: string }>>(
+      API_ENDPOINTS.ASSETS.THUMBNAIL(id)
+    );
+    return response.data.data;
+  },
 };

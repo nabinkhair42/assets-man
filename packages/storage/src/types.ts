@@ -36,6 +36,12 @@ export interface DeleteResult {
   key: string;
 }
 
+export interface UploadBufferOptions {
+  key: string;
+  buffer: Buffer;
+  contentType: string;
+}
+
 export interface DownloadOptions {
   key: string;
   expiresIn?: number;
@@ -54,6 +60,11 @@ export interface StorageClient {
   getPresignedDownloadUrl(
     options: DownloadOptions
   ): Promise<PresignedDownloadResult>;
+
+  /**
+   * Upload a buffer directly to storage (for server-side generated content like thumbnails)
+   */
+  uploadBuffer(options: UploadBufferOptions): Promise<void>;
 
   /**
    * Delete a file from storage

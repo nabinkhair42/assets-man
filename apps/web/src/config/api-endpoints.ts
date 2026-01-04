@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
     COPY: (id: string) => `/api/assets/${id}/copy`,
     BULK_DOWNLOAD: "/api/assets/bulk-download",
     SHARED_BULK_DOWNLOAD: "/api/assets/shared-bulk-download",
+    THUMBNAIL: (id: string) => `/api/assets/${id}/thumbnail`,
   },
 
   // Trash

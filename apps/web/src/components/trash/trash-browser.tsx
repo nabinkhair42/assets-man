@@ -8,19 +8,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { EmptyTrashDialog, EmptyTrashTrigger, PermanentDeleteDialog } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger, type SelectedItem } from "@/components/shared";
+import { EmptyState, ListHeader, InfiniteScrollTrigger, TRASH_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
 import { TrashItem } from "./trash-item";
-import { useInfiniteTrash, useRestoreItem, useMarqueeSelection, usePermanentlyDelete } from "@/hooks";
+import { useInfiniteTrash, useRestoreItem, useMarqueeSelection, usePermanentlyDelete, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
 import { toast } from "sonner";
 import type { TrashedItem } from "@/types";
-
-const TRASH_LIST_COLUMNS = [
-  { label: "", width: "w-8" },
-  { label: "Name" },
-  { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
-  { label: "Deleted", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-20" },
-];
 
 export function TrashBrowser() {
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
@@ -198,13 +190,58 @@ export function TrashBrowser() {
     }
   }, [selectedItems, permanentlyDelete, handleClearSelection]);
 
+  const handleSelectAll = useCallback(() => {
+    const newSelection = new Map<string, SelectedItem>();
+    for (const item of allItems) {
+      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+    }
+    setSelectedItems(newSelection);
+  }, [allItems]);
+
+  // Keyboard shortcuts (trash-specific)
+  const shortcuts: KeyboardShortcut[] = useMemo(() => [
+    {
+      key: "a",
+      ctrl: true,
+      action: handleSelectAll,
+      description: "Select all",
+      enabled: items.length > 0,
+    },
+    {
+      key: "r",
+      ctrl: true,
+      action: handleBulkRestore,
+      description: "Restore",
+      enabled: selectedItems.size > 0,
+    },
+    {
+      key: "Delete",
+      action: handleBulkDelete,
+      description: "Permanently delete",
+      enabled: selectedItems.size > 0,
+    },
+    {
+      key: "Backspace",
+      action: handleBulkDelete,
+      description: "Permanently delete",
+      enabled: selectedItems.size > 0,
+    },
+    {
+      key: "Escape",
+      action: handleClearSelection,
+      description: "Clear selection",
+      enabled: selectedItems.size > 0,
+    },
+  ], [handleSelectAll, handleBulkRestore, handleBulkDelete, handleClearSelection, items.length, selectedItems.size]);
+
+  useKeyboardShortcuts({ shortcuts, enabled: true });
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 py-3">
         <div className="flex items-center gap-3">
           <SidebarTrigger />
-          <div className="w-px h-5 bg-border/60" />
           <div className="flex items-center gap-2">
             <h1 className="text-base font-medium">Trash</h1>
             {items.length > 0 && (

@@ -19,6 +19,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,10 +34,12 @@ import {
   Plus,
   Upload,
   Users,
+  Keyboard,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutDialog } from "@/components/dialog/logout-dialog";
+import { KeyboardShortcutsDialog } from "@/components/dialog/keyboard-shortcuts-dialog";
 import { useFileActions } from "@/contexts";
 
 const navItems = [
@@ -50,6 +53,7 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const { triggerUpload, triggerCreateFolder, isUploading } = useFileActions();
 
   const isTrashPage = pathname === "/trash";
@@ -86,14 +90,16 @@ export function AppSidebar() {
                       <span className="group-data-[collapsible=icon]:hidden">New</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuContent align="start" className="w-52">
                     <DropdownMenuItem onClick={triggerCreateFolder}>
                       <FolderPlus className="size-4 mr-2" />
                       New Folder
+                      <DropdownMenuShortcut>Alt+N</DropdownMenuShortcut>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={triggerUpload} disabled={isUploading}>
                       <Upload className="size-4 mr-2" />
                       {isUploading ? "Uploading..." : "Upload File"}
+                      <DropdownMenuShortcut>Ctrl+U</DropdownMenuShortcut>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -126,6 +132,15 @@ export function AppSidebar() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setShortcutsDialogOpen(true)}
+                tooltip="Keyboard Shortcuts"
+              >
+                <Keyboard className="size-4" />
+                <span>Shortcuts</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Settings">
                 <Link href="/settings">
                   <Settings className="size-4" />
@@ -148,6 +163,7 @@ export function AppSidebar() {
       </Sidebar>
 
       <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
+      <KeyboardShortcutsDialog open={shortcutsDialogOpen} onOpenChange={setShortcutsDialogOpen} />
     </>
   );
 }

@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/context-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useSharedWithMe, useMarqueeSelection } from "@/hooks";
+import { useSharedWithMe, useMarqueeSelection, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
 import { FilePreviewDialog } from "@/components/dialog";
-import { EmptyState, ListHeader, SelectionToolbar, type SelectedItem, FileIcon } from "@/components/shared";
+import { EmptyState, SelectionToolbar, SHARED_LIST_COLUMNS, type SelectedItem, FileIcon } from "@/components/shared";
+import { DataList, DataListHeader, DataListRow, DataListCell, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer, DataGridFolderCard, DataGridFileCard, SelectionCheckmark } from "@/components/ui/data-list";
 import { SingleAvatar } from "@/components/ui/avatar-group";
 import { toast } from "sonner";
 import type { Asset } from "@/types";
@@ -29,14 +30,6 @@ import { AppHeader } from "@/components/layouts";
 import { assetService } from "@/services";
 import { useRouter } from "next/navigation";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
-
-const FILE_LIST_COLUMNS = [
-  { label: "Name" },
-  { label: "Owner", width: "w-40", align: "left" as const, hideBelow: "sm" as const },
-  { label: "Size", width: "w-24", align: "right" as const, hideBelow: "md" as const },
-  { label: "Shared", width: "w-32", align: "right" as const, hideBelow: "lg" as const },
-  { label: "", width: "w-10" },
-];
 
 interface SharedItem {
   id: string;
@@ -259,6 +252,55 @@ export default function SharedWithMePage() {
     }
   }, [selectedItems, allItems, handleClearSelection]);
 
+  const handleSelectAll = useCallback(() => {
+    const newSelection = new Map<string, SelectedItem>();
+    for (const item of allItems) {
+      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+    }
+    setSelectedItems(newSelection);
+  }, [allItems]);
+
+  const handleKeyboardPreview = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    const sharedItem = allItems.find((i) => i.type === type && i.id === itemId);
+    if (sharedItem) handleOpen(sharedItem);
+  }, [selectedItems, allItems, handleOpen]);
+
+  // Keyboard shortcuts (limited - shared items can't be deleted/moved/renamed)
+  const shortcuts: KeyboardShortcut[] = useMemo(() => [
+    {
+      key: "a",
+      ctrl: true,
+      action: handleSelectAll,
+      description: "Select all",
+      enabled: allItems.length > 0,
+    },
+    {
+      key: "d",
+      ctrl: true,
+      action: handleBulkDownload,
+      description: "Download",
+      enabled: selectedItems.size > 0,
+    },
+    {
+      key: "Escape",
+      action: handleClearSelection,
+      description: "Clear selection",
+      enabled: selectedItems.size > 0,
+    },
+    {
+      key: "Enter",
+      action: handleKeyboardPreview,
+      description: "Preview/Open",
+      enabled: selectedItems.size === 1,
+    },
+  ], [handleSelectAll, handleBulkDownload, handleClearSelection, handleKeyboardPreview, allItems.length, selectedItems.size]);
+
+  useKeyboardShortcuts({ shortcuts, enabled: true });
+
   const renderDropdownMenu = (item: SharedItem) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -335,34 +377,30 @@ export default function SharedWithMePage() {
                   description="Files and folders shared with you will appear here"
                 />
               ) : viewMode === "list" ? (
-                <div className="flex flex-col">
-                  <ListHeader columns={FILE_LIST_COLUMNS} />
+                <DataList>
+                  <DataListHeader columns={SHARED_LIST_COLUMNS} />
                   {allItems.map((item, index) => (
                     <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
                       <ContextMenuTrigger>
-                        <div
+                        <DataListRow
                           data-item-id={`${item.type}-${item.id}`}
                           onClick={(e) => handleItemSelect(index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
                           onDoubleClick={() => handleOpen(item)}
-                          className={cn(
-                            "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
-                            "hover:bg-accent/50 rounded-lg",
-                            pendingSelection.has(`${item.type}-${item.id}`) && "bg-primary/20 ring-2 ring-primary ring-inset",
-                            selectedItems.has(`${item.type}-${item.id}`) && "bg-primary/15 ring-2 ring-primary/60 ring-inset"
-                          )}
+                          selected={selectedItems.has(`${item.type}-${item.id}`)}
+                          pending={pendingSelection.has(`${item.type}-${item.id}`)}
                         >
                           <FileIcon
                             isFolder={item.type === "folder"}
                             mimeType={item.mimeType ?? undefined}
                             size="sm"
                           />
-                          <div className="flex-1 min-w-0">
+                          <DataListCell primary>
                             <p className="truncate font-medium text-sm text-foreground">{item.name}</p>
                             <p className="text-xs text-muted-foreground sm:hidden">
                               {item.ownerName} · {item.permission === "edit" ? "Can edit" : "Can view"}
                             </p>
-                          </div>
-                          <div className="w-40 hidden sm:flex items-center gap-2">
+                          </DataListCell>
+                          <DataListCell width="w-40" hideBelow="sm" className="items-center gap-2">
                             <SingleAvatar
                               user={{ id: item.ownerId, name: item.ownerName }}
                               size="sm"
@@ -373,17 +411,17 @@ export default function SharedWithMePage() {
                                 {item.permission === "edit" ? "Can edit" : "View only"}
                               </p>
                             </div>
-                          </div>
-                          <div className="w-24 text-right text-sm text-muted-foreground hidden md:block">
+                          </DataListCell>
+                          <DataListCell width="w-24" align="right" hideBelow="md" className="text-sm text-muted-foreground">
                             {item.type === "asset" && item.size ? formatFileSize(item.size) : "—"}
-                          </div>
-                          <div className="w-32 text-right text-sm text-muted-foreground hidden lg:block">
+                          </DataListCell>
+                          <DataListCell width="w-32" align="right" hideBelow="lg" className="text-sm text-muted-foreground">
                             {formatRelativeTime(new Date(item.createdAt))}
-                          </div>
-                          <div className="w-10 flex justify-end">
+                          </DataListCell>
+                          <DataListCell width="w-10" align="right">
                             {renderDropdownMenu(item)}
-                          </div>
-                        </div>
+                          </DataListCell>
+                        </DataListRow>
                       </ContextMenuTrigger>
                       <ContextMenuContent>
                         <ContextMenuItem onClick={() => handleOpen(item)}>
@@ -408,28 +446,23 @@ export default function SharedWithMePage() {
                       </ContextMenuContent>
                     </ContextMenu>
                   ))}
-                </div>
+                </DataList>
               ) : (
                 /* Grid View - Folders first (compact), then Files */
-                <div className="space-y-6">
+                <DataGrid>
                   {/* Folders Section */}
                   {sharedFolders.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    <DataGridSection title="Folders">
+                      <DataGridFolderContainer>
                         {sharedFolders.map((item, index) => (
                           <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
                             <ContextMenuTrigger>
-                              <div
+                              <DataGridFolderCard
                                 data-item-id={`${item.type}-${item.id}`}
                                 onClick={(e) => handleItemSelect(index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
                                 onDoubleClick={() => handleOpen(item)}
-                                className={cn(
-                                  "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
-                                  "hover:border-border hover:bg-accent/30",
-                                  pendingSelection.has(`${item.type}-${item.id}`) && "border-primary bg-primary/5",
-                                  selectedItems.has(`${item.type}-${item.id}`) && "border-primary/60 bg-primary/5"
-                                )}
+                                selected={selectedItems.has(`${item.type}-${item.id}`)}
+                                pending={pendingSelection.has(`${item.type}-${item.id}`)}
                               >
                                 <div className="flex items-center gap-3 px-3 py-2.5">
                                   <Folder className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -437,18 +470,14 @@ export default function SharedWithMePage() {
                                     {item.name}
                                   </span>
                                   {selectedItems.has(`${item.type}-${item.id}`) ? (
-                                    <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                                      <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    </div>
+                                    <SelectionCheckmark />
                                   ) : (
                                     <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                       {renderDropdownMenu(item)}
                                     </div>
                                   )}
                                 </div>
-                              </div>
+                              </DataGridFolderCard>
                             </ContextMenuTrigger>
                             <ContextMenuContent>
                               <ContextMenuItem onClick={() => handleOpen(item)}>
@@ -458,28 +487,23 @@ export default function SharedWithMePage() {
                             </ContextMenuContent>
                           </ContextMenu>
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFolderContainer>
+                    </DataGridSection>
                   )}
 
                   {/* Files Section */}
                   {sharedFiles.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <DataGridSection title="Files">
+                      <DataGridFileContainer>
                         {sharedFiles.map((item, index) => (
                           <ContextMenu key={item.id} onOpenChange={(open) => handleContextMenuOpen(item, open)}>
                             <ContextMenuTrigger>
-                              <div
+                              <DataGridFileCard
                                 data-item-id={`${item.type}-${item.id}`}
                                 onClick={(e) => handleItemSelect(sharedFolders.length + index, item.id, item.type, item.name, !selectedItems.has(`${item.type}-${item.id}`), e.shiftKey)}
                                 onDoubleClick={() => handleOpen(item)}
-                                className={cn(
-                                  "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
-                                  "hover:border-border/60 hover:shadow-lg hover:shadow-black/5",
-                                  pendingSelection.has(`${item.type}-${item.id}`) && "border-primary bg-primary/5",
-                                  selectedItems.has(`${item.type}-${item.id}`) && "border-primary/60 bg-primary/5 shadow-md shadow-primary/10"
-                                )}
+                                selected={selectedItems.has(`${item.type}-${item.id}`)}
+                                pending={pendingSelection.has(`${item.type}-${item.id}`)}
                               >
                                 {/* Preview area */}
                                 <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
@@ -490,11 +514,7 @@ export default function SharedWithMePage() {
                                     {renderDropdownMenu(item)}
                                   </div>
                                   {selectedItems.has(`${item.type}-${item.id}`) && (
-                                    <div className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                                      <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    </div>
+                                    <SelectionCheckmark className="absolute bottom-2 right-2" />
                                   )}
                                 </div>
                                 {/* Info area */}
@@ -507,7 +527,7 @@ export default function SharedWithMePage() {
                                     <span className="text-xs text-muted-foreground truncate">{item.ownerName}</span>
                                   </div>
                                 </div>
-                              </div>
+                              </DataGridFileCard>
                             </ContextMenuTrigger>
                             <ContextMenuContent>
                               <ContextMenuItem onClick={() => handleOpen(item)}>
@@ -521,10 +541,10 @@ export default function SharedWithMePage() {
                             </ContextMenuContent>
                           </ContextMenu>
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFileContainer>
+                    </DataGridSection>
                   )}
-                </div>
+                </DataGrid>
               )}
             </div>
           </ScrollArea>

@@ -91,3 +91,17 @@ assetRouter.post("/bulk-download", wrap(assetController.bulkDownload));
 
 // Bulk download shared assets as ZIP
 assetRouter.post("/shared-bulk-download", wrap(assetController.sharedBulkDownload));
+
+// Generate thumbnail for an asset
+assetRouter.post(
+  "/:id/thumbnail",
+  validateParams(assetIdParamSchema),
+  wrap(assetController.generateThumbnail)
+);
+
+// Get thumbnail URL for an asset
+assetRouter.get(
+  "/:id/thumbnail",
+  validateParams(assetIdParamSchema),
+  wrap(assetController.getThumbnailUrl)
+);

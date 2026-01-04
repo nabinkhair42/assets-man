@@ -22,6 +22,7 @@ import {
   useToggleFolderStarred,
   useUser,
   useMarqueeSelection,
+  useFileBrowserShortcuts,
 } from "@/hooks";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
@@ -33,20 +34,13 @@ import {
   MoveDialog,
   FilePreviewDialog,
 } from "@/components/dialog";
-import { EmptyState, ListHeader, SelectionToolbar, type SelectedItem } from "@/components/shared";
+import { EmptyState, SelectionToolbar, RECENT_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
 import { assetService, recentService } from "@/services";
 import { useRouter } from "next/navigation";
-
-const FILE_LIST_COLUMNS = [
-  { label: "Name" },
-  { label: "Owner", width: "w-10", align: "center" as const, hideBelow: "sm" as const },
-  { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
-  { label: "Accessed", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-8" },
-];
 
 export default function RecentPage() {
   const { data: user } = useUser();
@@ -253,6 +247,55 @@ export default function RecentPage() {
     refetchRecent();
   }, [handleClearSelection, refetchRecent]);
 
+  const handleSelectAll = useCallback(() => {
+    const newSelection = new Map<string, SelectedItem>();
+    for (const item of allItems) {
+      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+    }
+    setSelectedItems(newSelection);
+  }, [allItems]);
+
+  const handleKeyboardStar = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      const folder = recentFolders.find((f) => f.id === itemId);
+      if (folder) handleStarFolder(folder);
+    } else {
+      const asset = recentAssets.find((a) => a.id === itemId);
+      if (asset) handleStarAsset(asset);
+    }
+  }, [selectedItems, recentFolders, recentAssets, handleStarFolder, handleStarAsset]);
+
+  const handleKeyboardRename = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      const folder = recentFolders.find((f) => f.id === itemId);
+      if (folder) setRenameItem({ item: folder, type: "folder" });
+    } else {
+      const asset = recentAssets.find((a) => a.id === itemId);
+      if (asset) setRenameItem({ item: asset, type: "asset" });
+    }
+  }, [selectedItems, recentFolders, recentAssets]);
+
+  const handleKeyboardPreview = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      handleNavigate(itemId);
+    } else {
+      const asset = recentAssets.find((a) => a.id === itemId);
+      if (asset) handlePreview(asset);
+    }
+  }, [selectedItems, recentAssets, handleNavigate, handlePreview]);
+
   const handleBulkDownload = useCallback(async () => {
     const items = Array.from(selectedItems.values());
     const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
@@ -283,6 +326,22 @@ export default function RecentPage() {
       toast.error("Failed to download files", { id: toastId });
     }
   }, [selectedItems, handleClearSelection]);
+
+  // Keyboard shortcuts
+  useFileBrowserShortcuts(
+    {
+      onSelectAll: handleSelectAll,
+      onDownload: handleBulkDownload,
+      onStar: handleKeyboardStar,
+      onRename: handleKeyboardRename,
+      onDelete: handleBulkDelete,
+      onMove: handleBulkMove,
+      onRefresh: () => refetchRecent(),
+      onEscape: handleClearSelection,
+      onPreview: handleKeyboardPreview,
+    },
+    { enabled: true, hasSelection: selectedItems.size > 0 }
+  );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -370,12 +429,11 @@ export default function RecentPage() {
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */
-                <div className="space-y-6">
+                <DataGrid>
                   {/* Folders Section */}
                   {recentFolders.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    <DataGridSection title="Folders">
+                      <DataGridFolderContainer>
                         {recentFolders.map((folder) => {
                           const index = allItems.findIndex((i) => i.type === "folder" && i.id === folder.id);
                           return (
@@ -401,15 +459,14 @@ export default function RecentPage() {
                             />
                           );
                         })}
-                      </div>
-                    </div>
+                      </DataGridFolderContainer>
+                    </DataGridSection>
                   )}
 
                   {/* Files Section */}
                   {recentAssets.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <DataGridSection title="Files">
+                      <DataGridFileContainer>
                         {recentAssets.map((asset) => {
                           const index = allItems.findIndex((i) => i.type === "asset" && i.id === asset.id);
                           return (
@@ -437,14 +494,14 @@ export default function RecentPage() {
                             />
                           );
                         })}
-                      </div>
-                    </div>
+                      </DataGridFileContainer>
+                    </DataGridSection>
                   )}
-                </div>
+                </DataGrid>
               ) : (
                 /* List View - Combined */
-                <div className="flex flex-col">
-                  <ListHeader columns={FILE_LIST_COLUMNS} />
+                <DataList>
+                  <DataListHeader columns={RECENT_LIST_COLUMNS} />
                   {allItems.map((item, index) => (
                     item.type === "folder" ? (
                       <DraggableFolderItem
@@ -492,7 +549,7 @@ export default function RecentPage() {
                       />
                     )
                   ))}
-                </div>
+                </DataList>
               )}
             </div>
           </ScrollArea>

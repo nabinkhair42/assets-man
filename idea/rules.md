@@ -75,6 +75,7 @@ apps/api/src/
 ## API Response Format
 
 All responses use `response-utils.ts`:
+
 ```ts
 // Success
 { success: true, data: {...}, message?: "..." }

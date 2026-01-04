@@ -245,7 +245,20 @@ export async function listUserShares(ownerId: string): Promise<ShareWithDetails[
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
   });
 
-  return shareList.map((share) => ({
+  // Filter out shares where the item has been trashed or deleted
+  const validShares = shareList.filter((share) => {
+    // If it's a folder share, check if folder exists and is not trashed
+    if (share.folderId) {
+      return share.folder && !share.folder.trashedAt;
+    }
+    // If it's an asset share, check if asset exists and is not trashed
+    if (share.assetId) {
+      return share.asset && !share.asset.trashedAt;
+    }
+    return false;
+  });
+
+  return validShares.map((share) => ({
     ...share,
     sharedWithName: share.sharedWithUser?.name ?? null,
     ownerName: null,
@@ -281,7 +294,20 @@ export async function listSharedWithMe(userId: string): Promise<ShareWithDetails
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
   });
 
-  return shareList.map((share) => ({
+  // Filter out shares where the item has been trashed or deleted
+  const validShares = shareList.filter((share) => {
+    // If it's a folder share, check if folder exists and is not trashed
+    if (share.folderId) {
+      return share.folder && !share.folder.trashedAt;
+    }
+    // If it's an asset share, check if asset exists and is not trashed
+    if (share.assetId) {
+      return share.asset && !share.asset.trashedAt;
+    }
+    return false;
+  });
+
+  return validShares.map((share) => ({
     ...share,
     sharedWithName: user.name,
     ownerName: share.owner?.name ?? null,
@@ -342,6 +368,14 @@ export async function getShareWithItemByToken(token: string) {
 
   // Check if expired
   if (share.expiresAt && new Date() > share.expiresAt) {
+    return null;
+  }
+
+  // Check if the shared item has been trashed
+  if (share.folderId && share.folder?.trashedAt) {
+    return null;
+  }
+  if (share.assetId && share.asset?.trashedAt) {
     return null;
   }
 

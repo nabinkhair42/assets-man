@@ -6,3 +6,12 @@ export * from "./use-recent";
 export * from "./use-shares";
 export { useIsMobile } from "./use-mobile";
 export { useMarqueeSelection } from "./use-marquee-selection";
+export { useThumbnail, useGenerateThumbnailAfterUpload, canHaveThumbnail } from "./use-thumbnail";
+export {
+  useKeyboardShortcuts,
+  useFileBrowserShortcuts,
+  formatShortcut,
+  SHORTCUT_DEFINITIONS,
+  type KeyboardShortcut,
+  type FileBrowserShortcutActions,
+} from "./use-keyboard-shortcuts";

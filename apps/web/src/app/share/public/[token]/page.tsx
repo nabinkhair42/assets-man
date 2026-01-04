@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileIcon as CustomFileIcon, ShareInfoPopover } from "@/components/shared";
+import { FileIcon as CustomFileIcon, ShareInfoPopover, ListHeader, PUBLIC_SHARE_LIST_COLUMNS } from "@/components/shared";
 import { shareService } from "@/services";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
@@ -731,34 +731,37 @@ export default function PublicSharePage() {
               </div>
             ) : (
               /* List View */
-              <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden divide-y divide-border/30">
-                {/* Folders */}
-                {folderContents.folders.map((folder) => (
-                  <ReadOnlyFolderItem
-                    key={folder.id}
-                    folder={folder}
-                    onOpen={handleNavigateFolder}
-                    viewMode="list"
-                  />
-                ))}
+              <div className="flex flex-col">
+                <ListHeader columns={PUBLIC_SHARE_LIST_COLUMNS} />
+                <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden divide-y divide-border/30">
+                  {/* Folders */}
+                  {folderContents.folders.map((folder) => (
+                    <ReadOnlyFolderItem
+                      key={folder.id}
+                      folder={folder}
+                      onOpen={handleNavigateFolder}
+                      viewMode="list"
+                    />
+                  ))}
 
-                {/* Files */}
-                {folderContents.assets.map((asset) => (
-                  <ReadOnlyFileItem
-                    key={asset.id}
-                    asset={asset}
-                    onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
-                    onPreview={(a) => {
-                      if (isPreviewable(a.mimeType)) {
-                        loadFolderAssetPreview(a);
-                      } else {
-                        handleFolderAssetDownload(a.id, a.name);
-                      }
-                    }}
-                    viewMode="list"
-                    isDownloading={downloadingAssetId === asset.id}
-                  />
-                ))}
+                  {/* Files */}
+                  {folderContents.assets.map((asset) => (
+                    <ReadOnlyFileItem
+                      key={asset.id}
+                      asset={asset}
+                      onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
+                      onPreview={(a) => {
+                        if (isPreviewable(a.mimeType)) {
+                          loadFolderAssetPreview(a);
+                        } else {
+                          handleFolderAssetDownload(a.id, a.name);
+                        }
+                      }}
+                      viewMode="list"
+                      isDownloading={downloadingAssetId === asset.id}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>

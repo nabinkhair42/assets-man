@@ -23,6 +23,7 @@ import {
   useToggleFolderStarred,
   useUser,
   useMarqueeSelection,
+  useFileBrowserShortcuts,
 } from "@/hooks";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
@@ -34,20 +35,13 @@ import {
   MoveDialog,
   FilePreviewDialog,
 } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger, SelectionToolbar, type SelectedItem } from "@/components/shared";
+import { EmptyState, InfiniteScrollTrigger, SelectionToolbar, STARRED_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
 import { assetService } from "@/services";
 import { useRouter } from "next/navigation";
-
-const FILE_LIST_COLUMNS = [
-  { label: "Name" },
-  { label: "Owner", width: "w-10", align: "center" as const, hideBelow: "sm" as const },
-  { label: "Size", width: "w-24", align: "right" as const, hideBelow: "sm" as const },
-  { label: "Modified", width: "w-32", align: "right" as const, hideBelow: "md" as const },
-  { label: "", width: "w-8" },
-];
 
 export default function StarredPage() {
   const { data: user } = useUser();
@@ -276,6 +270,76 @@ export default function StarredPage() {
     }
   }, [selectedItems, handleClearSelection]);
 
+  const handleSelectAll = useCallback(() => {
+    const newSelection = new Map<string, SelectedItem>();
+    for (const item of allItems) {
+      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+    }
+    setSelectedItems(newSelection);
+  }, [allItems]);
+
+  const handleKeyboardStar = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      const folder = starredFolders.find((f) => f.id === itemId);
+      if (folder) handleStarFolder(folder);
+    } else {
+      const asset = starredAssets.find((a) => a.id === itemId);
+      if (asset) handleStarAsset(asset);
+    }
+  }, [selectedItems, starredFolders, starredAssets, handleStarFolder, handleStarAsset]);
+
+  const handleKeyboardRename = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      const folder = starredFolders.find((f) => f.id === itemId);
+      if (folder) setRenameItem({ item: folder, type: "folder" });
+    } else {
+      const asset = starredAssets.find((a) => a.id === itemId);
+      if (asset) setRenameItem({ item: asset, type: "asset" });
+    }
+  }, [selectedItems, starredFolders, starredAssets]);
+
+  const handleKeyboardPreview = useCallback(() => {
+    if (selectedItems.size !== 1) return;
+    const [selectedKey] = Array.from(selectedItems.keys());
+    const [type, ...idParts] = selectedKey.split("-");
+    const itemId = idParts.join("-");
+    if (type === "folder") {
+      handleNavigate(itemId);
+    } else {
+      const asset = starredAssets.find((a) => a.id === itemId);
+      if (asset) handlePreview(asset);
+    }
+  }, [selectedItems, starredAssets, handleNavigate, handlePreview]);
+
+  const handleRefresh = useCallback(() => {
+    refetchFolders();
+    refetchAssets();
+  }, [refetchFolders, refetchAssets]);
+
+  // Keyboard shortcuts
+  useFileBrowserShortcuts(
+    {
+      onSelectAll: handleSelectAll,
+      onDownload: handleBulkDownload,
+      onStar: handleKeyboardStar,
+      onRename: handleKeyboardRename,
+      onDelete: handleBulkDelete,
+      onMove: handleBulkMove,
+      onRefresh: handleRefresh,
+      onEscape: handleClearSelection,
+      onPreview: handleKeyboardPreview,
+    },
+    { enabled: true, hasSelection: selectedItems.size > 0 }
+  );
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
     const data = active.data.current as { type: "folder" | "asset"; item: Folder | Asset };
@@ -362,12 +426,11 @@ export default function StarredPage() {
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */
-                <div className="space-y-6">
+                <DataGrid>
                   {/* Folders Section */}
                   {starredFolders.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Folders</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                    <DataGridSection title="Folders">
+                      <DataGridFolderContainer>
                         {starredFolders.map((folder, index) => (
                           <DraggableFolderItem
                             key={folder.id}
@@ -390,15 +453,14 @@ export default function StarredPage() {
                             owner={user?.name ? { id: user.id, name: user.name } : undefined}
                           />
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFolderContainer>
+                    </DataGridSection>
                   )}
 
                   {/* Files Section */}
                   {starredAssets.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground tracking-wider mb-3">Files</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    <DataGridSection title="Files">
+                      <DataGridFileContainer>
                         {starredAssets.map((asset, index) => (
                           <DraggableFileItem
                             key={asset.id}
@@ -423,14 +485,14 @@ export default function StarredPage() {
                             owner={user?.name ? { id: user.id, name: user.name } : undefined}
                           />
                         ))}
-                      </div>
-                    </div>
+                      </DataGridFileContainer>
+                    </DataGridSection>
                   )}
-                </div>
+                </DataGrid>
               ) : (
                 /* List View - Combined */
-                <div className="flex flex-col">
-                  <ListHeader columns={FILE_LIST_COLUMNS} />
+                <DataList>
+                  <DataListHeader columns={STARRED_LIST_COLUMNS} />
                   {starredFolders.map((folder, index) => (
                     <DraggableFolderItem
                       key={folder.id}
@@ -477,7 +539,7 @@ export default function StarredPage() {
                       owner={user?.name ? { id: user.id, name: user.name } : undefined}
                     />
                   ))}
-                </div>
+                </DataList>
               )}
 
               {!isLoading && (starredFolders.length > 0 || starredAssets.length > 0) && (

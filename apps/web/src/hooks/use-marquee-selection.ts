@@ -16,6 +16,10 @@ interface UseMarqueeSelectionOptions<T> {
   containerRef: React.RefObject<HTMLElement | null>;
   itemSelector: string;
   disabled?: boolean;
+  /** Distance from edge to trigger auto-scroll (default: 60px) */
+  autoScrollThreshold?: number;
+  /** Maximum scroll speed in pixels per frame (default: 15) */
+  autoScrollSpeed?: number;
 }
 
 export function useMarqueeSelection<T>({
@@ -25,6 +29,8 @@ export function useMarqueeSelection<T>({
   containerRef,
   itemSelector,
   disabled = false,
+  autoScrollThreshold = 60,
+  autoScrollSpeed = 15,
 }: UseMarqueeSelectionOptions<T>) {
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -32,12 +38,36 @@ export function useMarqueeSelection<T>({
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const scrollOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Auto-scroll refs
+  const autoScrollAnimationRef = useRef<number | null>(null);
+  const lastMousePosition = useRef<{ clientX: number; clientY: number } | null>(null);
+
+  // Use ref to track isSelecting for animation loop (avoids stale closure)
+  const isSelectingRef = useRef(false);
+
   const getScrollableParent = useCallback((element: HTMLElement | null): HTMLElement | null => {
     if (!element) return null;
 
-    // Check for radix scroll area viewport
-    const viewport = element.querySelector("[data-radix-scroll-area-viewport]");
+    // Check for radix scroll area viewport - traverse UP the DOM tree
+    const viewport = element.closest("[data-radix-scroll-area-viewport]");
     if (viewport) return viewport as HTMLElement;
+
+    // Fallback: check if element itself or a child has the viewport
+    const childViewport = element.querySelector("[data-radix-scroll-area-viewport]");
+    if (childViewport) return childViewport as HTMLElement;
+
+    // Last fallback: find any scrollable parent
+    let current: HTMLElement | null = element.parentElement;
+    while (current) {
+      const style = window.getComputedStyle(current);
+      if (
+        (style.overflowY === "auto" || style.overflowY === "scroll") &&
+        current.scrollHeight > current.clientHeight
+      ) {
+        return current;
+      }
+      current = current.parentElement;
+    }
 
     return element;
   }, []);
@@ -90,6 +120,127 @@ export function useMarqueeSelection<T>({
     [containerRef, itemSelector, getScrollableParent]
   );
 
+  // Stop auto-scroll animation
+  const stopAutoScroll = useCallback(() => {
+    if (autoScrollAnimationRef.current !== null) {
+      cancelAnimationFrame(autoScrollAnimationRef.current);
+      autoScrollAnimationRef.current = null;
+    }
+  }, []);
+
+  // Calculate scroll velocity based on mouse position relative to container edges
+  const calculateScrollVelocity = useCallback(
+    (clientX: number, clientY: number, viewportRect: DOMRect) => {
+      let scrollX = 0;
+      let scrollY = 0;
+
+      // Calculate distance from edges
+      const distanceFromTop = clientY - viewportRect.top;
+      const distanceFromBottom = viewportRect.bottom - clientY;
+      const distanceFromLeft = clientX - viewportRect.left;
+      const distanceFromRight = viewportRect.right - clientX;
+
+      // Vertical scrolling
+      if (distanceFromTop < autoScrollThreshold && distanceFromTop >= 0) {
+        // Near top edge - scroll up
+        const intensity = 1 - distanceFromTop / autoScrollThreshold;
+        scrollY = -autoScrollSpeed * intensity;
+      } else if (distanceFromBottom < autoScrollThreshold && distanceFromBottom >= 0) {
+        // Near bottom edge - scroll down
+        const intensity = 1 - distanceFromBottom / autoScrollThreshold;
+        scrollY = autoScrollSpeed * intensity;
+      }
+
+      // Horizontal scrolling
+      if (distanceFromLeft < autoScrollThreshold && distanceFromLeft >= 0) {
+        // Near left edge - scroll left
+        const intensity = 1 - distanceFromLeft / autoScrollThreshold;
+        scrollX = -autoScrollSpeed * intensity;
+      } else if (distanceFromRight < autoScrollThreshold && distanceFromRight >= 0) {
+        // Near right edge - scroll right
+        const intensity = 1 - distanceFromRight / autoScrollThreshold;
+        scrollX = autoScrollSpeed * intensity;
+      }
+
+      return { scrollX, scrollY };
+    },
+    [autoScrollThreshold, autoScrollSpeed]
+  );
+
+  // Auto-scroll animation loop
+  const performAutoScroll = useCallback(() => {
+    const container = containerRef.current;
+    // Use ref for isSelecting to avoid stale closure in animation loop
+    if (!container || !isSelectingRef.current || !lastMousePosition.current || !startPoint.current) {
+      stopAutoScroll();
+      return;
+    }
+
+    const scrollableParent = getScrollableParent(container);
+    if (!scrollableParent) {
+      stopAutoScroll();
+      return;
+    }
+
+    const viewportRect = scrollableParent.getBoundingClientRect();
+    const { clientX, clientY } = lastMousePosition.current;
+
+    const { scrollX, scrollY } = calculateScrollVelocity(clientX, clientY, viewportRect);
+
+    // Only scroll if there's velocity
+    if (scrollX !== 0 || scrollY !== 0) {
+      const prevScrollTop = scrollableParent.scrollTop;
+      const prevScrollLeft = scrollableParent.scrollLeft;
+
+      // Perform the scroll
+      scrollableParent.scrollTop += scrollY;
+      scrollableParent.scrollLeft += scrollX;
+
+      // Check if scroll actually happened
+      const scrolledY = scrollableParent.scrollTop - prevScrollTop;
+      const scrolledX = scrollableParent.scrollLeft - prevScrollLeft;
+
+      // Update the marquee rect if scroll happened
+      if (scrolledX !== 0 || scrolledY !== 0) {
+        const containerRect = container.getBoundingClientRect();
+        const currentScrollX = scrollableParent.scrollLeft;
+        const currentScrollY = scrollableParent.scrollTop;
+
+        const x = clientX - containerRect.left + currentScrollX;
+        const y = clientY - containerRect.top + currentScrollY;
+
+        const newRect = {
+          startX: startPoint.current.x,
+          startY: startPoint.current.y,
+          endX: x,
+          endY: y,
+        };
+
+        setMarqueeRect(newRect);
+
+        // Update pending selection
+        const intersecting = calculateIntersectingItems(newRect);
+        setPendingSelection(new Set(intersecting));
+      }
+    }
+
+    // Continue the animation loop
+    autoScrollAnimationRef.current = requestAnimationFrame(performAutoScroll);
+  }, [
+    containerRef,
+    getScrollableParent,
+    calculateScrollVelocity,
+    calculateIntersectingItems,
+    stopAutoScroll,
+  ]);
+
+  // Start auto-scroll when needed
+  const startAutoScroll = useCallback(() => {
+    if (autoScrollAnimationRef.current === null) {
+      autoScrollAnimationRef.current = requestAnimationFrame(performAutoScroll);
+    }
+  }, [performAutoScroll]);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (disabled) return;
@@ -125,6 +276,7 @@ export function useMarqueeSelection<T>({
       const y = e.clientY - rect.top + scrollOffset.current.y;
 
       startPoint.current = { x, y };
+      isSelectingRef.current = true;
       setIsSelecting(true);
       setMarqueeRect({ startX: x, startY: y, endX: x, endY: y });
       setPendingSelection(new Set());
@@ -141,6 +293,9 @@ export function useMarqueeSelection<T>({
       const container = containerRef.current;
       const scrollableParent = getScrollableParent(container);
       const rect = container.getBoundingClientRect();
+
+      // Store mouse position for auto-scroll
+      lastMousePosition.current = { clientX: e.clientX, clientY: e.clientY };
 
       // Get current scroll offset
       const currentScrollX = scrollableParent?.scrollLeft ?? 0;
@@ -161,11 +316,19 @@ export function useMarqueeSelection<T>({
       // Calculate and update pending selection in real-time
       const intersecting = calculateIntersectingItems(newRect);
       setPendingSelection(new Set(intersecting));
+
+      // Start auto-scroll if near edges
+      startAutoScroll();
     },
-    [isSelecting, containerRef, getScrollableParent, calculateIntersectingItems]
+    [isSelecting, containerRef, getScrollableParent, calculateIntersectingItems, startAutoScroll]
   );
 
   const handleMouseUp = useCallback(() => {
+    // Stop auto-scroll
+    stopAutoScroll();
+    lastMousePosition.current = null;
+    isSelectingRef.current = false;
+
     if (!isSelecting || !marqueeRect || !containerRef.current) {
       setIsSelecting(false);
       setMarqueeRect(null);
@@ -196,7 +359,7 @@ export function useMarqueeSelection<T>({
     setMarqueeRect(null);
     setPendingSelection(new Set());
     startPoint.current = null;
-  }, [isSelecting, marqueeRect, containerRef, onSelectionChange, calculateIntersectingItems]);
+  }, [isSelecting, marqueeRect, containerRef, onSelectionChange, calculateIntersectingItems, stopAutoScroll]);
 
   // Add global mouse event listeners when selecting
   useEffect(() => {
@@ -207,9 +370,17 @@ export function useMarqueeSelection<T>({
       return () => {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
+        stopAutoScroll();
       };
     }
-  }, [isSelecting, handleMouseMove, handleMouseUp]);
+  }, [isSelecting, handleMouseMove, handleMouseUp, stopAutoScroll]);
+
+  // Cleanup auto-scroll on unmount
+  useEffect(() => {
+    return () => {
+      stopAutoScroll();
+    };
+  }, [stopAutoScroll]);
 
   // Calculate the visual rectangle for rendering
   const visualRect = marqueeRect

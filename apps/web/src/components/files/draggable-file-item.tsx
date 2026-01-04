@@ -17,8 +17,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { FileIcon } from "@/components/shared";
-import { SingleAvatar, type AvatarUser } from "@/components/ui/avatar-group";
+import {
+  DataListRow,
+  DataListCell,
+  DataGridFileCard,
+  SelectionCheckmark,
+} from "@/components/ui/data-list";
+import { FileIcon, FileThumbnail } from "@/components/shared";
+import { canHaveThumbnail } from "@/hooks";
+import { SingleAvatar } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
 import { formatFileSize, formatRelativeTime, truncateFileName } from "@/lib/formatters";
 import type { Asset } from "@/types";
@@ -224,23 +231,19 @@ export function DraggableFileItem({
     return (
       <ContextMenu onOpenChange={handleContextMenuOpen}>
         <ContextMenuTrigger>
-          <div
+          <DataListRow
             ref={setNodeRef}
             {...attributes}
             {...listeners}
             data-item-id={`asset-${asset.id}`}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
-            className={cn(
-              "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
-              "hover:bg-accent/50 rounded-lg",
-              isDragging && "opacity-50 cursor-grabbing",
-              isPendingSelection && "bg-primary/20 ring-2 ring-primary ring-inset",
-              isSelected && "bg-primary/15 ring-2 ring-primary/60 ring-inset"
-            )}
+            selected={isSelected}
+            pending={isPendingSelection}
+            dragging={isDragging}
           >
             <FileIcon mimeType={asset.mimeType} size="sm" />
-            <div className="flex-1 min-w-0" title={asset.name}>
+            <DataListCell primary title={asset.name}>
               {/* Mobile: Show truncated name */}
               <p className="sm:hidden font-medium text-sm text-foreground">
                 {truncateFileName(asset.name, 28)}
@@ -249,20 +252,22 @@ export function DraggableFileItem({
               <p className="hidden sm:block truncate font-medium text-sm text-foreground">
                 {asset.name}
               </p>
-            </div>
+            </DataListCell>
             {showOwner && owner && (
-              <div className="w-10 hidden sm:flex items-center justify-center">
+              <DataListCell width="w-10" align="center" hideBelow="sm">
                 <SingleAvatar user={owner} size="sm" />
-              </div>
+              </DataListCell>
             )}
-            <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
+            <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
               {formatFileSize(asset.size)}
-            </div>
-            <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
+            </DataListCell>
+            <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
               {formatRelativeTime(new Date(asset.createdAt))}
-            </div>
-            <div className="w-8 flex justify-end">{dropdownMenu}</div>
-          </div>
+            </DataListCell>
+            <DataListCell width="w-8" align="right">
+              {dropdownMenu}
+            </DataListCell>
+          </DataListRow>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>
       </ContextMenu>
@@ -273,26 +278,33 @@ export function DraggableFileItem({
   return (
     <ContextMenu onOpenChange={handleContextMenuOpen}>
       <ContextMenuTrigger>
-        <div
+        <DataGridFileCard
           ref={setNodeRef}
           {...attributes}
           {...listeners}
           data-item-id={`asset-${asset.id}`}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
-          className={cn(
-            "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
-            "hover:border-border/60 hover:shadow-lg hover:shadow-black/5",
-            isDragging && "opacity-50 scale-105",
-            isPendingSelection && "border-primary bg-primary/5",
-            isSelected && "border-primary/60 bg-primary/5 shadow-md shadow-primary/10"
-          )}
+          selected={isSelected}
+          pending={isPendingSelection}
+          dragging={isDragging}
         >
           {/* Preview area */}
           <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
-            {/* File icon centered */}
+            {/* Thumbnail or file icon centered */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <FileIcon mimeType={asset.mimeType} size="xl" />
+              {canHaveThumbnail(asset.mimeType) ? (
+                <FileThumbnail
+                  assetId={asset.id}
+                  mimeType={asset.mimeType}
+                  thumbnailKey={asset.thumbnailKey}
+                  name={asset.name}
+                  size="lg"
+                  className="w-full h-full rounded-none"
+                />
+              ) : (
+                <FileIcon mimeType={asset.mimeType} size="xl" />
+              )}
             </div>
 
             {/* Star indicator */}
@@ -309,11 +321,7 @@ export function DraggableFileItem({
 
             {/* Selection checkmark */}
             {isSelected && (
-              <div className="absolute bottom-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
+              <SelectionCheckmark className="absolute bottom-2 right-2" />
             )}
           </div>
 
@@ -333,7 +341,7 @@ export function DraggableFileItem({
               )}
             </div>
           </div>
-        </div>
+        </DataGridFileCard>
       </ContextMenuTrigger>
       <ContextMenuContent>{menuItems}</ContextMenuContent>
     </ContextMenu>

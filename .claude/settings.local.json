@@ -27,7 +27,10 @@
       "Bash(pnpm dev)",
       "Bash(ls:*)",
       "Bash(PGPASSWORD=mysecretpassword psql:*)",
-      "Bash(pnpm db:enable-trgm:*)"
+      "Bash(pnpm db:enable-trgm:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(pnpm remove:*)"
     ]
   }
 }

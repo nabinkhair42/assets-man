@@ -17,6 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import {
+  DataListRow,
+  DataListCell,
+  DataGridFolderCard,
+  SelectionCheckmark,
+} from "@/components/ui/data-list";
 import { FileIcon } from "@/components/shared";
 import { SingleAvatar } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
@@ -216,24 +222,20 @@ export function DraggableFolderItem({
       <div ref={setDroppableRef}>
         <ContextMenu onOpenChange={handleContextMenuOpen}>
           <ContextMenuTrigger>
-            <div
+            <DataListRow
               ref={setDraggableRef}
               {...attributes}
               {...listeners}
               data-item-id={`folder-${folder.id}`}
               onClick={handleClick}
               onDoubleClick={() => onOpen(folder.id)}
-              className={cn(
-                "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
-                "hover:bg-accent/50 rounded-lg",
-                isDragging && "opacity-50 cursor-grabbing",
-                isOver && "ring-2 ring-primary bg-primary/10",
-                isPendingSelection && "bg-primary/20 ring-2 ring-primary ring-inset",
-                isSelected && "bg-primary/15 ring-2 ring-primary/60 ring-inset"
-              )}
+              selected={isSelected}
+              pending={isPendingSelection}
+              dragging={isDragging}
+              dropTarget={isOver}
             >
               <FileIcon isFolder size="sm" />
-              <div className="flex-1 min-w-0" title={folder.name}>
+              <DataListCell primary title={folder.name}>
                 {/* Mobile: Show truncated name */}
                 <p className="sm:hidden font-medium text-sm text-foreground">
                   {truncateFileName(folder.name, 28, true)}
@@ -242,18 +244,22 @@ export function DraggableFolderItem({
                 <p className="hidden sm:block truncate font-medium text-sm text-foreground">
                   {folder.name}
                 </p>
-              </div>
+              </DataListCell>
               {showOwner && owner && (
-                <div className="w-10 hidden sm:flex items-center justify-center">
+                <DataListCell width="w-10" align="center" hideBelow="sm">
                   <SingleAvatar user={owner} size="sm" />
-                </div>
+                </DataListCell>
               )}
-              <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">—</div>
-              <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
+              <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+                —
+              </DataListCell>
+              <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
                 {formatRelativeTime(new Date(folder.createdAt))}
-              </div>
-              <div className="w-8 flex justify-end">{dropdownMenu}</div>
-            </div>
+              </DataListCell>
+              <DataListCell width="w-8" align="right">
+                {dropdownMenu}
+              </DataListCell>
+            </DataListRow>
           </ContextMenuTrigger>
           <ContextMenuContent>{menuItems}</ContextMenuContent>
         </ContextMenu>
@@ -266,21 +272,17 @@ export function DraggableFolderItem({
     <div ref={setDroppableRef}>
       <ContextMenu onOpenChange={handleContextMenuOpen}>
         <ContextMenuTrigger>
-          <div
+          <DataGridFolderCard
             ref={setDraggableRef}
             {...attributes}
             {...listeners}
             data-item-id={`folder-${folder.id}`}
             onClick={handleClick}
             onDoubleClick={() => onOpen(folder.id)}
-            className={cn(
-              "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
-              "hover:border-border hover:bg-accent/30",
-              isDragging && "opacity-50 scale-105",
-              isOver && "border-primary bg-primary/10",
-              isPendingSelection && "border-primary bg-primary/5",
-              isSelected && "border-primary/60 bg-primary/5"
-            )}
+            selected={isSelected}
+            pending={isPendingSelection}
+            dragging={isDragging}
+            dropTarget={isOver}
           >
             <div className="flex items-center gap-3 px-3 py-2.5">
               {/* Folder icon */}
@@ -298,11 +300,7 @@ export function DraggableFolderItem({
 
               {/* Selection checkmark or menu */}
               {isSelected ? (
-                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center shrink-0">
-                  <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
+                <SelectionCheckmark />
               ) : (
                 <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   {dropdownMenu}
@@ -318,7 +316,7 @@ export function DraggableFolderItem({
                 </span>
               </div>
             )}
-          </div>
+          </DataGridFolderCard>
         </ContextMenuTrigger>
         <ContextMenuContent>{menuItems}</ContextMenuContent>
       </ContextMenu>
