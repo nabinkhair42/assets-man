@@ -4,6 +4,19 @@ import { eq } from "drizzle-orm";
 import { createDb, assets } from "@repo/database";
 import { createStorageClient, generateThumbnailKey, type StorageClient } from "@repo/storage";
 import { config } from "@/config/env.js";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { createCanvas } from "@napi-rs/canvas";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
+import fs from "fs";
+import path from "path";
+import os from "os";
+
+// Get ffmpeg path as string
+const ffmpegPath = ffmpegStatic as unknown as string;
+
+const execFileAsync = promisify(execFile);
 
 const db = createDb(config.DATABASE_URL);
 
@@ -37,9 +50,17 @@ const SUPPORTED_VIDEO_TYPES = [
   "video/x-matroska",
 ];
 
+const SUPPORTED_PDF_TYPES = [
+  "application/pdf",
+];
+
 // Check if a MIME type supports thumbnail generation
 export function canGenerateThumbnail(mimeType: string): boolean {
-  return SUPPORTED_IMAGE_TYPES.includes(mimeType) || SUPPORTED_VIDEO_TYPES.includes(mimeType);
+  return (
+    SUPPORTED_IMAGE_TYPES.includes(mimeType) ||
+    SUPPORTED_VIDEO_TYPES.includes(mimeType) ||
+    SUPPORTED_PDF_TYPES.includes(mimeType)
+  );
 }
 
 // Check if it's an image type
@@ -50,6 +71,11 @@ export function isImageType(mimeType: string): boolean {
 // Check if it's a video type
 export function isVideoType(mimeType: string): boolean {
   return SUPPORTED_VIDEO_TYPES.includes(mimeType);
+}
+
+// Check if it's a PDF type
+export function isPdfType(mimeType: string): boolean {
+  return SUPPORTED_PDF_TYPES.includes(mimeType);
 }
 
 // Convert a readable stream to a buffer
@@ -72,18 +98,123 @@ async function generateImageThumbnail(imageBuffer: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
-// Generate thumbnail for a video (extract first frame)
-// Note: This requires ffmpeg to be installed on the system
-async function generateVideoThumbnail(videoBuffer: Buffer): Promise<Buffer | null> {
+// Generate thumbnail for a PDF (render first page)
+async function generatePdfThumbnail(pdfBuffer: Buffer): Promise<Buffer | null> {
   try {
-    // For video thumbnails, we need ffmpeg
-    // This is a placeholder - in production, you'd use fluent-ffmpeg or similar
-    // For now, we'll skip video thumbnails and return null
-    console.log("Video thumbnail generation requires ffmpeg - skipping");
+    // Load PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(pdfBuffer),
+      useSystemFonts: true,
+    });
+    const pdfDocument = await loadingTask.promise;
+
+    // Get first page
+    const page = await pdfDocument.getPage(1);
+
+    // Set scale for thumbnail (aim for ~600px width for better quality before resize)
+    const viewport = page.getViewport({ scale: 1 });
+    const scale = 600 / viewport.width;
+    const scaledViewport = page.getViewport({ scale });
+
+    // Create canvas
+    const canvas = createCanvas(scaledViewport.width, scaledViewport.height);
+    const context = canvas.getContext("2d");
+
+    // Render page to canvas
+    const renderContext = {
+      canvasContext: context,
+      viewport: scaledViewport,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
+    await page.render(renderContext).promise;
+
+    // Convert canvas to PNG buffer
+    const pngBuffer = await canvas.encode("png");
+
+    // Resize with sharp to final thumbnail size
+    const thumbnailBuffer = await sharp(pngBuffer)
+      .resize(THUMBNAIL_CONFIG.width, THUMBNAIL_CONFIG.height, {
+        fit: "cover",
+        position: "top",
+      })
+      .webp({ quality: THUMBNAIL_CONFIG.quality })
+      .toBuffer();
+
+    return thumbnailBuffer;
+  } catch (error) {
+    console.error("Error generating PDF thumbnail:", error);
     return null;
+  }
+}
+
+// Generate thumbnail for a video (extract frame at 1 second)
+async function generateVideoThumbnail(videoBuffer: Buffer): Promise<Buffer | null> {
+  if (!ffmpegPath) {
+    console.error("ffmpeg-static path not available");
+    return null;
+  }
+
+  // Create temp files for video input and image output
+  const tempDir = os.tmpdir();
+  const timestamp = Date.now();
+  const tempVideoPath = path.join(tempDir, `video-${timestamp}.mp4`);
+  const tempImagePath = path.join(tempDir, `thumbnail-${timestamp}.png`);
+
+  try {
+    // Write video buffer to temp file
+    fs.writeFileSync(tempVideoPath, videoBuffer);
+
+    // Try to extract frame at 1 second first
+    try {
+      await execFileAsync(ffmpegPath, [
+        "-y",
+        "-ss", "1",
+        "-i", tempVideoPath,
+        "-vframes", "1",
+        "-vf", "scale=600:-1",
+        tempImagePath,
+      ]);
+    } catch {
+      // If 1 second fails, try at 0.1 seconds (for short videos)
+      await execFileAsync(ffmpegPath, [
+        "-y",
+        "-ss", "0.1",
+        "-i", tempVideoPath,
+        "-vframes", "1",
+        "-vf", "scale=600:-1",
+        tempImagePath,
+      ]);
+    }
+
+    if (!fs.existsSync(tempImagePath)) {
+      console.error("Failed to extract video frame");
+      return null;
+    }
+
+    // Read the extracted frame
+    const frameBuffer = fs.readFileSync(tempImagePath);
+
+    // Resize with sharp to final thumbnail size
+    const thumbnailBuffer = await sharp(frameBuffer)
+      .resize(THUMBNAIL_CONFIG.width, THUMBNAIL_CONFIG.height, {
+        fit: "cover",
+        position: "center",
+      })
+      .webp({ quality: THUMBNAIL_CONFIG.quality })
+      .toBuffer();
+
+    return thumbnailBuffer;
   } catch (error) {
     console.error("Error generating video thumbnail:", error);
     return null;
+  } finally {
+    // Cleanup temp files
+    try {
+      if (fs.existsSync(tempVideoPath)) fs.unlinkSync(tempVideoPath);
+      if (fs.existsSync(tempImagePath)) fs.unlinkSync(tempImagePath);
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 }
 
@@ -141,6 +272,8 @@ export async function generateThumbnail(assetId: string): Promise<ThumbnailResul
       thumbnailBuffer = await generateImageThumbnail(fileBuffer);
     } else if (isVideoType(asset.mimeType)) {
       thumbnailBuffer = await generateVideoThumbnail(fileBuffer);
+    } else if (isPdfType(asset.mimeType)) {
+      thumbnailBuffer = await generatePdfThumbnail(fileBuffer);
     }
 
     if (!thumbnailBuffer) {

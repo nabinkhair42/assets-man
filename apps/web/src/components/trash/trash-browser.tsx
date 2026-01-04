@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback } from "react";
-import { Trash2, RotateCcw, X } from "lucide-react";
+import { Trash2, RotateCcw, X, RefreshCw } from "lucide-react";
 import { TrashSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SearchCommand } from "@/components/dialog/search-command";
 import { Button } from "@/components/ui/button";
 import { EmptyTrashDialog, EmptyTrashTrigger, PermanentDeleteDialog } from "@/components/dialog";
 import { EmptyState, ListHeader, InfiniteScrollTrigger, TRASH_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
@@ -236,27 +237,55 @@ export function TrashBrowser() {
 
   useKeyboardShortcuts({ shortcuts, enabled: true });
 
+  const handleRefresh = useCallback(() => {
+    // Trigger a refetch by invalidating the query
+    window.location.reload();
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border/50 bg-background/95 backdrop-blur-sm px-4 py-3">
-        <div className="flex items-center gap-3">
-          <SidebarTrigger />
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-medium">Trash</h1>
+      {/* Header - Consistent with AppHeader styling */}
+      <header className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+        <div className="flex items-center h-14 px-4">
+          {/* Left section - Sidebar trigger and title */}
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
+            <SidebarTrigger className="h-8 w-8" />
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-semibold">Trash</h1>
+              {items.length > 0 && (
+                <span className="text-sm text-muted-foreground">({items.length})</span>
+              )}
+            </div>
+          </div>
+
+          {/* Center section - Search */}
+          <div className="flex-1 flex justify-center px-4">
+            <SearchCommand />
+          </div>
+
+          {/* Right section - Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Refresh button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={handleRefresh}
+              tooltipContent="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+
+            {/* Theme toggle */}
+            <ThemeToggle />
+
+            {/* Empty Trash button */}
             {items.length > 0 && (
-              <span className="text-sm text-muted-foreground">({items.length} items)</span>
+              <div className="ml-1">
+                <EmptyTrashTrigger onClick={() => setEmptyDialogOpen(true)} />
+              </div>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          {items.length > 0 && (
-            <>
-              <div className="w-px h-5 bg-border/60" />
-              <EmptyTrashTrigger onClick={() => setEmptyDialogOpen(true)} />
-            </>
-          )}
         </div>
       </header>
 

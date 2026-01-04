@@ -47,7 +47,7 @@ interface SharedItem {
 
 export default function SharedWithMePage() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
   const lastSelectedIndex = useRef<number | null>(null);

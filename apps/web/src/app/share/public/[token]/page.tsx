@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   Download,
   Folder,
@@ -31,12 +32,20 @@ import {
   ImagePreview,
   VideoPreview,
   AudioPreview,
-  PdfPreview,
   TextPreview,
   UnsupportedPreview,
   LoadingPreview,
 } from "@/components/preview";
 import { ReadOnlyFileItem, ReadOnlyFolderItem } from "@/components/files";
+
+// Dynamic import for PDF preview to avoid SSR issues with react-pdf
+const PdfPreview = dynamic(
+  () => import("@/components/preview/pdf-preview").then((m) => m.PdfPreview),
+  {
+    ssr: false,
+    loading: () => <LoadingPreview />,
+  }
+);
 
 export default function PublicSharePage() {
   const params = useParams();

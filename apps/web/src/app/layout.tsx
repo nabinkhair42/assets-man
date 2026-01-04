@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider, AuthProvider, ThemeProvider } from "@/providers";
 import "./globals.css";
 
@@ -31,7 +31,7 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {children}
-              <Toaster richColors position="bottom-right" />
+              <Toaster richColors/>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

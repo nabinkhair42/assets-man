@@ -92,6 +92,9 @@ assetRouter.post("/bulk-download", wrap(assetController.bulkDownload));
 // Bulk download shared assets as ZIP
 assetRouter.post("/shared-bulk-download", wrap(assetController.sharedBulkDownload));
 
+// Batch regenerate thumbnails for all user's assets without thumbnails
+assetRouter.post("/thumbnails/regenerate", wrap(assetController.batchRegenerateThumbnails));
+
 // Generate thumbnail for an asset
 assetRouter.post(
   "/:id/thumbnail",

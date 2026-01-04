@@ -30,7 +30,9 @@
       "Bash(pnpm db:enable-trgm:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(pnpm remove:*)"
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm type-check:*)",
+      "Bash(curl:*)"
     ]
   }
 }

@@ -169,4 +169,11 @@ export const assetService = {
     );
     return response.data.data;
   },
+
+  async regenerateAllThumbnails(): Promise<{ processed: number; succeeded: number; failed: number }> {
+    const response = await apiClient.post<ApiResponse<{ processed: number; succeeded: number; failed: number }>>(
+      API_ENDPOINTS.ASSETS.REGENERATE_THUMBNAILS
+    );
+    return response.data.data;
+  },
 };

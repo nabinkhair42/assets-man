@@ -60,6 +60,14 @@ export function useRequestUpload() {
   });
 }
 
+// File types that support thumbnail generation
+const THUMBNAIL_SUPPORTED_TYPES = [
+  "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+  "image/bmp", "image/tiff", "image/avif", "image/heic", "image/heif",
+  "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska",
+  "application/pdf",
+];
+
 export function useUploadFile() {
   const queryClient = useQueryClient();
 
@@ -83,6 +91,14 @@ export function useUploadFile() {
 
       // Upload file to storage with progress tracking
       await assetService.uploadFile(uploadUrl, file, onProgress);
+
+      // Generate thumbnail in the background for supported file types
+      if (THUMBNAIL_SUPPORTED_TYPES.includes(file.type)) {
+        assetService.generateThumbnail(asset.id).catch(() => {
+          // Silently fail - thumbnail generation is not critical
+          console.log("Thumbnail generation failed for asset:", asset.id);
+        });
+      }
 
       return asset;
     },
@@ -162,6 +178,17 @@ export function useCopyAsset() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: CopyAssetInput }) =>
       assetService.copy(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+    },
+  });
+}
+
+export function useRegenerateAllThumbnails() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => assetService.regenerateAllThumbnails(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
     },

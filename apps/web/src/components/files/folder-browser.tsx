@@ -63,7 +63,7 @@ interface FolderBrowserProps {
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);

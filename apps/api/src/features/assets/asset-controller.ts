@@ -455,6 +455,45 @@ export async function generateThumbnail(
   }
 }
 
+// Batch regenerate thumbnails for all user's assets
+export async function batchRegenerateThumbnails(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    // Get all user's assets that can have thumbnails generated
+    const result = await assetService.listAssets(req.userId, {
+      limit: 1000,
+      page: 1,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+    const assets = result.assets.filter(
+      (asset) => !asset.thumbnailKey && thumbnailService.canGenerateThumbnail(asset.mimeType)
+    );
+
+    if (assets.length === 0) {
+      sendSuccess(res, { processed: 0, succeeded: 0, failed: 0 }, "No assets need thumbnail generation");
+      return;
+    }
+
+    // Generate thumbnails (in batches to avoid overwhelming the server)
+    const results = await thumbnailService.generateThumbnailsBatch(assets.map((a) => a.id));
+
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    sendSuccess(
+      res,
+      { processed: assets.length, succeeded, failed },
+      `Thumbnails generated: ${succeeded} succeeded, ${failed} failed`
+    );
+  } catch (error) {
+    console.error("Batch regenerate thumbnails error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to regenerate thumbnails", 500);
+  }
+}
+
 // Get thumbnail URL for an asset
 export async function getThumbnailUrl(
   req: AuthRequest,

@@ -5,6 +5,7 @@ import { assetService } from "@/services";
 
 // MIME types that support thumbnails
 const THUMBNAIL_SUPPORTED_TYPES = [
+  // Images
   "image/jpeg",
   "image/jpg",
   "image/png",
@@ -15,6 +16,14 @@ const THUMBNAIL_SUPPORTED_TYPES = [
   "image/avif",
   "image/heic",
   "image/heif",
+  // Videos
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+  "video/x-matroska",
+  // PDFs
+  "application/pdf",
 ];
 
 export function canHaveThumbnail(mimeType: string): boolean {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 import { Download, X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,11 +15,19 @@ import {
   ImagePreview,
   VideoPreview,
   AudioPreview,
-  PdfPreview,
   TextPreview,
   UnsupportedPreview,
   LoadingPreview,
 } from "@/components/preview";
+
+// Dynamic import for PDF preview to avoid SSR issues with react-pdf
+const PdfPreview = dynamic(
+  () => import("@/components/preview/pdf-preview").then((m) => m.PdfPreview),
+  {
+    ssr: false,
+    loading: () => <LoadingPreview />,
+  }
+);
 
 interface FilePreviewDialogProps {
   open: boolean;
@@ -183,16 +192,8 @@ export function FilePreviewDialog({
         <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none dark">
           {/* Header - Floating style */}
           <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent">
-            <div className="flex items-center gap-4 min-w-0">
-              <DialogPrimitive.Close asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </DialogPrimitive.Close>
+            {/* Left side - File info */}
+            <div className="flex items-center gap-3 min-w-0">
               <div className="min-w-0">
                 <DialogPrimitive.Title className="text-foreground font-medium truncate max-w-md">
                   {asset.name}
@@ -204,6 +205,7 @@ export function FilePreviewDialog({
               </div>
             </div>
 
+            {/* Right side - Download and Close buttons */}
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -213,6 +215,15 @@ export function FilePreviewDialog({
               >
                 <Download className="h-5 w-5" />
               </Button>
+              <DialogPrimitive.Close asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </DialogPrimitive.Close>
             </div>
           </div>
 
