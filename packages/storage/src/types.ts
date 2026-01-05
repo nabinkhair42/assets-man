@@ -9,6 +9,9 @@ export interface StorageConfig {
   // S3 credentials
   accessKeyId?: string;
   secretAccessKey?: string;
+  // S3-compatible endpoint (for MinIO, R2, etc.)
+  endpoint?: string;
+  forcePathStyle?: boolean;
   // GCS credentials
   projectId?: string;
   keyFilePath?: string;

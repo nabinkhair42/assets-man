@@ -31,6 +31,9 @@ export function createS3Client(config: StorageConfig): StorageClient {
             secretAccessKey: config.secretAccessKey,
           }
         : undefined,
+    // Support for S3-compatible services (MinIO, R2, etc.)
+    ...(config.endpoint && { endpoint: config.endpoint }),
+    ...(config.forcePathStyle && { forcePathStyle: config.forcePathStyle }),
   });
 
   const bucket = config.bucket;

@@ -19,6 +19,9 @@ const envSchema = z.object({
   // S3 credentials
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  // S3-compatible endpoint (for MinIO, R2, etc.)
+  S3_ENDPOINT: z.string().optional(),
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().optional(),
   // GCS credentials
   GCS_PROJECT_ID: z.string().optional(),
   GCS_KEY_FILE_PATH: z.string().optional(),
@@ -35,6 +38,8 @@ export function getStorageConfig(): StorageConfig {
     region: config.STORAGE_REGION,
     accessKeyId: config.AWS_ACCESS_KEY_ID,
     secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    endpoint: config.S3_ENDPOINT,
+    forcePathStyle: config.S3_FORCE_PATH_STYLE,
     projectId: config.GCS_PROJECT_ID,
     keyFilePath: config.GCS_KEY_FILE_PATH,
   };
