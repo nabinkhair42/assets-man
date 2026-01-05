@@ -38,7 +38,7 @@ export function BulkDeleteDialog({ open, onOpenChange, items, onSuccess }: BulkD
     let successCount = 0;
     let failCount = 0;
 
-    const toastId = toast.loading(`Deleting ${items.length} items...`);
+    const toastId = toast.loading(`Deleting ${items.length} items`);
 
     for (const item of items) {
       try {

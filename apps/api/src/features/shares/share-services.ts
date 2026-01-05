@@ -511,6 +511,7 @@ export async function getSharedFolderContents(
       mimeType: true,
       size: true,
       storageKey: true,
+      thumbnailKey: true,
       createdAt: true,
       updatedAt: true,
     },

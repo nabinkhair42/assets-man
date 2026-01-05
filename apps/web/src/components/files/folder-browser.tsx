@@ -387,7 +387,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       return;
     }
 
-    const toastId = toast.loading("Preparing download...");
+    const toastId = toast.loading("Preparing download");
     try {
       const blob = await assetService.bulkDownload({ assetIds, folderIds });
 
@@ -477,12 +477,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
       // Process files concurrently with individual toast tracking
       const uploadPromises = files.map(async (file) => {
-        const toastId = toast.loading(`Uploading ${file.name}... 0%`);
+        const toastId = toast.loading(`Uploading ${file.name} 0%`);
         try {
           await uploadFile.mutateAsync({
             file,
             folderId: currentFolderId ?? undefined,
-            onProgress: (progress) => toast.loading(`Uploading ${file.name}... ${progress}%`, { id: toastId }),
+            onProgress: (progress) => toast.loading(`Uploading ${file.name} ${progress}%`, { id: toastId }),
           });
           successCount++;
           setUploadingCount((prev) => prev - 1);
@@ -529,7 +529,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   // Process a dropped folder: create folder structure, then upload files
   const processFolderUpload = useCallback(
     async (entry: FileSystemDirectoryEntry) => {
-      const toastId = toast.loading(`Reading folder "${entry.name}"...`);
+      const toastId = toast.loading(`Reading folder "${entry.name}"`);
 
       try {
         // Read all files and folder structure
@@ -540,12 +540,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           return;
         }
 
-        toast.loading(`Creating ${folders.children.length + 1} folder(s)...`, { id: toastId });
+        toast.loading(`Creating ${folders.children.length + 1} folder(s)`, { id: toastId });
 
         // Create folder structure and get path -> folderId mapping
         const folderMap = await createFolderStructure(folders, currentFolderId);
 
-        toast.loading(`Uploading ${files.length} file(s)...`, { id: toastId });
+        toast.loading(`Uploading ${files.length} file(s)`, { id: toastId });
 
         // Upload files to their respective folders concurrently
         let successCount = 0;

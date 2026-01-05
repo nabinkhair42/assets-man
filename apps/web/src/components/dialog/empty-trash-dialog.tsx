@@ -23,7 +23,7 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
   const emptyTrash = useEmptyTrash();
 
   const handleEmptyTrash = () => {
-    const toastId = toast.loading("Emptying trash...");
+    const toastId = toast.loading("Emptying trash");
     emptyTrash.mutate(undefined, {
       onSuccess: (result) => {
         toast.success(`Deleted ${result.total} items permanently`, { id: toastId });

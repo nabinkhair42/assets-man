@@ -60,7 +60,7 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
     let successCount = 0;
     let failCount = 0;
 
-    const toastId = toast.loading(`Moving ${items.length} items...`);
+    const toastId = toast.loading(`Moving ${items.length} items`);
 
     for (const item of items) {
       try {

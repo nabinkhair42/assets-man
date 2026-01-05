@@ -95,6 +95,7 @@ export interface SharedFolderContents {
     mimeType: string;
     size: number;
     storageKey: string;
+    thumbnailKey?: string | null;
     createdAt: string;
     updatedAt: string;
   }[];

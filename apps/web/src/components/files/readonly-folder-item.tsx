@@ -1,8 +1,14 @@
 "use client";
 
 import { Folder as FolderIcon, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatRelativeTime } from "@/lib/formatters";
+import { FileIcon } from "@/components/shared";
+import {
+  DataListRow,
+  DataListCell,
+  DataGridFolderCard,
+  SelectionCheckmark,
+} from "@/components/ui/data-list";
+import { formatRelativeTime, truncateFileName } from "@/lib/formatters";
 
 export interface ReadOnlyFolder {
   id: string;
@@ -15,73 +21,95 @@ interface ReadOnlyFolderItemProps {
   folder: ReadOnlyFolder;
   onOpen: (folderId: string) => void;
   viewMode?: "grid" | "list";
+  isSelected?: boolean;
+  isPendingSelection?: boolean;
+  onSelect?: (folder: ReadOnlyFolder, selected: boolean, shiftKey?: boolean) => void;
+  selectionMode?: boolean;
 }
 
 export function ReadOnlyFolderItem({
   folder,
   onOpen,
   viewMode = "grid",
+  isSelected = false,
+  isPendingSelection = false,
+  onSelect,
+  selectionMode = false,
 }: ReadOnlyFolderItemProps) {
   const isListView = viewMode === "list";
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onSelect) {
+      e.stopPropagation();
+      onSelect(folder, !isSelected, e.shiftKey);
+    }
+  };
+
+  const handleDoubleClick = () => {
     onOpen(folder.id);
   };
 
-  // List view layout
+  // List view layout - matches DraggableFolderItem
   if (isListView) {
     return (
-      <div
+      <DataListRow
         onClick={handleClick}
-        className={cn(
-          "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
-          "hover:bg-accent/50 rounded-lg"
-        )}
+        onDoubleClick={handleDoubleClick}
+        selected={isSelected}
+        pending={isPendingSelection}
+        data-item-id={`folder-${folder.id}`}
       >
-        <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-          <FolderIcon className="h-5 w-5 text-blue-500" />
-        </div>
-        <div className="flex-1 min-w-0" title={folder.name}>
-          <p className="truncate font-medium text-sm text-foreground">
+        <FileIcon isFolder size="sm" />
+        <DataListCell primary title={folder.name}>
+          {/* Mobile: Show truncated name */}
+          <p className="sm:hidden font-medium text-sm text-foreground">
+            {truncateFileName(folder.name, 28, true)}
+          </p>
+          {/* Desktop: Show full name with CSS truncation */}
+          <p className="hidden sm:block truncate font-medium text-sm text-foreground">
             {folder.name}
           </p>
-        </div>
-        <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">—</div>
+        </DataListCell>
+        <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+          —
+        </DataListCell>
         {folder.updatedAt && (
-          <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
+          <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
             {formatRelativeTime(new Date(folder.updatedAt))}
-          </div>
+          </DataListCell>
         )}
-        <div className="w-8 flex justify-end">
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </div>
+        <DataListCell width="w-8" align="right">
+          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </DataListCell>
+      </DataListRow>
     );
   }
 
-  // Grid view layout - Compact horizontal card (Google Drive style)
+  // Grid view layout - Compact horizontal card (Google Drive style) - matches DraggableFolderItem
   return (
-    <div
+    <DataGridFolderCard
       onClick={handleClick}
-      className={cn(
-        "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
-        "hover:border-border hover:bg-accent/30"
-      )}
+      onDoubleClick={handleDoubleClick}
+      selected={isSelected}
+      pending={isPendingSelection}
+      data-item-id={`folder-${folder.id}`}
     >
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Folder icon */}
-        <div className="h-9 w-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-          <FolderIcon className="h-5 w-5 text-blue-500" />
-        </div>
+        <FolderIcon className="h-5 w-5 text-muted-foreground shrink-0" />
 
         {/* Name */}
         <span className="flex-1 truncate text-sm font-medium" title={folder.name}>
           {folder.name}
         </span>
 
-        {/* Arrow indicator on hover */}
-        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        {/* Selection checkmark or arrow indicator on hover */}
+        {isSelected ? (
+          <SelectionCheckmark />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+        )}
       </div>
-    </div>
+    </DataGridFolderCard>
   );
 }

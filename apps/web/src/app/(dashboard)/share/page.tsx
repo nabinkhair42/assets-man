@@ -231,7 +231,7 @@ export default function SharedWithMePage() {
       return;
     }
 
-    const toastId = toast.loading("Preparing download...");
+    const toastId = toast.loading("Preparing download");
     try {
       const blob = await assetService.sharedBulkDownload(assetIds);
 

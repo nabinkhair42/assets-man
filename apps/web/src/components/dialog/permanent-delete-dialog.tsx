@@ -30,7 +30,7 @@ export function PermanentDeleteDialog({
   const handleDelete = () => {
     if (!item) return;
 
-    const toastId = toast.loading(`Deleting ${item.name} permanently...`);
+    const toastId = toast.loading(`Deleting ${item.name} permanently`);
     permanentlyDelete.mutate(
       { id: item.id, type: item.itemType },
       {

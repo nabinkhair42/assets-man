@@ -306,7 +306,7 @@ export default function RecentPage() {
       return;
     }
 
-    const toastId = toast.loading("Preparing download...");
+    const toastId = toast.loading("Preparing download");
     try {
       const blob = await assetService.bulkDownload({ assetIds, folderIds });
 

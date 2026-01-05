@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -20,7 +20,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileIcon as CustomFileIcon, ShareInfoPopover, ListHeader, PUBLIC_SHARE_LIST_COLUMNS } from "@/components/shared";
+import { FileIcon as CustomFileIcon, ShareInfoPopover, FILE_LIST_COLUMNS, SelectionToolbar, type SelectedItem } from "@/components/shared";
+import {
+  DataGrid,
+  DataGridSection,
+  DataGridFolderContainer,
+  DataGridFileContainer,
+  DataList,
+  DataListHeader,
+  DataListEmpty,
+} from "@/components/ui/data-list";
 import { shareService } from "@/services";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
@@ -36,7 +45,7 @@ import {
   UnsupportedPreview,
   LoadingPreview,
 } from "@/components/preview";
-import { ReadOnlyFileItem, ReadOnlyFolderItem } from "@/components/files";
+import { ReadOnlyFileItem, ReadOnlyFolderItem, type ReadOnlyAsset, type ReadOnlyFolder } from "@/components/files";
 
 // Dynamic import for PDF preview to avoid SSR issues with react-pdf
 const PdfPreview = dynamic(
@@ -67,6 +76,12 @@ export default function PublicSharePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [downloadingAssetId, setDownloadingAssetId] = useState<string | null>(null);
   const [downloadingFolder, setDownloadingFolder] = useState(false);
+
+  // Selection state
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const lastSelectedIndex = useRef<number | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+  const selectionMode = selectedItems.size > 0;
 
   // File preview state for folder assets
   const [previewingAsset, setPreviewingAsset] = useState<{
@@ -293,6 +308,159 @@ export default function PublicSharePage() {
       setDownloadingFolder(false);
     }
   };
+
+  // Combined list of all items for selection operations
+  const allItems = useMemo(() => {
+    if (!folderContents) return [];
+    const items: Array<{ id: string; type: "folder" | "asset"; name: string }> = [];
+    folderContents.folders.forEach((folder) => items.push({ id: folder.id, type: "folder", name: folder.name }));
+    folderContents.assets.forEach((asset) => items.push({ id: asset.id, type: "asset", name: asset.name }));
+    return items;
+  }, [folderContents]);
+
+  // Selection handlers
+  const handleItemSelect = useCallback((
+    index: number,
+    id: string,
+    type: "folder" | "asset",
+    name: string,
+    selected: boolean,
+    shiftKey: boolean
+  ) => {
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+      const key = `${type}-${id}`;
+
+      if (shiftKey && lastSelectedIndex.current !== null && selected) {
+        // Range selection with shift+click
+        const start = Math.min(lastSelectedIndex.current, index);
+        const end = Math.max(lastSelectedIndex.current, index);
+
+        for (let i = start; i <= end; i++) {
+          const item = allItems[i];
+          if (item) {
+            next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+          }
+        }
+      } else {
+        // Single item selection
+        if (selected) {
+          next.set(key, { id, type, name });
+        } else {
+          next.delete(key);
+        }
+      }
+
+      // Update last selected index
+      if (selected) {
+        lastSelectedIndex.current = index;
+      }
+
+      return next;
+    });
+  }, [allItems]);
+
+  const handleSelectFolder = useCallback((folder: ReadOnlyFolder, selected: boolean, shiftKey = false) => {
+    const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
+    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
+  }, [allItems, handleItemSelect]);
+
+  const handleSelectAsset = useCallback((asset: ReadOnlyAsset, selected: boolean, shiftKey = false) => {
+    const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
+    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
+  }, [allItems, handleItemSelect]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedItems(new Map());
+    lastSelectedIndex.current = null;
+  }, []);
+
+  // Clear selection when navigating folders
+  useEffect(() => {
+    handleClearSelection();
+  }, [currentFolderId, handleClearSelection]);
+
+  // Pending selection for visual feedback (not using marquee in public share)
+  const pendingSelection = new Set<string>();
+
+  // Bulk download selected items
+  const handleBulkDownload = useCallback(async () => {
+    const items = Array.from(selectedItems.values());
+    const assets = items.filter((item) => item.type === "asset");
+
+    if (assets.length === 0) {
+      toast.info("Please select files to download");
+      return;
+    }
+
+    // Download assets one by one
+    const toastId = toast.loading(`Downloading ${assets.length} file(s)`);
+    let successCount = 0;
+
+    for (const item of assets) {
+      try {
+        const result = await shareService.downloadSharedFolderAsset(
+          token,
+          item.id,
+          shareDetails?.share.requiresPassword ? password : undefined
+        );
+
+        const link = document.createElement("a");
+        link.href = result.url;
+        link.download = result.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        successCount++;
+      } catch {
+        // Continue with next file
+      }
+    }
+
+    if (successCount === assets.length) {
+      toast.success(`Downloaded ${successCount} file(s)`, { id: toastId });
+    } else if (successCount > 0) {
+      toast.warning(`Downloaded ${successCount} of ${assets.length} file(s)`, { id: toastId });
+    } else {
+      toast.error("Failed to download files", { id: toastId });
+    }
+    handleClearSelection();
+  }, [selectedItems, token, shareDetails, password, handleClearSelection]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts when folder contents are shown
+      if (!folderContents) return;
+
+      // Escape to clear selection
+      if (e.key === "Escape") {
+        handleClearSelection();
+        return;
+      }
+
+      // Ctrl+A to select all
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        const newSelection = new Map<string, SelectedItem>();
+        for (const item of allItems) {
+          newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+        }
+        setSelectedItems(newSelection);
+        return;
+      }
+
+      // Ctrl+D to download selected
+      if ((e.ctrlKey || e.metaKey) && e.key === "d" && selectedItems.size > 0) {
+        e.preventDefault();
+        handleBulkDownload();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [folderContents, allItems, selectedItems, handleClearSelection, handleBulkDownload]);
 
   if (loading) {
     return (
@@ -579,29 +747,35 @@ export default function PublicSharePage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 shrink-0 gap-2"
+                  className={cn(
+                    "h-8 px-2 shrink-0 gap-2",
+                    !currentFolderId && "font-medium text-foreground"
+                  )}
                   onClick={() => loadFolderContents()}
                 >
                   <Folder className="h-4 w-4 text-blue-500" />
                   <span className="hidden sm:inline">{item.name}</span>
                 </Button>
-                {folderContents.breadcrumbs.length > 0 && folderContents.breadcrumbs.map((crumb, index) => (
-                  <div key={crumb.id} className="flex items-center shrink-0">
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-8 px-2",
-                        index === folderContents.breadcrumbs.length - 1 &&
-                          "font-medium text-foreground"
-                      )}
-                      onClick={() => handleBreadcrumbClick(crumb.id, index)}
-                    >
-                      {crumb.name}
-                    </Button>
-                  </div>
-                ))}
+                {/* Filter out the root shared folder from breadcrumbs since it's already shown above */}
+                {folderContents.breadcrumbs
+                  .filter((crumb) => crumb.id !== item.id)
+                  .map((crumb, index, filteredBreadcrumbs) => (
+                    <div key={crumb.id} className="flex items-center shrink-0">
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-8 px-2",
+                          index === filteredBreadcrumbs.length - 1 &&
+                            "font-medium text-foreground"
+                        )}
+                        onClick={() => handleBreadcrumbClick(crumb.id, index)}
+                      >
+                        {crumb.name}
+                      </Button>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -676,48 +850,46 @@ export default function PublicSharePage() {
 
         {/* Content */}
         <ScrollArea className="flex-1">
-          <div className="py-6 px-4 sm:px-6 max-w-7xl mx-auto">
+          <div
+            ref={contentContainerRef}
+            className="py-6 px-4 sm:px-6 max-w-7xl mx-auto relative"
+          >
             {folderLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : folderContents.folders.length === 0 &&
               folderContents.assets.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                  <Folder className="h-8 w-8 text-muted-foreground/50" />
-                </div>
-                <p className="text-muted-foreground font-medium">This folder is empty</p>
-                <p className="text-sm text-muted-foreground/70 mt-1">No files or folders to display</p>
-              </div>
+              <DataListEmpty
+                icon={Folder}
+                title="This folder is empty"
+                description="No files or folders to display"
+              />
             ) : viewMode === "grid" ? (
-              <div className="space-y-8">
-                {/* Folders */}
+              <DataGrid>
+                {/* Folders Section */}
                 {folderContents.folders.length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Folders
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                  <DataGridSection title="Folders">
+                    <DataGridFolderContainer>
                       {folderContents.folders.map((folder) => (
                         <ReadOnlyFolderItem
                           key={folder.id}
                           folder={folder}
                           onOpen={handleNavigateFolder}
                           viewMode="grid"
+                          isSelected={selectedItems.has(`folder-${folder.id}`)}
+                          isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
+                          onSelect={handleSelectFolder}
                         />
                       ))}
-                    </div>
-                  </div>
+                    </DataGridFolderContainer>
+                  </DataGridSection>
                 )}
 
-                {/* Files */}
+                {/* Files Section */}
                 {folderContents.assets.length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Files
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                  <DataGridSection title="Files">
+                    <DataGridFileContainer>
                       {folderContents.assets.map((asset) => (
                         <ReadOnlyFileItem
                           key={asset.id}
@@ -732,49 +904,67 @@ export default function PublicSharePage() {
                           }}
                           viewMode="grid"
                           isDownloading={downloadingAssetId === asset.id}
+                          isSelected={selectedItems.has(`asset-${asset.id}`)}
+                          isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
+                          onSelect={handleSelectAsset}
                         />
                       ))}
-                    </div>
-                  </div>
+                    </DataGridFileContainer>
+                  </DataGridSection>
                 )}
-              </div>
+              </DataGrid>
             ) : (
               /* List View */
-              <div className="flex flex-col">
-                <ListHeader columns={PUBLIC_SHARE_LIST_COLUMNS} />
-                <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden divide-y divide-border/30">
-                  {/* Folders */}
-                  {folderContents.folders.map((folder) => (
-                    <ReadOnlyFolderItem
-                      key={folder.id}
-                      folder={folder}
-                      onOpen={handleNavigateFolder}
-                      viewMode="list"
-                    />
-                  ))}
+              <DataList>
+                <DataListHeader columns={FILE_LIST_COLUMNS} />
+                {/* Folders */}
+                {folderContents.folders.map((folder) => (
+                  <ReadOnlyFolderItem
+                    key={folder.id}
+                    folder={folder}
+                    onOpen={handleNavigateFolder}
+                    viewMode="list"
+                    isSelected={selectedItems.has(`folder-${folder.id}`)}
+                    isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
+                    onSelect={handleSelectFolder}
+                  />
+                ))}
 
-                  {/* Files */}
-                  {folderContents.assets.map((asset) => (
-                    <ReadOnlyFileItem
-                      key={asset.id}
-                      asset={asset}
-                      onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
-                      onPreview={(a) => {
-                        if (isPreviewable(a.mimeType)) {
-                          loadFolderAssetPreview(a);
-                        } else {
-                          handleFolderAssetDownload(a.id, a.name);
-                        }
-                      }}
-                      viewMode="list"
-                      isDownloading={downloadingAssetId === asset.id}
-                    />
-                  ))}
-                </div>
-              </div>
+                {/* Files */}
+                {folderContents.assets.map((asset) => (
+                  <ReadOnlyFileItem
+                    key={asset.id}
+                    asset={asset}
+                    onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
+                    onPreview={(a) => {
+                      if (isPreviewable(a.mimeType)) {
+                        loadFolderAssetPreview(a);
+                      } else {
+                        handleFolderAssetDownload(a.id, a.name);
+                      }
+                    }}
+                    viewMode="list"
+                    isDownloading={downloadingAssetId === asset.id}
+                    isSelected={selectedItems.has(`asset-${asset.id}`)}
+                    isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
+                    onSelect={handleSelectAsset}
+                  />
+                ))}
+              </DataList>
             )}
+
           </div>
         </ScrollArea>
+
+        {/* Selection Toolbar */}
+        {selectionMode && (
+          <SelectionToolbar
+            selectedItems={selectedItems}
+            onClearSelection={handleClearSelection}
+            onBulkDownload={handleBulkDownload}
+            variant="readonly"
+          />
+        )}
       </div>
     );
   }

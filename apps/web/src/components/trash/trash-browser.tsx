@@ -50,7 +50,7 @@ export function TrashBrowser() {
   }, [items]);
 
   const handleRestore = (item: TrashedItem) => {
-    const toastId = toast.loading(`Restoring ${item.name}...`);
+    const toastId = toast.loading(`Restoring ${item.name}`);
     restoreItem.mutate(
       { id: item.id, type: item.itemType },
       {
@@ -145,7 +145,7 @@ export function TrashBrowser() {
     const selectedList = Array.from(selectedItems.values());
     if (selectedList.length === 0) return;
 
-    const toastId = toast.loading(`Restoring ${selectedList.length} items...`);
+    const toastId = toast.loading(`Restoring ${selectedList.length} items`);
     let successCount = 0;
     let failCount = 0;
 
@@ -170,7 +170,7 @@ export function TrashBrowser() {
     const selectedList = Array.from(selectedItems.values());
     if (selectedList.length === 0) return;
 
-    const toastId = toast.loading(`Deleting ${selectedList.length} items permanently...`);
+    const toastId = toast.loading(`Deleting ${selectedList.length} items permanently`);
     let successCount = 0;
     let failCount = 0;
 
