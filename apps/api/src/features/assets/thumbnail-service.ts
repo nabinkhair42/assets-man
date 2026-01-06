@@ -261,6 +261,12 @@ export async function generateThumbnail(assetId: string): Promise<ThumbnailResul
   }
 
   try {
+    // Check if the file exists in storage before attempting to download
+    const fileExists = await storage.exists(asset.storageKey);
+    if (!fileExists) {
+      return { success: false, error: "Source file not found in storage" };
+    }
+
     // Download the original file
     const stream = await storage.getObjectStream(asset.storageKey);
     const fileBuffer = await streamToBuffer(stream);

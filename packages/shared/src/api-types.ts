@@ -54,6 +54,9 @@ export const ERROR_CODES = {
   FORBIDDEN: "FORBIDDEN",
   CONFLICT: "CONFLICT",
 
+  // Storage errors
+  QUOTA_EXCEEDED: "QUOTA_EXCEEDED",
+
   // Server errors
   INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;

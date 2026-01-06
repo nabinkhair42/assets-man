@@ -40,6 +40,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutDialog } from "@/components/dialog/logout-dialog";
 import { KeyboardShortcutsDialog } from "@/components/dialog/keyboard-shortcuts-dialog";
+import { StorageIndicator } from "@/components/layouts/storage-indicator";
 import { useFileActions } from "@/contexts";
 
 const navItems = [
@@ -130,6 +131,7 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
+          <StorageIndicator />
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

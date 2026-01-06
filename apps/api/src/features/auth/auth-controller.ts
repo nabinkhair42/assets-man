@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { sendSuccess, sendError } from "@/utils/response-utils.js";
 import * as authService from "./auth-services.js";
+import { getStorageStats } from "@/features/storage/storage-services.js";
 import type { RegisterInput, LoginInput } from "@/schema/auth-schema.js";
 import { AUTH_CONSTANTS } from "@repo/shared";
 
@@ -124,14 +125,18 @@ export async function me(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const user = await authService.getUserById(userId);
+    // Fetch user and storage stats in parallel
+    const [user, storageStats] = await Promise.all([
+      authService.getUserById(userId),
+      getStorageStats(userId).catch(() => null), // Don't fail if storage stats fail
+    ]);
 
     if (!user) {
       sendError(res, "USER_NOT_FOUND", "User not found", 404);
       return;
     }
 
-    sendSuccess(res, { user });
+    sendSuccess(res, { user, storageStats });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to get user", 500);
   }

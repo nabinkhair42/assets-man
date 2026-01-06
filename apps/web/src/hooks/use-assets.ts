@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { assetService } from "@/services/asset-service";
+import { storageKeys } from "./use-storage";
 import type {
   RequestUploadInput,
   UpdateAssetInput,
@@ -104,6 +105,7 @@ export function useUploadFile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: storageKeys.stats() });
     },
   });
 }
@@ -180,6 +182,7 @@ export function useCopyAsset() {
       assetService.copy(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: storageKeys.stats() });
     },
   });
 }

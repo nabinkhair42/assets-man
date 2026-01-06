@@ -8,6 +8,7 @@ import {
   listAssetsQuerySchema,
 } from "@/schema/asset-schema.js";
 import { authenticate, type AuthRequest } from "@/middleware/auth-middleware.js";
+import { checkStorageQuota } from "@/middleware/storage-quota-middleware.js";
 import type { Response, NextFunction } from "express";
 
 export const assetRouter: IRouter = Router();
@@ -33,6 +34,7 @@ assetRouter.get("/starred", wrap(assetController.listStarredAssets));
 assetRouter.post(
   "/upload",
   validateBody(requestUploadSchema),
+  checkStorageQuota as unknown as IRouter,
   wrap(assetController.requestUpload)
 );
 

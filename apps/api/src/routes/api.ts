@@ -6,6 +6,7 @@ import { assetRouter } from "@/features/assets/index.js";
 import { trashRouter } from "@/features/trash/index.js";
 import { recentRouter } from "@/features/recent/index.js";
 import { shareRouter } from "@/features/shares/index.js";
+import { storageRouter } from "@/features/storage/index.js";
 
 const apiRouter: IRouter = Router();
 
@@ -16,5 +17,6 @@ apiRouter.use("/assets", assetRouter);
 apiRouter.use("/trash", trashRouter);
 apiRouter.use("/recent", recentRouter);
 apiRouter.use("/shares", shareRouter);
+apiRouter.use("/storage", storageRouter);
 
 export { apiRouter, healthRouter };
