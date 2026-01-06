@@ -2,6 +2,7 @@ import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-q
 import { trashService } from "@/services/trash-service";
 import type { ListTrashParams } from "@/types";
 import { assetKeys } from "./use-assets";
+import { storageKeys } from "./use-storage";
 
 export const trashKeys = {
   all: ["trash"] as const,
@@ -55,6 +56,7 @@ export function usePermanentlyDelete() {
       trashService.permanentlyDelete(id, type),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: trashKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: storageKeys.stats() });
     },
   });
 }
@@ -66,6 +68,7 @@ export function useEmptyTrash() {
     mutationFn: () => trashService.emptyTrash(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: trashKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: storageKeys.stats() });
     },
   });
 }

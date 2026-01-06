@@ -5,3 +5,4 @@ export * from "./asset";
 export * from "./trash";
 export * from "./recent";
 export * from "./share";
+export * from "./storage";

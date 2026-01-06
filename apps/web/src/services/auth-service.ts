@@ -7,7 +7,13 @@ import type {
   LoginInput,
   AuthResponse,
   RefreshResponse,
+  StorageStats,
 } from "@/types";
+
+export interface MeResponse {
+  user: User;
+  storageStats: StorageStats | null;
+}
 
 export const authService = {
   async register(input: RegisterInput): Promise<AuthResponse> {
@@ -37,10 +43,10 @@ export const authService = {
     return response.data.data;
   },
 
-  async getMe(): Promise<User> {
-    const response = await apiClient.get<ApiResponse<{ user: User }>>(
+  async getMe(): Promise<MeResponse> {
+    const response = await apiClient.get<ApiResponse<MeResponse>>(
       API_ENDPOINTS.AUTH.ME
     );
-    return response.data.data.user;
+    return response.data.data;
   },
 };

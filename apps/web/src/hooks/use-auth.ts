@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth-service";
+import { storageKeys } from "./use-storage";
 import { useAuth } from "@/providers/auth-provider";
 import type { RegisterInput, LoginInput } from "@/types";
 
@@ -9,9 +10,18 @@ export const authKeys = {
 };
 
 export function useUser() {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: authKeys.me(),
-    queryFn: () => authService.getMe(),
+    queryFn: async () => {
+      const response = await authService.getMe();
+      // Cache storage stats from the response
+      if (response.storageStats) {
+        queryClient.setQueryData(storageKeys.stats(), response.storageStats);
+      }
+      return response.user;
+    },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

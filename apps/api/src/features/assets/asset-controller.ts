@@ -263,6 +263,11 @@ export async function copyAsset(
       return;
     }
 
+    if (message === "QUOTA_EXCEEDED") {
+      sendError(res, "QUOTA_EXCEEDED", "Insufficient storage quota to copy this file", 413);
+      return;
+    }
+
     sendError(res, "INTERNAL_ERROR", "Failed to copy asset", 500);
   }
 }

@@ -5,14 +5,23 @@ import { folders } from "./folders";
 import { assets } from "./assets";
 import { recentActivity } from "./recent-activity";
 import { shares } from "./shares";
+import { storageQuotas } from "./storage-quotas";
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   sessions: many(sessions),
   folders: many(folders),
   assets: many(assets),
   recentActivity: many(recentActivity),
   sharesCreated: many(shares, { relationName: "owner" }),
   sharesReceived: many(shares, { relationName: "sharedWith" }),
+  storageQuota: one(storageQuotas),
+}));
+
+export const storageQuotasRelations = relations(storageQuotas, ({ one }) => ({
+  user: one(users, {
+    fields: [storageQuotas.userId],
+    references: [users.id],
+  }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

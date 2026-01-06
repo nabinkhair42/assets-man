@@ -39,9 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Fetch user data
         const { authService } = await import("@/services/auth-service");
-        const userData = await authService.getMe();
-        setUser(userData);
-        queryClient.setQueryData(authKeys.me(), userData);
+        const { storageKeys } = await import("@/hooks/use-storage");
+        const response = await authService.getMe();
+        setUser(response.user);
+        queryClient.setQueryData(authKeys.me(), response.user);
+        // Cache storage stats from the response
+        if (response.storageStats) {
+          queryClient.setQueryData(storageKeys.stats(), response.storageStats);
+        }
       } catch {
         // Token is invalid, clear it
         localStorage.removeItem("accessToken");

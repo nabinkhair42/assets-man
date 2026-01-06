@@ -11,6 +11,11 @@ import type {
   UpdateAssetInput,
   ListAssetsQuery,
 } from "@/schema/asset-schema.js";
+import {
+  incrementUsedStorage,
+  decrementUsedStorage,
+  checkQuotaAvailable,
+} from "@/features/storage/storage-services.js";
 
 const db = createDb(config.DATABASE_URL);
 
@@ -75,6 +80,9 @@ export async function requestUpload(
   if (!asset) {
     throw new Error("INTERNAL_ERROR");
   }
+
+  // Increment user's storage usage
+  await incrementUsedStorage(userId, input.size);
 
   // Get presigned upload URL
   const storage = getStorage();
@@ -450,6 +458,9 @@ export async function permanentlyDeleteAsset(
   await db
     .delete(assets)
     .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)));
+
+  // Decrement user's storage usage
+  await decrementUsedStorage(userId, asset.size);
 }
 
 export async function emptyTrashAssets(userId: string): Promise<number> {
@@ -465,6 +476,9 @@ export async function emptyTrashAssets(userId: string): Promise<number> {
     .filter((a) => a.thumbnailKey)
     .map((a) => a.thumbnailKey as string);
 
+  // Calculate total size to decrement
+  const totalSize = trashedAssets.reduce((sum, a) => sum + a.size, 0);
+
   // Delete from storage
   await storage.deleteObjects([...keys, ...thumbnailKeys]);
 
@@ -472,6 +486,9 @@ export async function emptyTrashAssets(userId: string): Promise<number> {
   await db
     .delete(assets)
     .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)));
+
+  // Decrement user's storage usage
+  await decrementUsedStorage(userId, totalSize);
 
   return trashedAssets.length;
 }
@@ -492,6 +509,9 @@ export async function deleteAssetsByFolder(
     .filter((a) => a.thumbnailKey)
     .map((a) => a.thumbnailKey as string);
 
+  // Calculate total size to decrement
+  const totalSize = folderAssets.reduce((sum, a) => sum + a.size, 0);
+
   // Delete from storage
   await storage.deleteObjects([...keys, ...thumbnailKeys]);
 
@@ -499,6 +519,9 @@ export async function deleteAssetsByFolder(
   await db
     .delete(assets)
     .where(and(eq(assets.folderId, folderId), eq(assets.ownerId, userId)));
+
+  // Decrement user's storage usage
+  await decrementUsedStorage(userId, totalSize);
 }
 
 export async function toggleStarred(
@@ -567,6 +590,12 @@ export async function copyAsset(
     throw new Error("NOT_FOUND");
   }
 
+  // Check storage quota before copying
+  const quotaCheck = await checkQuotaAvailable(userId, asset.size);
+  if (!quotaCheck.available) {
+    throw new Error("QUOTA_EXCEEDED");
+  }
+
   // Verify target folder exists if provided
   if (targetFolderId) {
     const folder = await db.query.folders.findFirst({
@@ -624,6 +653,9 @@ export async function copyAsset(
   if (!newAsset) {
     throw new Error("INTERNAL_ERROR");
   }
+
+  // Increment user's storage usage for the copied asset
+  await incrementUsedStorage(userId, asset.size);
 
   return newAsset;
 }
