@@ -4,14 +4,7 @@ import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js
 import * as assetService from "./asset-services.js";
 import * as thumbnailService from "./thumbnail-service.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
-import type {
-  RequestUploadInput,
-  UpdateAssetInput,
-  ListAssetsQuery,
-  CopyAssetInput,
-  BulkDownloadInput,
-} from "@/schema/asset-schema.js";
-import { copyAssetSchema, bulkDownloadSchema } from "@/schema/asset-schema.js";
+import { copyAssetSchema, bulkDownloadSchema, type ListAssetsQuery, type RequestUploadInput, type UpdateAssetInput } from "@/schema/asset-schema.js";
 
 export async function requestUpload(
   req: AuthRequest,

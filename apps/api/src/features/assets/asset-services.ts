@@ -1,4 +1,4 @@
-import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, inArray, type SQL } from "drizzle-orm";
+import { eq, and, isNull, isNotNull, count, or, asc, desc, sql, inArray } from "drizzle-orm";
 import { createDb, assets, folders, shares, users, type Asset, type Folder } from "@repo/database";
 import {
   createStorageClient,

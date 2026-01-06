@@ -1,7 +1,7 @@
 {
   "name": "@repo/storage",
   "version": "1.0.0",
-  "description": "",
+  "description": "Assets Man Storage package for both aws s3 and google cloud storage",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsup",

@@ -1,7 +1,7 @@
 {
   "name": "@repo/shared",
   "version": "1.0.0",
-  "description": "",
+  "description": "Assets man shared utilities",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsup",
