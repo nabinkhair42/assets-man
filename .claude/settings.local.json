@@ -40,7 +40,9 @@
       "Bash(winget install:*)",
       "Bash(/c/Program\\\\ Files/Amazon/AWSCLIV2/aws.exe:*)",
       "Bash(/c/Program Files/Amazon/AWSCLIV2/aws.exe configure set:*)",
-      "Bash(docker --version:*)"
+      "Bash(docker --version:*)",
+      "Bash(pnpm build:api:*)",
+      "Bash(timeout 5 pnpm start:api:*)"
     ]
   }
 }

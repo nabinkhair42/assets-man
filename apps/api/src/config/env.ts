@@ -1,6 +1,14 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { z } from "zod";
 import type { StorageConfig } from "@repo/storage";
+
+// Load .env from apps/api/.env regardless of working directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, "../../.env");
+dotenv.config({ path: envPath });
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(3001),

@@ -1,11 +1,13 @@
 {
-  "name": "assets-management",
+  "name": "assets-man",
   "version": "1.0.0",
   "private": true,
   "description": "Assets Management System - Google Drive Clone",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:api": "turbo build --filter=api",
+    "start:api": "node apps/api/dist/index.js",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
     "db:generate": "turbo db:generate",
