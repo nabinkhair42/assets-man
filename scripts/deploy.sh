@@ -1,14 +1,19 @@
 #!/bin/bash
 
 # Assets API Deployment Script
-# Usage: ./scripts/deploy.sh
+# Usage: bash scripts/deploy.sh (run from project root)
 
 set -e
 
+# Auto-detect project directory (where this script is located)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "🚀 Starting deployment..."
+echo "📁 Project directory: $PROJECT_DIR"
 
 # Navigate to project directory
-cd /home/ec2-user/assets-man
+cd "$PROJECT_DIR"
 
 # Pull latest changes
 echo "📥 Pulling latest changes..."
@@ -16,7 +21,7 @@ git pull origin master
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-pnpm install --frozen-lockfile
+pnpm install
 
 # Build API
 echo "🔨 Building API..."
@@ -24,11 +29,17 @@ pnpm build:api
 
 # Restart PM2
 echo "🔄 Restarting API server..."
-pm2 restart assets-api || pm2 start "pnpm start:api" --name assets-api
+if pm2 describe assets-api > /dev/null 2>&1; then
+    pm2 restart assets-api
+else
+    echo "Starting new PM2 process..."
+    pm2 start "pnpm start:api" --name assets-api --cwd "$PROJECT_DIR"
+fi
 
 # Save PM2 config
 pm2 save
 
+echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "📊 Status:"
@@ -36,5 +47,6 @@ pm2 status
 
 echo ""
 echo "🔗 Health check:"
-curl -s http://localhost:3001/health | head -c 200
+sleep 2
+curl -s http://localhost:3001/health || echo "Health check failed - API may still be starting"
 echo ""
