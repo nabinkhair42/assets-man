@@ -10,15 +10,35 @@ import { assetRouter } from "@/features/assets/index.js";
 import { trashRouter } from "@/features/trash/index.js";
 import { recentRouter } from "@/features/recent/index.js";
 import { shareRouter } from "@/features/shares/index.js";
-import { validateServices } from "@/service-validator/index.js";
+import { validateServices, logConfig } from "@/service-validator/index.js";
 
 const app = express();
 
 // Middleware
 app.use(helmet());
+
+// CORS configuration - support multiple origins
+const allowedOrigins = [
+  config.CLIENT_URL,
+  config.CLIENT_URL.replace("https://", "http://"),
+  config.CLIENT_URL.replace("http://", "https://"),
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: config.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.some(allowed => origin.startsWith(allowed.replace(/\/$/, "")))) {
+        return callback(null, true);
+      }
+
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -38,6 +58,17 @@ app.use("/api/shares", shareRouter);
 app.use(notFoundHandler);
 
 async function startServer() {
+  // Log configuration (hide sensitive values)
+  logConfig({
+    nodeEnv: config.NODE_ENV,
+    port: config.PORT,
+    clientUrl: config.CLIENT_URL,
+    storageProvider: config.STORAGE_PROVIDER,
+    storageBucket: config.STORAGE_BUCKET,
+    storageRegion: config.STORAGE_REGION,
+    allowedOrigins,
+  });
+
   // Validate services before starting
   const validation = await validateServices({
     databaseUrl: config.DATABASE_URL,

@@ -1,9 +1,10 @@
 import { validateDbConnection, type DbValidationResult } from "./db-connection-validator.js";
 import { validateS3Bucket, type S3ValidationResult } from "./s3-bucket-validator.js";
 import { validateGCSBucket, type GCSValidationResult } from "./gc-bucket-validator.js";
+import { logConfig, type ConfigLogOptions } from "./config-logger.js";
 
-export { validateDbConnection, validateS3Bucket, validateGCSBucket };
-export type { DbValidationResult, S3ValidationResult, GCSValidationResult };
+export { validateDbConnection, validateS3Bucket, validateGCSBucket, logConfig };
+export type { DbValidationResult, S3ValidationResult, GCSValidationResult, ConfigLogOptions };
 
 export interface ServiceValidationConfig {
   databaseUrl: string;
