@@ -32,7 +32,15 @@
       "Bash(findstr:*)",
       "Bash(pnpm remove:*)",
       "Bash(pnpm type-check:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(ssh:*)",
+      "Bash(aws:*)",
+      "Bash(git fetch:*)",
+      "Bash(./copilot.exe:*)",
+      "Bash(winget install:*)",
+      "Bash(/c/Program\\\\ Files/Amazon/AWSCLIV2/aws.exe:*)",
+      "Bash(/c/Program Files/Amazon/AWSCLIV2/aws.exe configure set:*)",
+      "Bash(docker --version:*)"
     ]
   }
 }
