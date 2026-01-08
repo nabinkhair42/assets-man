@@ -298,14 +298,16 @@ export function DraggableFolderItem({
                 {folder.name}
               </span>
 
-              {/* Selection checkmark or menu */}
-              {isSelected ? (
-                <SelectionCheckmark />
-              ) : (
-                <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {dropdownMenu}
-                </div>
-              )}
+              {/* Selection checkmark or menu - fixed height container to prevent layout shift */}
+              <div className="shrink-0 h-8 w-8 flex items-center justify-center">
+                {isSelected ? (
+                  <SelectionCheckmark />
+                ) : (
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    {dropdownMenu}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Drop indicator overlay */}

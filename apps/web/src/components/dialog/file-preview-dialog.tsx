@@ -12,8 +12,6 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Copy,
-  Check,
 } from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Asset } from "@/types";
@@ -74,9 +72,6 @@ export function FilePreviewDialog({
   const [pdfScale, setPdfScale] = useState(1.0);
   const [pdfRotation, setPdfRotation] = useState(0);
 
-  // Text-specific state
-  const [copied, setCopied] = useState(false);
-  const [textContent, setTextContent] = useState<string | null>(null);
 
   const currentIndex = asset ? assets.findIndex((a) => a.id === asset.id) : -1;
   const hasPrev = currentIndex > 0;
@@ -84,7 +79,6 @@ export function FilePreviewDialog({
 
   const fileType = asset ? getFileType(asset.mimeType) : "other";
   const isPdf = fileType === "pdf";
-  const isText = fileType === "text" || fileType === "code";
 
   const loadPreview = useCallback(async (assetToLoad: Asset) => {
     setLoading(true);
@@ -95,7 +89,6 @@ export function FilePreviewDialog({
     setPdfPageNumber(1);
     setPdfScale(1.0);
     setPdfRotation(0);
-    setTextContent(null);
 
     try {
       const fetchUrl = customGetDownloadUrl || assetService.getDownloadUrl;
@@ -159,18 +152,6 @@ export function FilePreviewDialog({
   const handleZoomIn = () => setPdfScale((prev) => Math.min(prev + 0.25, 3.0));
   const handleZoomOut = () => setPdfScale((prev) => Math.max(prev - 0.25, 0.5));
   const handleRotate = () => setPdfRotation((prev) => (prev + 90) % 360);
-
-  // Text copy handler
-  const handleCopy = async () => {
-    if (!textContent) return;
-    try {
-      await navigator.clipboard.writeText(textContent);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Ignore copy errors
-    }
-  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -249,7 +230,6 @@ export function FilePreviewDialog({
         return (
           <TextPreview
             {...previewProps}
-            onContentLoad={setTextContent}
             minimal
           />
         );
@@ -352,21 +332,6 @@ export function FilePreviewDialog({
                 </>
               )}
 
-              {/* Text Copy Button */}
-              {isText && textContent && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
-                  onClick={handleCopy}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-400" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
             </div>
 
             {/* Right: Actions */}
