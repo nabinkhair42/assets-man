@@ -15,6 +15,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,25 +173,31 @@ export function DraggableFileItem({
         <DropdownMenuItem onClick={() => onDownload(asset)}>
           <Download className="mr-2 h-4 w-4" />
           Download
+          <DropdownMenuShortcut>Ctrl+D</DropdownMenuShortcut>
         </DropdownMenuItem>
         {onStar && (
           <DropdownMenuItem onClick={() => onStar(asset)}>
             <Star className={cn("mr-2 h-4 w-4", asset.isStarred && "fill-yellow-400 text-yellow-400")} />
-            {asset.isStarred ? "Unstar" : "Star"}
+            {asset.isStarred ? "Remove from starred" : "Add to starred"}
+            <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRename(asset)}>
           <Pencil className="mr-2 h-4 w-4" />
           Rename
+          <DropdownMenuShortcut>F2</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onMove(asset)}>
           <FolderInput className="mr-2 h-4 w-4" />
-          Move
+          Move to
+          <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
         </DropdownMenuItem>
         {onCopy && (
           <DropdownMenuItem onClick={() => onCopy(asset)}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy
+            Copy to
+            <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
         {onShare && (
@@ -198,9 +206,11 @@ export function DraggableFileItem({
             Share
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={() => onDelete(asset)} className="text-destructive focus:text-destructive">
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDelete(asset)} variant="destructive">
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete
+          Move to trash
+          <DropdownMenuShortcut>Del</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -15,6 +15,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -165,25 +167,31 @@ export function DraggableFolderItem({
         <DropdownMenuItem onClick={() => onOpen(folder.id)}>
           <FolderIcon className="mr-2 h-4 w-4" />
           Open
+          <DropdownMenuShortcut>Enter</DropdownMenuShortcut>
         </DropdownMenuItem>
         {onStar && (
           <DropdownMenuItem onClick={() => onStar(folder)}>
             <Star className={cn("mr-2 h-4 w-4", folder.isStarred && "fill-yellow-400 text-yellow-400")} />
-            {folder.isStarred ? "Unstar" : "Star"}
+            {folder.isStarred ? "Remove from starred" : "Add to starred"}
+            <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onRename(folder)}>
           <Pencil className="mr-2 h-4 w-4" />
           Rename
+          <DropdownMenuShortcut>F2</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onMove(folder)}>
           <FolderInput className="mr-2 h-4 w-4" />
-          Move
+          Move to
+          <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
         </DropdownMenuItem>
         {onCopy && (
           <DropdownMenuItem onClick={() => onCopy(folder)}>
             <Copy className="mr-2 h-4 w-4" />
-            Copy
+            Copy to
+            <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
         {onShare && (
@@ -192,9 +200,11 @@ export function DraggableFolderItem({
             Share
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={() => onDelete(folder)} className="text-destructive focus:text-destructive">
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => onDelete(folder)} variant="destructive">
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete
+          Move to trash
+          <DropdownMenuShortcut>Del</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
