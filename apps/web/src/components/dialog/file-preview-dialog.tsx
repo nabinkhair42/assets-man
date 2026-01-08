@@ -47,6 +47,10 @@ interface FilePreviewDialogProps {
   assets?: Asset[];
   onNavigate?: (asset: Asset) => void;
   getDownloadUrl?: (assetId: string) => Promise<{ url: string }>;
+  // Additional customization for public share pages
+  subtitle?: string;
+  onDownload?: () => void;
+  showNavigation?: boolean;
 }
 
 export function FilePreviewDialog({
@@ -56,6 +60,9 @@ export function FilePreviewDialog({
   assets = [],
   onNavigate,
   getDownloadUrl: customGetDownloadUrl,
+  subtitle,
+  onDownload: customOnDownload,
+  showNavigation = true,
 }: FilePreviewDialogProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -124,6 +131,13 @@ export function FilePreviewDialog({
 
   const handleDownload = useCallback(async () => {
     if (!asset) return;
+
+    // Use custom download handler if provided
+    if (customOnDownload) {
+      customOnDownload();
+      return;
+    }
+
     try {
       const fetchUrl = customGetDownloadUrl || assetService.getDownloadUrl;
       const { url } = await fetchUrl(asset.id);
@@ -137,7 +151,7 @@ export function FilePreviewDialog({
     } catch (error) {
       toast.error(getApiErrorMessage(error));
     }
-  }, [asset, customGetDownloadUrl]);
+  }, [asset, customGetDownloadUrl, customOnDownload]);
 
   // PDF controls
   const handlePdfPrevPage = () => setPdfPageNumber((prev) => Math.max(prev - 1, 1));
@@ -273,7 +287,8 @@ export function FilePreviewDialog({
                 </DialogPrimitive.Title>
                 <p className="text-white/60 text-[10px] sm:text-xs">
                   {formatFileSize(asset.size)}
-                  {assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
+                  {showNavigation && assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
+                  {subtitle && ` • ${subtitle}`}
                 </p>
               </div>
             </div>
@@ -417,7 +432,7 @@ export function FilePreviewDialog({
           )}
 
           {/* Navigation arrows for multiple files */}
-          {assets.length > 1 && (
+          {showNavigation && assets.length > 1 && (
             <>
               <button
                 onClick={handlePrev}

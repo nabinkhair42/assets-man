@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
-import dynamic from "next/dynamic";
 import {
   Download,
   Folder,
@@ -35,26 +34,9 @@ import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
 import type { SharedItemDetails, SharedFolderContents } from "@/types";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import {
-  isPreviewable,
-  getFileType,
-  ImagePreview,
-  VideoPreview,
-  AudioPreview,
-  TextPreview,
-  UnsupportedPreview,
-  LoadingPreview,
-} from "@/components/preview";
+import { isPreviewable, getFileType } from "@/components/preview";
 import { ReadOnlyFileItem, ReadOnlyFolderItem, type ReadOnlyAsset, type ReadOnlyFolder } from "@/components/files";
-
-// Dynamic import for PDF preview to avoid SSR issues with react-pdf
-const PdfPreview = dynamic(
-  () => import("@/components/preview/pdf-preview").then((m) => m.PdfPreview),
-  {
-    ssr: false,
-    loading: () => <LoadingPreview />,
-  }
-);
+import { FilePreviewDialog } from "@/components/dialog";
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -66,8 +48,6 @@ export default function PublicSharePage() {
   const [password, setPassword] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Folder browsing state
   const [folderContents, setFolderContents] = useState<SharedFolderContents | null>(null);
@@ -83,15 +63,16 @@ export default function PublicSharePage() {
   const contentContainerRef = useRef<HTMLDivElement>(null);
   const selectionMode = selectedItems.size > 0;
 
-  // File preview state for folder assets
+  // File preview state for folder assets (uses FilePreviewDialog)
   const [previewingAsset, setPreviewingAsset] = useState<{
     id: string;
     name: string;
     mimeType: string;
     size: number;
   } | null>(null);
-  const [folderAssetPreviewUrl, setFolderAssetPreviewUrl] = useState<string | null>(null);
-  const [folderAssetPreviewLoading, setFolderAssetPreviewLoading] = useState(false);
+
+  // Direct asset preview dialog state
+  const [directAssetPreviewOpen, setDirectAssetPreviewOpen] = useState(false);
 
   useEffect(() => {
     async function fetchDetails() {
@@ -147,53 +128,45 @@ export default function PublicSharePage() {
     }
   }, [unlocked, shareDetails, loadFolderContents]);
 
-  // Load preview URL when unlocked (for direct asset shares)
-  const loadPreviewUrl = useCallback(async () => {
-    if (!shareDetails || shareDetails.item.type !== "asset") return;
-    if (!shareDetails.item.mimeType || !isPreviewable(shareDetails.item.mimeType)) return;
-
-    setPreviewLoading(true);
-    try {
-      const result = await shareService.downloadSharedAsset(
-        token,
-        shareDetails.share.requiresPassword ? password : undefined
-      );
-      setPreviewUrl(result.url);
-    } catch {
-      // Preview failed, user can still download
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, [shareDetails, token, password]);
-
+  // Open preview dialog when unlocked for direct asset shares
   useEffect(() => {
     if (unlocked && shareDetails && shareDetails.item.type === "asset") {
-      loadPreviewUrl();
-    }
-  }, [unlocked, shareDetails, loadPreviewUrl]);
-
-  // Load preview for folder asset
-  const loadFolderAssetPreview = useCallback(
-    async (asset: { id: string; name: string; mimeType: string; size: number }) => {
-      if (!isPreviewable(asset.mimeType)) return;
-
-      setPreviewingAsset(asset);
-      setFolderAssetPreviewLoading(true);
-      setFolderAssetPreviewUrl(null);
-
-      try {
-        const result = await shareService.downloadSharedFolderAsset(
-          token,
-          asset.id,
-          shareDetails?.share.requiresPassword ? password : undefined
-        );
-        setFolderAssetPreviewUrl(result.url);
-      } catch (error) {
-        toast.error(getApiErrorMessage(error));
-        setPreviewingAsset(null);
-      } finally {
-        setFolderAssetPreviewLoading(false);
+      if (isPreviewable(shareDetails.item.mimeType || "")) {
+        setDirectAssetPreviewOpen(true);
       }
+    }
+  }, [unlocked, shareDetails]);
+
+  // Open preview dialog for folder asset
+  const openFolderAssetPreview = useCallback(
+    (asset: { id: string; name: string; mimeType: string; size: number }) => {
+      if (!isPreviewable(asset.mimeType)) return;
+      setPreviewingAsset(asset);
+    },
+    []
+  );
+
+  // Get download URL for folder asset (used by FilePreviewDialog)
+  const getFolderAssetDownloadUrl = useCallback(
+    async (assetId: string) => {
+      const result = await shareService.downloadSharedFolderAsset(
+        token,
+        assetId,
+        shareDetails?.share.requiresPassword ? password : undefined
+      );
+      return { url: result.url };
+    },
+    [token, shareDetails, password]
+  );
+
+  // Get download URL for direct asset share (used by FilePreviewDialog)
+  const getDirectAssetDownloadUrl = useCallback(
+    async () => {
+      const result = await shareService.downloadSharedAsset(
+        token,
+        shareDetails?.share.requiresPassword ? password : undefined
+      );
+      return { url: result.url };
     },
     [token, shareDetails, password]
   );
@@ -278,7 +251,6 @@ export default function PublicSharePage() {
 
   const closeFolderAssetPreview = () => {
     setPreviewingAsset(null);
-    setFolderAssetPreviewUrl(null);
   };
 
   const handleDownloadFolder = async () => {
@@ -537,199 +509,24 @@ export default function PublicSharePage() {
     size: item.size || 0,
   };
 
-  const renderPreview = () => {
-    if (previewLoading) {
-      return <LoadingPreview />;
-    }
+  // Folder asset preview dialog - uses FilePreviewDialog
+  // Renders below with the main content
 
-    if (!previewUrl) {
-      return (
-        <UnsupportedPreview
-          asset={previewAsset}
-          previewUrl=""
+  // Direct asset preview dialog - uses FilePreviewDialog
+  // Shows when directAssetPreviewOpen is true for previewable direct shares
+  if (canPreview && directAssetPreviewOpen) {
+    return (
+      <>
+        <FilePreviewDialog
+          open={directAssetPreviewOpen}
+          onOpenChange={setDirectAssetPreviewOpen}
+          asset={previewAsset as any}
+          getDownloadUrl={getDirectAssetDownloadUrl}
           onDownload={handleDownload}
-          message="Preview not available"
+          subtitle={`Shared by ${share.ownerName}`}
+          showNavigation={false}
         />
-      );
-    }
-
-    const previewProps = {
-      asset: previewAsset,
-      previewUrl,
-      onDownload: handleDownload,
-    };
-
-    switch (fileType) {
-      case "image":
-        return <ImagePreview {...previewProps} />;
-      case "video":
-        return <VideoPreview {...previewProps} />;
-      case "audio":
-        return <AudioPreview {...previewProps} />;
-      case "pdf":
-        return <PdfPreview {...previewProps} />;
-      case "text":
-      case "code":
-        return <TextPreview {...previewProps} />;
-      default:
-        return <UnsupportedPreview {...previewProps} />;
-    }
-  };
-
-  // Folder asset preview modal
-  if (previewingAsset) {
-    const assetFileType = getFileType(previewingAsset.mimeType);
-
-    const renderFolderAssetPreview = () => {
-      if (folderAssetPreviewLoading) {
-        return <LoadingPreview />;
-      }
-
-      if (!folderAssetPreviewUrl) {
-        return (
-          <UnsupportedPreview
-            asset={previewingAsset}
-            previewUrl=""
-            onDownload={() =>
-              handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
-            }
-            message="Preview not available"
-          />
-        );
-      }
-
-      const previewProps = {
-        asset: previewingAsset,
-        previewUrl: folderAssetPreviewUrl,
-        onDownload: () =>
-          handleFolderAssetDownload(previewingAsset.id, previewingAsset.name),
-      };
-
-      switch (assetFileType) {
-        case "image":
-          return <ImagePreview {...previewProps} />;
-        case "video":
-          return <VideoPreview {...previewProps} />;
-        case "audio":
-          return <AudioPreview {...previewProps} />;
-        case "pdf":
-          return <PdfPreview {...previewProps} />;
-        case "text":
-        case "code":
-          return <TextPreview {...previewProps} />;
-        default:
-          return <UnsupportedPreview {...previewProps} />;
-      }
-    };
-
-    return (
-      <div className="min-h-screen flex flex-col dark bg-background">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent absolute top-0 left-0 right-0 z-20">
-          <div className="flex items-center gap-4 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full"
-              onClick={closeFolderAssetPreview}
-            >
-              <ChevronRight className="h-5 w-5 rotate-180" />
-            </Button>
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-              <CustomFileIcon mimeType={previewingAsset.mimeType} size="sm" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="font-medium truncate max-w-md text-foreground">
-                {previewingAsset.name}
-              </h1>
-              <p className="text-muted-foreground text-xs">
-                {formatFileSize(previewingAsset.size)} • Shared by {share.ownerName}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
-              onClick={() =>
-                handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
-              }
-              disabled={downloadingAssetId === previewingAsset.id}
-            >
-              {downloadingAssetId === previewingAsset.id ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Download className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Preview area */}
-        <div className="flex-1 flex items-center justify-center pt-20 pb-4 px-4 min-h-0">
-          {renderFolderAssetPreview()}
-        </div>
-      </div>
-    );
-  }
-
-  // Full-screen preview for previewable assets
-  if (canPreview) {
-    return (
-      <div className="min-h-screen flex flex-col dark bg-background">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent absolute top-0 left-0 right-0 z-20">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-              <CustomFileIcon mimeType={item.mimeType} size="sm" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-foreground font-medium truncate max-w-md">{item.name}</h1>
-              <p className="text-muted-foreground text-xs">
-                {formatFileSize(item.size || 0)} • Shared by {share.ownerName}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ShareInfoPopover
-              share={{
-                ownerName: share.ownerName,
-                permission: share.permission,
-                expiresAt: share.expiresAt,
-              }}
-              item={{
-                name: item.name,
-                type: item.type,
-                size: item.size,
-                mimeType: item.mimeType,
-                createdAt: item.createdAt,
-              }}
-              variant="dark"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
-              onClick={handleDownload}
-              disabled={downloading}
-            >
-              {downloading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Download className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Preview area */}
-        <div className="flex-1 flex items-center justify-center pt-20 pb-4 px-4 min-h-0">
-          {renderPreview()}
-        </div>
-      </div>
+      </>
     );
   }
 
@@ -897,7 +694,7 @@ export default function PublicSharePage() {
                           onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
                           onPreview={(a) => {
                             if (isPreviewable(a.mimeType)) {
-                              loadFolderAssetPreview(a);
+                              openFolderAssetPreview(a);
                             } else {
                               handleFolderAssetDownload(a.id, a.name);
                             }
@@ -938,7 +735,7 @@ export default function PublicSharePage() {
                     onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
                     onPreview={(a) => {
                       if (isPreviewable(a.mimeType)) {
-                        loadFolderAssetPreview(a);
+                        openFolderAssetPreview(a);
                       } else {
                         handleFolderAssetDownload(a.id, a.name);
                       }
@@ -965,6 +762,17 @@ export default function PublicSharePage() {
             variant="readonly"
           />
         )}
+
+        {/* Folder Asset Preview Dialog */}
+        <FilePreviewDialog
+          open={!!previewingAsset}
+          onOpenChange={(open) => !open && closeFolderAssetPreview()}
+          asset={previewingAsset as any}
+          getDownloadUrl={getFolderAssetDownloadUrl}
+          onDownload={() => previewingAsset && handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)}
+          subtitle={`Shared by ${share.ownerName}`}
+          showNavigation={false}
+        />
       </div>
     );
   }
