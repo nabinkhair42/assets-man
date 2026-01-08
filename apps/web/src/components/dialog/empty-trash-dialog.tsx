@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEmptyTrash } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 
 interface EmptyTrashDialogProps {
   open: boolean;
@@ -29,8 +30,8 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
         toast.success(`Deleted ${result.total} items permanently`, { id: toastId });
         onOpenChange(false);
       },
-      onError: () => {
-        toast.error("Failed to empty trash", { id: toastId });
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error), { id: toastId });
       },
     });
   };

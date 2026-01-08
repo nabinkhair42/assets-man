@@ -141,3 +141,49 @@ export async function me(req: Request, res: Response): Promise<void> {
     sendError(res, "INTERNAL_ERROR", "Failed to get user", 500);
   }
 }
+
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { email } = req.body as { email: string };
+
+    if (!email) {
+      sendError(res, "VALIDATION_ERROR", "Email is required", 400);
+      return;
+    }
+
+    const result = await authService.requestPasswordReset(email);
+
+    if (!result.success) {
+      sendError(res, "NOT_FOUND", result.message, 404);
+      return;
+    }
+
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to process request. Please try again.", 500);
+  }
+}
+
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const { token, password } = req.body as { token: string; password: string };
+
+    if (!token || !password) {
+      sendError(res, "VALIDATION_ERROR", "Token and password are required", 400);
+      return;
+    }
+
+    const result = await authService.resetPassword(token, password);
+
+    if (!result.success) {
+      sendError(res, "INVALID_TOKEN", result.message, 400);
+      return;
+    }
+
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Reset password error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to reset password", 500);
+  }
+}

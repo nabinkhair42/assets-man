@@ -19,6 +19,7 @@ import {
 import { registerSchema, type RegisterFormValues } from "@/schema/auth-schema";
 import { useRegister } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -40,8 +41,8 @@ export default function RegisterPage() {
         toast.success("Account created successfully");
         router.push("/files");
       },
-      onError: () => {
-        toast.error("Failed to create account");
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error));
       },
     });
   };

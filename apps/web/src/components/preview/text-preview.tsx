@@ -9,9 +9,19 @@ import type { PreviewComponentProps } from "./types";
 
 interface TextPreviewProps extends PreviewComponentProps {
   className?: string;
+  // Controlled mode props (used when minimal=true)
+  minimal?: boolean;
+  onContentLoad?: (content: string) => void;
 }
 
-export function TextPreview({ asset, previewUrl, onDownload, className }: TextPreviewProps) {
+export function TextPreview({
+  asset,
+  previewUrl,
+  onDownload,
+  className,
+  minimal = false,
+  onContentLoad,
+}: TextPreviewProps) {
   const [content, setContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +52,9 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
         const text = await response.text();
         if (!cancelled) {
           // Limit content size for performance
-          setContent(text.slice(0, 500000));
+          const truncatedContent = text.slice(0, 500000);
+          setContent(truncatedContent);
+          onContentLoad?.(truncatedContent);
         }
       } catch (err) {
         if (!cancelled) {
@@ -57,7 +69,7 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
 
     fetchContent();
     return () => { cancelled = true; };
-  }, [previewUrl, asset.id]);
+  }, [previewUrl, asset.id, onContentLoad]);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -77,12 +89,22 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
   // Loading state
   if (loading) {
     return (
-      <div className={cn("flex flex-col items-center justify-center gap-4", className)}>
+      <div className={cn(
+        "flex flex-col items-center justify-center gap-4",
+        minimal ? "text-white/60" : "text-muted-foreground",
+        className
+      )}>
         <div className="relative">
-          <div className="h-16 w-16 rounded-full border-4 border-border" />
-          <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+          <div className={cn(
+            "h-16 w-16 rounded-full border-4",
+            minimal ? "border-white/20" : "border-border"
+          )} />
+          <div className={cn(
+            "absolute inset-0 h-16 w-16 rounded-full border-4 border-r-transparent border-b-transparent border-l-transparent animate-spin",
+            minimal ? "border-t-white/60" : "border-t-primary"
+          )} />
         </div>
-        <p className="text-muted-foreground text-sm">Loading content...</p>
+        <p className="text-sm">Loading content...</p>
       </div>
     );
   }
@@ -91,14 +113,23 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
   if (error || !content) {
     return (
       <div className={cn("flex flex-col items-center justify-center gap-6", className)}>
-        <div className="p-8 rounded-2xl bg-muted/50">
+        <div className={cn(
+          "p-8 rounded-2xl",
+          minimal ? "bg-white/5" : "bg-muted/50"
+        )}>
           <FileIcon className={cn("h-24 w-24", iconColor)} />
         </div>
         <div className="text-center">
-          <p className="text-foreground/80 font-medium mb-1">{asset.name}</p>
-          <p className="text-muted-foreground text-sm mb-4">{error || "Could not load content"}</p>
+          <p className={cn(
+            "font-medium mb-1",
+            minimal ? "text-white/80" : "text-foreground/80"
+          )}>{asset.name}</p>
+          <p className={cn(
+            "text-sm mb-4",
+            minimal ? "text-white/60" : "text-muted-foreground"
+          )}>{error || "Could not load content"}</p>
         </div>
-        <Button onClick={onDownload}>
+        <Button onClick={onDownload} variant={minimal ? "secondary" : "default"}>
           <Download className="mr-2 h-4 w-4" />
           Download to view
         </Button>
@@ -108,7 +139,7 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
 
   // CSV table view
   if (isCsv) {
-    return <CsvPreview content={content} asset={asset} onDownload={onDownload} className={className} />;
+    return <CsvPreview content={content} asset={asset} onDownload={onDownload} className={className} minimal={minimal} />;
   }
 
   // JSON formatted view
@@ -120,6 +151,20 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
       // Use raw content if parsing fails
     }
 
+    // Minimal mode - just content, no toolbar
+    if (minimal) {
+      return (
+        <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
+          <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+            <pre className="p-4 text-sm text-green-400 font-mono whitespace-pre-wrap break-all">
+              {formattedJson}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+
+    // Full mode with toolbar
     return (
       <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
         <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-t-lg border border-border border-b-0">
@@ -156,7 +201,20 @@ export function TextPreview({ asset, previewUrl, onDownload, className }: TextPr
     );
   }
 
-  // Plain text view
+  // Plain text view - Minimal mode
+  if (minimal) {
+    return (
+      <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
+        <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+          <pre className="p-4 text-sm text-white/80 font-mono whitespace-pre-wrap break-all">
+            {content}
+          </pre>
+        </div>
+      </div>
+    );
+  }
+
+  // Plain text view - Full mode with toolbar
   return (
     <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-t-lg border border-border border-b-0">
@@ -198,12 +256,14 @@ function CsvPreview({
   content,
   asset,
   onDownload,
-  className
+  className,
+  minimal = false,
 }: {
   content: string;
   asset: PreviewComponentProps["asset"];
   onDownload: () => void;
   className?: string;
+  minimal?: boolean;
 }) {
   const lines = content.split("\n").filter(line => line.trim());
   const rows = lines.slice(0, 100).map(line => {
@@ -225,6 +285,44 @@ function CsvPreview({
   });
   const hasMoreRows = lines.length > 100;
 
+  // Minimal mode - just table, no toolbar
+  if (minimal) {
+    return (
+      <div className={cn("flex flex-col w-full max-w-5xl h-full", className)}>
+        <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+          <table className="w-full text-sm text-left">
+            <thead className="sticky top-0 bg-gray-800 text-white/80 text-xs">
+              <tr>
+                {rows[0]?.map((cell, i) => (
+                  <th key={i} className="px-4 py-3 font-medium border-b border-white/10 whitespace-nowrap">
+                    {cell || `Column ${i + 1}`}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="text-white/70">
+              {rows.slice(1).map((row, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                  {row.map((cell, j) => (
+                    <td key={j} className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {hasMoreRows && (
+            <div className="px-4 py-3 text-white/50 text-xs text-center border-t border-white/10 bg-gray-800/50">
+              Showing first 100 rows of {lines.length} total
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full mode with toolbar
   return (
     <div className={cn("flex flex-col w-full max-w-5xl h-full", className)}>
       <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-t-lg border border-border border-b-0">

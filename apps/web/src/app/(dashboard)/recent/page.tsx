@@ -37,6 +37,7 @@ import {
 import { EmptyState, SelectionToolbar, RECENT_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
 import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 import { AppHeader } from "@/components/layouts";
 import { assetService, recentService } from "@/services";
@@ -117,8 +118,8 @@ export default function RecentPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch {
-      toast.error("Failed to get download URL");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
   };
 
@@ -136,7 +137,7 @@ export default function RecentPage() {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
         refetchRecent();
       },
-      onError: () => toast.error("Failed to update starred status"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
     });
   }, [toggleAssetStarred, refetchRecent]);
 
@@ -146,7 +147,7 @@ export default function RecentPage() {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
         refetchRecent();
       },
-      onError: () => toast.error("Failed to update starred status"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
     });
   }, [toggleFolderStarred, refetchRecent]);
 
@@ -322,8 +323,8 @@ export default function RecentPage() {
 
       toast.success("Download started", { id: toastId });
       handleClearSelection();
-    } catch {
-      toast.error("Failed to download files", { id: toastId });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error), { id: toastId });
     }
   }, [selectedItems, handleClearSelection]);
 
@@ -370,7 +371,7 @@ export default function RecentPage() {
           { id: folder.id, input: { parentId: targetFolderId } },
           {
             onSuccess: () => { toast.success("Folder moved"); refetchRecent(); },
-            onError: () => toast.error("Failed to move folder"),
+            onError: (error) => toast.error(getApiErrorMessage(error)),
           }
         );
       } else {
@@ -380,7 +381,7 @@ export default function RecentPage() {
           { id: asset.id, input: { folderId: targetFolderId } },
           {
             onSuccess: () => { toast.success("File moved"); refetchRecent(); },
-            onError: () => toast.error("Failed to move file"),
+            onError: (error) => toast.error(getApiErrorMessage(error)),
           }
         );
       }

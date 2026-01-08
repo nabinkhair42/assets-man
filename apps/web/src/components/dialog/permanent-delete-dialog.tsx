@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePermanentlyDelete } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { TrashedItem } from "@/types";
 
 interface PermanentDeleteDialogProps {
@@ -38,8 +39,8 @@ export function PermanentDeleteDialog({
           toast.success(`${item.name} permanently deleted`, { id: toastId });
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error(`Failed to delete ${item.name}`, { id: toastId });
+        onError: (error) => {
+          toast.error(getApiErrorMessage(error), { id: toastId });
         },
       }
     );

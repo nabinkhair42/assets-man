@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useDeleteFolder, useDeleteAsset } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 
 interface DeleteDialogProps {
@@ -35,8 +36,8 @@ export function DeleteDialog({ open, onOpenChange, item, itemType }: DeleteDialo
         toast.success(label + " deleted");
         onOpenChange(false);
       },
-      onError: () => {
-        toast.error("Failed to delete " + label.toLowerCase());
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error));
       },
     });
   };

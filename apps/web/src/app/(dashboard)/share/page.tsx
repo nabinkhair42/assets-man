@@ -18,7 +18,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import { useSharedWithMe, useMarqueeSelection, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
 import { FilePreviewDialog } from "@/components/dialog";
 import { EmptyState, SelectionToolbar, SHARED_LIST_COLUMNS, type SelectedItem, FileIcon } from "@/components/shared";
@@ -99,8 +99,8 @@ export default function SharedWithMePage() {
       link.click();
       document.body.removeChild(link);
       toast.success("Download started");
-    } catch {
-      toast.error("Failed to download file");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
   };
 
@@ -247,8 +247,8 @@ export default function SharedWithMePage() {
 
       toast.success("Download started", { id: toastId });
       handleClearSelection();
-    } catch {
-      toast.error("Failed to download files", { id: toastId });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error), { id: toastId });
     }
   }, [selectedItems, allItems, handleClearSelection]);
 

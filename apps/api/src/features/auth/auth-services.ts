@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 import { createDb, users, sessions, type User } from "@repo/database";
 import type { UserPublic, AuthResponse, AuthTokens } from "@repo/shared";
-import { config } from "@/config/env.js";
+import { createMailClient, type MailClient } from "@repo/mail";
+import { config, getMailConfig } from "@/config/env.js";
 import {
   hashPassword,
   verifyPassword,
@@ -168,4 +170,112 @@ export async function getUserById(userId: string): Promise<UserPublic | null> {
   });
 
   return user ? toUserPublic(user) : null;
+}
+
+// Password reset constants
+const PASSWORD_RESET_EXPIRY_MINUTES = 60;
+
+// Get mail client (singleton)
+let mailClient: MailClient | null = null;
+function getMailClient(): MailClient | null {
+  if (!mailClient) {
+    const mailConfig = getMailConfig();
+    if (mailConfig) {
+      mailClient = createMailClient(mailConfig);
+    }
+  }
+  return mailClient;
+}
+
+// Generate a secure random token
+function generateResetToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export async function requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
+  // Find user by email
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+
+  // Return error if user not found
+  if (!user) {
+    return { success: false, message: "No account found with this email address" };
+  }
+
+  // Check if user has a password (not OAuth-only)
+  if (!user.passwordHash) {
+    return { success: false, message: "This account uses social login. Please sign in with your social provider." };
+  }
+
+  // Generate reset token and expiry
+  const resetToken = generateResetToken();
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000);
+
+  // Save token to database
+  await db
+    .update(users)
+    .set({
+      passwordResetToken: resetToken,
+      passwordResetExpiresAt: expiresAt,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  // Send email
+  const mail = getMailClient();
+  if (!mail) {
+    console.error("Mail client not configured - cannot send password reset email");
+    return { success: false, message: "Email service not configured" };
+  }
+
+  const resetUrl = `${config.CLIENT_URL}/reset-password?token=${resetToken}`;
+  const result = await mail.sendPasswordResetEmail({
+    to: user.email,
+    resetUrl,
+    userName: user.name ?? undefined,
+    expiresInMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
+  });
+
+  if (!result.success) {
+    console.error("Failed to send password reset email:", result.error);
+    return { success: false, message: "Failed to send reset email. Please try again later." };
+  }
+
+  return { success: true, message: "Password reset email sent successfully" };
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  // Find user by reset token
+  const user = await db.query.users.findFirst({
+    where: eq(users.passwordResetToken, token),
+  });
+
+  if (!user) {
+    return { success: false, message: "Invalid or expired reset token" };
+  }
+
+  // Check if token is expired
+  if (!user.passwordResetExpiresAt || user.passwordResetExpiresAt < new Date()) {
+    return { success: false, message: "Reset token has expired" };
+  }
+
+  // Hash new password
+  const passwordHash = await hashPassword(newPassword);
+
+  // Update password and clear reset token
+  await db
+    .update(users)
+    .set({
+      passwordHash,
+      passwordResetToken: null,
+      passwordResetExpiresAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  // Invalidate all existing sessions for security
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  return { success: true, message: "Password reset successfully" };
 }

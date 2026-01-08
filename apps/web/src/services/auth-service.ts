@@ -49,4 +49,12 @@ export const authService = {
     );
     return response.data.data;
   },
+
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, password });
+  },
 };

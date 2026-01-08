@@ -24,7 +24,7 @@ import {
   ContextMenuSeparator,
   ContextMenuShortcut,
 } from "@/components/ui/context-menu";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import {
   DndContext,
   DragOverlay,
@@ -242,8 +242,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch {
-      toast.error("Failed to get download URL");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
   };
 
@@ -255,7 +255,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
         refetchAssets();
       },
-      onError: () => toast.error("Failed to update starred status"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
     });
   }, [toggleAssetStarred, refetchAssets]);
 
@@ -265,7 +265,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
         refetchFolders();
       },
-      onError: () => toast.error("Failed to update starred status"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
     });
   }, [toggleFolderStarred, refetchFolders]);
 
@@ -403,8 +403,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
       toast.success("Download started", { id: toastId });
       handleClearSelection();
-    } catch {
-      toast.error("Failed to download files", { id: toastId });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error), { id: toastId });
     }
   }, [selectedItems, handleClearSelection]);
 
@@ -449,7 +449,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           { id: folder.id, input: { parentId: targetFolderId } },
           {
             onSuccess: () => { toast.success("Folder moved"); refetchFolders(); },
-            onError: () => toast.error("Failed to move folder"),
+            onError: (error) => toast.error(getApiErrorMessage(error)),
           }
         );
       } else {
@@ -459,7 +459,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           { id: asset.id, input: { folderId: targetFolderId } },
           {
             onSuccess: () => { toast.success("File moved"); refetchAssets(); },
-            onError: () => toast.error("Failed to move file"),
+            onError: (error) => toast.error(getApiErrorMessage(error)),
           }
         );
       }
@@ -487,10 +487,10 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           successCount++;
           setUploadingCount((prev) => prev - 1);
           toast.success(`${file.name} uploaded`, { id: toastId });
-        } catch {
+        } catch (error) {
           failCount++;
           setUploadingCount((prev) => prev - 1);
-          toast.error(`Failed to upload ${file.name}`, { id: toastId });
+          toast.error(getApiErrorMessage(error, `Failed to upload ${file.name}`), { id: toastId });
         }
       });
 
@@ -587,7 +587,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         }
       } catch (error) {
         console.error("Folder upload error:", error);
-        toast.error(`Failed to upload folder "${entry.name}"`, { id: toastId });
+        toast.error(getApiErrorMessage(error, `Failed to upload folder "${entry.name}"`), { id: toastId });
       }
     },
     [currentFolderId, uploadFile, refetchFolders, refetchAssets]

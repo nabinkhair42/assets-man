@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import type { StorageConfig } from "@repo/storage";
+import type { MailConfig } from "@repo/mail";
 
 // Load .env from apps/api/.env regardless of working directory
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +35,10 @@ const envSchema = z.object({
   // GCS credentials
   GCS_PROJECT_ID: z.string().optional(),
   GCS_KEY_FILE_PATH: z.string().optional(),
+  // Mail configuration
+  RESEND_API_KEY: z.string().optional(),
+  MAIL_FROM_EMAIL: z.string().email().optional().default("noreply@example.com"),
+  MAIL_FROM_NAME: z.string().optional().default("Assets Man"),
 });
 
 export const config = envSchema.parse(process.env);
@@ -51,5 +56,18 @@ export function getStorageConfig(): StorageConfig {
     forcePathStyle: config.S3_FORCE_PATH_STYLE,
     projectId: config.GCS_PROJECT_ID,
     keyFilePath: config.GCS_KEY_FILE_PATH,
+  };
+}
+
+// Mail config helper
+export function getMailConfig(): MailConfig | null {
+  if (!config.RESEND_API_KEY) {
+    return null;
+  }
+  return {
+    provider: "resend",
+    apiKey: config.RESEND_API_KEY,
+    fromEmail: config.MAIL_FROM_EMAIL,
+    fromName: config.MAIL_FROM_NAME,
   };
 }

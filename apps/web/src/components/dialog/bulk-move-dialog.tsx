@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
 import { toast } from "sonner";
 import { Folder as FolderIcon, ChevronRight, ChevronDown, Home } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder } from "@/types";
 import type { SelectedItem } from "@/components/shared";
 
@@ -98,7 +98,7 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
     } else if (successCount === 0) {
       toast.error(`Failed to move items`, { id: toastId });
     } else {
-      toast.warning(`Moved ${successCount} items, ${failCount} failed`, { id: toastId });
+      toast.warning(`Moved ${successCount}, failed to move ${failCount}`, { id: toastId });
     }
 
     onOpenChange(false);

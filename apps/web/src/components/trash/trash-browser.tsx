@@ -13,6 +13,7 @@ import { EmptyState, ListHeader, InfiniteScrollTrigger, TRASH_LIST_COLUMNS, type
 import { TrashItem } from "./trash-item";
 import { useInfiniteTrash, useRestoreItem, useMarqueeSelection, usePermanentlyDelete, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { TrashedItem } from "@/types";
 
 export function TrashBrowser() {
@@ -55,7 +56,7 @@ export function TrashBrowser() {
       { id: item.id, type: item.itemType },
       {
         onSuccess: () => toast.success(`${item.name} restored`, { id: toastId }),
-        onError: () => toast.error(`Failed to restore ${item.name}`, { id: toastId }),
+        onError: (error) => toast.error(getApiErrorMessage(error, `Failed to restore ${item.name}`), { id: toastId }),
       }
     );
   };
@@ -162,7 +163,7 @@ export function TrashBrowser() {
     if (failCount === 0) {
       toast.success(`${successCount} items restored`, { id: toastId });
     } else {
-      toast.error(`Restored ${successCount}, failed ${failCount}`, { id: toastId });
+      toast.error(`Restored ${successCount}, failed to restore ${failCount}`, { id: toastId });
     }
   }, [selectedItems, restoreItem, handleClearSelection]);
 
@@ -187,7 +188,7 @@ export function TrashBrowser() {
     if (failCount === 0) {
       toast.success(`${successCount} items deleted permanently`, { id: toastId });
     } else {
-      toast.error(`Deleted ${successCount}, failed ${failCount}`, { id: toastId });
+      toast.error(`Deleted ${successCount}, failed to delete ${failCount}`, { id: toastId });
     }
   }, [selectedItems, permanentlyDelete, handleClearSelection]);
 

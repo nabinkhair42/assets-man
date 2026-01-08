@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
 import { toast } from "sonner";
 import { Folder as FolderIcon, ChevronRight, ChevronDown, Home } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 
 interface MoveDialogProps {
@@ -82,8 +82,8 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
             toast.success(`${label} moved`);
             onOpenChange(false);
           },
-          onError: () => {
-            toast.error(`Failed to move ${label.toLowerCase()}`);
+          onError: (error) => {
+            toast.error(getApiErrorMessage(error));
           },
         }
       );
@@ -95,8 +95,8 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
             toast.success(`${label} moved`);
             onOpenChange(false);
           },
-          onError: () => {
-            toast.error(`Failed to move ${label.toLowerCase()}`);
+          onError: (error) => {
+            toast.error(getApiErrorMessage(error));
           },
         }
       );

@@ -1,7 +1,6 @@
 import type { Response, NextFunction } from "express";
 import { checkQuotaAvailable } from "@/features/storage/storage-services.js";
-import { ErrorResponses } from "@/utils/response-utils.js";
-import type { AuthRequest } from "./auth-middleware.js";
+import type { AuthRequest } from "@/middleware/auth-middleware.js";
 
 // Middleware to check storage quota before upload
 export async function checkStorageQuota(

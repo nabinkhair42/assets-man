@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
   ChevronLeft,
@@ -24,21 +24,45 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface PdfPreviewProps extends PreviewComponentProps {
   className?: string;
+  // Controlled mode props (used when minimal=true)
+  minimal?: boolean;
+  pageNumber?: number;
+  scale?: number;
+  rotation?: number;
+  onLoadSuccess?: (numPages: number) => void;
 }
 
-export function PdfPreview({ asset, previewUrl, onDownload, className }: PdfPreviewProps) {
-  const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
-  const [rotation, setRotation] = useState<number>(0);
+export function PdfPreview({
+  asset,
+  previewUrl,
+  onDownload,
+  className,
+  minimal = false,
+  pageNumber: controlledPageNumber,
+  scale: controlledScale,
+  rotation: controlledRotation,
+  onLoadSuccess: onLoadSuccessCallback,
+}: PdfPreviewProps) {
+  // Internal state (used when not in minimal mode)
+  const [internalNumPages, setInternalNumPages] = useState<number>(0);
+  const [internalPageNumber, setInternalPageNumber] = useState<number>(1);
+  const [internalScale, setInternalScale] = useState<number>(1.0);
+  const [internalRotation, setInternalRotation] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use controlled or internal state
+  const numPages = internalNumPages;
+  const pageNumber = minimal ? (controlledPageNumber ?? 1) : internalPageNumber;
+  const scale = minimal ? (controlledScale ?? 1.0) : internalScale;
+  const rotation = minimal ? (controlledRotation ?? 0) : internalRotation;
+
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
+    setInternalNumPages(numPages);
     setIsLoading(false);
     setError(null);
-  }, []);
+    onLoadSuccessCallback?.(numPages);
+  }, [onLoadSuccessCallback]);
 
   const onDocumentLoadError = useCallback((err: Error) => {
     console.error("PDF load error:", err);
@@ -46,23 +70,75 @@ export function PdfPreview({ asset, previewUrl, onDownload, className }: PdfPrev
     setIsLoading(false);
   }, []);
 
-  const goToPrevPage = () => setPageNumber((prev) => Math.max(prev - 1, 1));
-  const goToNextPage = () => setPageNumber((prev) => Math.min(prev + 1, numPages));
+  // Internal controls (only used when not minimal)
+  const goToPrevPage = () => setInternalPageNumber((prev) => Math.max(prev - 1, 1));
+  const goToNextPage = () => setInternalPageNumber((prev) => Math.min(prev + 1, numPages));
+  const zoomIn = () => setInternalScale((prev) => Math.min(prev + 0.25, 3.0));
+  const zoomOut = () => setInternalScale((prev) => Math.max(prev - 0.25, 0.5));
+  const rotate = () => setInternalRotation((prev) => (prev + 90) % 360);
 
-  const zoomIn = () => setScale((prev) => Math.min(prev + 0.25, 3.0));
-  const zoomOut = () => setScale((prev) => Math.max(prev - 0.25, 0.5));
-  const rotate = () => setRotation((prev) => (prev + 90) % 360);
+  // Minimal mode - just the PDF content, no toolbar
+  if (minimal) {
+    return (
+      <div className={cn("flex items-center justify-center w-full h-full", className)}>
+        {error ? (
+          <div className="flex flex-col items-center justify-center gap-4 text-center p-8">
+            <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
+              <FileText className="h-8 w-8 text-red-500" />
+            </div>
+            <div>
+              <p className="text-white/80 font-medium mb-2">Unable to preview PDF</p>
+              <p className="text-white/60 text-sm mb-4">{error}</p>
+              <Button onClick={onDownload} variant="secondary" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-auto max-h-full max-w-full flex items-start justify-center">
+            <Document
+              file={previewUrl}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={
+                <div className="flex flex-col items-center justify-center gap-4 py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                  <p className="text-white/60 text-sm">Loading PDF...</p>
+                </div>
+              }
+              className="flex justify-center"
+            >
+              <Page
+                pageNumber={pageNumber}
+                scale={scale}
+                rotate={rotation}
+                className="shadow-2xl"
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+                loading={
+                  <div className="flex items-center justify-center w-[600px] h-[800px] bg-white/5 rounded">
+                    <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+                  </div>
+                }
+              />
+            </Document>
+          </div>
+        )}
+      </div>
+    );
+  }
 
+  // Full mode with toolbar (used in public share pages, etc.)
   return (
     <div className={cn("flex flex-col items-center w-full h-full", className)}>
-      {/* PDF viewer container */}
       <div className="relative w-full h-full max-w-5xl flex flex-col rounded-lg overflow-hidden bg-card border border-border">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border gap-2">
           {/* Left: File info */}
           <div className="flex items-center gap-2 min-w-0">
             <FileText className="h-4 w-4 text-destructive shrink-0" />
-            <span className="text-foreground text-sm font-medium truncate max-w-[120px] sm:max-w-xs">
+            <span className="text-foreground text-sm font-medium truncate max-w-[100px] sm:max-w-xs">
               {asset.name}
             </span>
           </div>
@@ -78,7 +154,7 @@ export function PdfPreview({ asset, previewUrl, onDownload, className }: PdfPrev
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-foreground/80 text-sm min-w-[80px] text-center">
+            <span className="text-foreground/80 text-sm min-w-[60px] text-center tabular-nums">
               {isLoading ? "..." : `${pageNumber} / ${numPages}`}
             </span>
             <Button
@@ -196,7 +272,7 @@ export function PdfPreview({ asset, previewUrl, onDownload, className }: PdfPrev
             disabled={scale <= 0.5 || isLoading}
           >
             <ZoomOut className="h-4 w-4 mr-1" />
-            Zoom Out
+            Out
           </Button>
           <span className="text-muted-foreground text-xs">{Math.round(scale * 100)}%</span>
           <Button
@@ -207,7 +283,7 @@ export function PdfPreview({ asset, previewUrl, onDownload, className }: PdfPrev
             disabled={scale >= 3.0 || isLoading}
           >
             <ZoomIn className="h-4 w-4 mr-1" />
-            Zoom In
+            In
           </Button>
           <Button
             variant="ghost"

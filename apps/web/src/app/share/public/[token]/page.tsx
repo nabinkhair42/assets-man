@@ -34,7 +34,7 @@ import { shareService } from "@/services";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
 import type { SharedItemDetails, SharedFolderContents } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import {
   isPreviewable,
   getFileType,
@@ -131,8 +131,8 @@ export default function PublicSharePage() {
         );
         setFolderContents(contents);
         setCurrentFolderId(folderId ?? null);
-      } catch {
-        toast.error("Failed to load folder contents");
+      } catch (error) {
+        toast.error(getApiErrorMessage(error));
       } finally {
         setFolderLoading(false);
       }
@@ -188,8 +188,8 @@ export default function PublicSharePage() {
           shareDetails?.share.requiresPassword ? password : undefined
         );
         setFolderAssetPreviewUrl(result.url);
-      } catch {
-        toast.error("Failed to load preview");
+      } catch (error) {
+        toast.error(getApiErrorMessage(error));
         setPreviewingAsset(null);
       } finally {
         setFolderAssetPreviewLoading(false);
@@ -209,8 +209,8 @@ export default function PublicSharePage() {
       await shareService.accessLinkShare(token, { password });
       setUnlocked(true);
       toast.success("Access granted!");
-    } catch {
-      toast.error("Incorrect password");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Incorrect password"));
     }
   };
 
@@ -233,8 +233,8 @@ export default function PublicSharePage() {
       document.body.removeChild(link);
 
       toast.success("Download started");
-    } catch {
-      toast.error("Failed to download file");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setDownloading(false);
     }
@@ -257,8 +257,8 @@ export default function PublicSharePage() {
       document.body.removeChild(link);
 
       toast.success("Download started");
-    } catch {
-      toast.error("Failed to download file");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setDownloadingAssetId(null);
     }
@@ -302,8 +302,8 @@ export default function PublicSharePage() {
       URL.revokeObjectURL(url);
 
       toast.success("Download started");
-    } catch {
-      toast.error("Failed to download folder");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     } finally {
       setDownloadingFolder(false);
     }

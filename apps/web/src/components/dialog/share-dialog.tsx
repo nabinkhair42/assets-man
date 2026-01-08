@@ -36,7 +36,7 @@ import {
   Mail,
   Users,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder as FolderType, Asset, SharePermission, ShareWithDetails } from "@/types";
 
 interface ShareDialogProps {
@@ -79,8 +79,8 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
           toast.success(`Shared with ${email}`);
           setEmail("");
         },
-        onError: () => {
-          toast.error("Failed to share. Check the email address.");
+        onError: (error) => {
+          toast.error(getApiErrorMessage(error));
         },
       }
     );
@@ -105,8 +105,8 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
           setHasPassword(false);
           setHasExpiry(false);
         },
-        onError: () => {
-          toast.error("Failed to create share link");
+        onError: (error) => {
+          toast.error(getApiErrorMessage(error));
         },
       }
     );
@@ -123,7 +123,7 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
   const handleRemoveShare = (shareId: string) => {
     deleteShare.mutate(shareId, {
       onSuccess: () => toast.success("Access removed"),
-      onError: () => toast.error("Failed to remove access"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
     });
   };
 

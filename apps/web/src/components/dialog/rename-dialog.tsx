@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUpdateFolder, useUpdateAsset } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 
 interface RenameDialogProps {
@@ -48,8 +49,8 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
           toast.success(label + " renamed");
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error("Failed to rename " + label.toLowerCase());
+        onError: (error) => {
+          toast.error(getApiErrorMessage(error));
         },
       }
     );

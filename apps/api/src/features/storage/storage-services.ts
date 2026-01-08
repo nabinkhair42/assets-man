@@ -158,7 +158,6 @@ export async function recalculateStorage(userId: string): Promise<StorageQuota> 
   const actualUsed = Number(result?.totalSize) || 0;
 
   // Update the quota record
-  const quota = await getOrCreateStorageQuota(userId);
 
   const [updated] = await db
     .update(storageQuotas)
@@ -181,7 +180,6 @@ export async function updateQuotaLimit(
   userId: string,
   newLimit: number
 ): Promise<StorageQuota> {
-  const quota = await getOrCreateStorageQuota(userId);
 
   const [updated] = await db
     .update(storageQuotas)

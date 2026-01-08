@@ -4,12 +4,23 @@ import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
-import { Download, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Download,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Copy,
+  Check,
+} from "lucide-react";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Asset } from "@/types";
 import { assetService } from "@/services";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/formatters";
+import { FileIcon } from "@/components/shared";
 import {
   getFileType,
   ImagePreview,
@@ -35,7 +46,6 @@ interface FilePreviewDialogProps {
   asset: Asset | null;
   assets?: Asset[];
   onNavigate?: (asset: Asset) => void;
-  // Custom function to get download URL (for shared assets)
   getDownloadUrl?: (assetId: string) => Promise<{ url: string }>;
 }
 
@@ -51,14 +61,34 @@ export function FilePreviewDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // PDF-specific state
+  const [pdfNumPages, setPdfNumPages] = useState(0);
+  const [pdfPageNumber, setPdfPageNumber] = useState(1);
+  const [pdfScale, setPdfScale] = useState(1.0);
+  const [pdfRotation, setPdfRotation] = useState(0);
+
+  // Text-specific state
+  const [copied, setCopied] = useState(false);
+  const [textContent, setTextContent] = useState<string | null>(null);
+
   const currentIndex = asset ? assets.findIndex((a) => a.id === asset.id) : -1;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < assets.length - 1;
+
+  const fileType = asset ? getFileType(asset.mimeType) : "other";
+  const isPdf = fileType === "pdf";
+  const isText = fileType === "text" || fileType === "code";
 
   const loadPreview = useCallback(async (assetToLoad: Asset) => {
     setLoading(true);
     setError(null);
     setPreviewUrl(null);
+    // Reset PDF state
+    setPdfNumPages(0);
+    setPdfPageNumber(1);
+    setPdfScale(1.0);
+    setPdfRotation(0);
+    setTextContent(null);
 
     try {
       const fetchUrl = customGetDownloadUrl || assetService.getDownloadUrl;
@@ -104,10 +134,29 @@ export function FilePreviewDialog({
       link.click();
       document.body.removeChild(link);
       toast.success("Download started");
-    } catch {
-      toast.error("Failed to download file");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
     }
   }, [asset, customGetDownloadUrl]);
+
+  // PDF controls
+  const handlePdfPrevPage = () => setPdfPageNumber((prev) => Math.max(prev - 1, 1));
+  const handlePdfNextPage = () => setPdfPageNumber((prev) => Math.min(prev + 1, pdfNumPages));
+  const handleZoomIn = () => setPdfScale((prev) => Math.min(prev + 0.25, 3.0));
+  const handleZoomOut = () => setPdfScale((prev) => Math.max(prev - 0.25, 0.5));
+  const handleRotate = () => setPdfRotation((prev) => (prev + 90) % 360);
+
+  // Text copy handler
+  const handleCopy = async () => {
+    if (!textContent) return;
+    try {
+      await navigator.clipboard.writeText(textContent);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Ignore copy errors
+    }
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -115,21 +164,31 @@ export function FilePreviewDialog({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
-        handlePrev();
+        if (isPdf && pdfPageNumber > 1) {
+          handlePdfPrevPage();
+        } else {
+          handlePrev();
+        }
       } else if (e.key === "ArrowRight") {
-        handleNext();
+        if (isPdf && pdfPageNumber < pdfNumPages) {
+          handlePdfNextPage();
+        } else {
+          handleNext();
+        }
       } else if (e.key === "Escape") {
         onOpenChange(false);
+      } else if (e.key === "+" || e.key === "=") {
+        if (isPdf) handleZoomIn();
+      } else if (e.key === "-") {
+        if (isPdf) handleZoomOut();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, handlePrev, handleNext, onOpenChange]);
+  }, [open, handlePrev, handleNext, onOpenChange, isPdf, pdfPageNumber, pdfNumPages]);
 
   if (!asset) return null;
-
-  const fileType = getFileType(asset.mimeType);
 
   const renderPreview = () => {
     if (loading) {
@@ -161,19 +220,33 @@ export function FilePreviewDialog({
       case "audio":
         return <AudioPreview {...previewProps} />;
       case "pdf":
-        return <PdfPreview {...previewProps} />;
+        return (
+          <PdfPreview
+            {...previewProps}
+            pageNumber={pdfPageNumber}
+            scale={pdfScale}
+            rotation={pdfRotation}
+            onLoadSuccess={setPdfNumPages}
+            minimal
+          />
+        );
       case "text":
       case "code":
-        return <TextPreview {...previewProps} />;
+        return (
+          <TextPreview
+            {...previewProps}
+            onContentLoad={setTextContent}
+            minimal
+          />
+        );
       case "document":
-        // For Office documents, try Google Docs viewer
         const encodedUrl = encodeURIComponent(previewUrl);
         return (
-          <div className="flex flex-col items-center justify-center w-full h-full p-4">
+          <div className="flex flex-col items-center justify-center w-full h-full">
             <iframe
               src={`https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`}
               className="w-full h-full border-0 rounded-lg bg-white"
-              style={{ maxWidth: "900px", maxHeight: "calc(100vh - 140px)" }}
+              style={{ maxWidth: "900px", maxHeight: "calc(100vh - 120px)" }}
               title={asset.name}
             />
           </div>
@@ -186,82 +259,193 @@ export function FilePreviewDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        {/* Full-screen dark overlay */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/95 dark data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none dark">
-          {/* Header - Floating style */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent">
-            {/* Left side - File info */}
-            <div className="flex items-center gap-3 min-w-0">
+        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none bg-black/95">
+          {/* Header */}
+          <header className="flex items-center justify-between h-12 sm:h-14 px-2 sm:px-4 bg-black/50 backdrop-blur-sm border-b border-white/10">
+            {/* Left: File info */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <FileIcon mimeType={asset.mimeType} size="sm" className="shrink-0" />
               <div className="min-w-0">
-                <DialogPrimitive.Title className="text-foreground font-medium truncate max-w-md">
+                <DialogPrimitive.Title className="text-white font-medium truncate text-xs sm:text-sm max-w-[120px] sm:max-w-none">
                   {asset.name}
                 </DialogPrimitive.Title>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-white/60 text-[10px] sm:text-xs">
                   {formatFileSize(asset.size)}
                   {assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
                 </p>
               </div>
             </div>
 
-            {/* Right side - Download and Close buttons */}
+            {/* Center: File-type specific controls */}
             <div className="flex items-center gap-1">
+              {/* PDF Controls */}
+              {isPdf && pdfNumPages > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={handlePdfPrevPage}
+                    disabled={pdfPageNumber <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-white/80 text-sm min-w-[60px] text-center tabular-nums">
+                    {pdfPageNumber} / {pdfNumPages}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={handlePdfNextPage}
+                    disabled={pdfPageNumber >= pdfNumPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-5 bg-white/20 mx-2 hidden sm:block" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    onClick={handleZoomOut}
+                    disabled={pdfScale <= 0.5}
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <span className="text-white/60 text-xs min-w-[40px] text-center hidden sm:block">
+                    {Math.round(pdfScale * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    onClick={handleZoomIn}
+                    disabled={pdfScale >= 3.0}
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    onClick={handleRotate}
+                  >
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+
+              {/* Text Copy Button */}
+              {isText && textContent && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-end">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
+                className="h-8 w-8 sm:h-9 sm:w-9 text-white/70 hover:text-white hover:bg-white/10"
                 onClick={handleDownload}
               >
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <DialogPrimitive.Close asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full text-foreground/80 hover:text-foreground hover:bg-accent"
+                  className="h-8 w-8 sm:h-9 sm:w-9 text-white/70 hover:text-white hover:bg-white/10"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </DialogPrimitive.Close>
             </div>
-          </div>
+          </header>
 
           {/* Main preview area */}
-          <div className="flex-1 flex items-center justify-center px-4 pt-20 pb-4 min-h-0">
+          <div className="flex-1 flex items-center justify-center p-2 sm:p-4 min-h-0 overflow-hidden">
             {renderPreview()}
           </div>
 
-          {/* Navigation arrows */}
+          {/* Mobile PDF controls toolbar */}
+          {isPdf && pdfNumPages > 0 && (
+            <div className="sm:hidden flex items-center justify-center gap-2 px-3 py-2 bg-black/50 backdrop-blur-sm border-t border-white/10">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                onClick={handleZoomOut}
+                disabled={pdfScale <= 0.5}
+              >
+                <ZoomOut className="h-4 w-4 mr-1" />
+                Out
+              </Button>
+              <span className="text-white/60 text-xs">{Math.round(pdfScale * 100)}%</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/70 hover:text-white hover:bg-white/10"
+                onClick={handleZoomIn}
+                disabled={pdfScale >= 3.0}
+              >
+                <ZoomIn className="h-4 w-4 mr-1" />
+                In
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                onClick={handleRotate}
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Navigation arrows for multiple files */}
           {assets.length > 1 && (
             <>
               <button
                 onClick={handlePrev}
                 disabled={!hasPrev}
                 className={cn(
-                  "absolute left-4 top-1/2 -translate-y-1/2 z-10",
-                  "h-12 w-12 rounded-full flex items-center justify-center",
-                  "bg-accent hover:bg-accent/80 backdrop-blur-sm",
-                  "text-foreground transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-ring/30",
-                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-accent"
+                  "absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10",
+                  "h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center",
+                  "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
+                  "text-white transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-white/30",
+                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-black/50"
                 )}
               >
-                <ChevronLeft className="h-6 w-6" />
+                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
               <button
                 onClick={handleNext}
                 disabled={!hasNext}
                 className={cn(
-                  "absolute right-4 top-1/2 -translate-y-1/2 z-10",
-                  "h-12 w-12 rounded-full flex items-center justify-center",
-                  "bg-accent hover:bg-accent/80 backdrop-blur-sm",
-                  "text-foreground transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-ring/30",
-                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-accent"
+                  "absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10",
+                  "h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center",
+                  "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
+                  "text-white transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-white/30",
+                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-black/50"
                 )}
               >
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             </>
           )}

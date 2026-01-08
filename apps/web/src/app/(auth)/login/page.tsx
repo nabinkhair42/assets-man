@@ -19,6 +19,7 @@ import {
 import { loginSchema, type LoginFormValues } from "@/schema/auth-schema";
 import { useLogin } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,8 +40,8 @@ export default function LoginPage() {
         toast.success("Logged in successfully");
         router.push("/files");
       },
-      onError: () => {
-        toast.error("Invalid email or password");
+      onError: (error) => {
+        toast.error(getApiErrorMessage(error));
       },
     });
   };
@@ -84,7 +85,15 @@ export default function LoginPage() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Password</FormLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground hover:text-primary"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <FormControl>
                   <div className="relative">
                     <Input

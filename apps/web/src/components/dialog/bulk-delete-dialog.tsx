@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDeleteFolder, useDeleteAsset } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 import type { SelectedItem } from "@/components/shared";
 import { File, Folder } from "lucide-react";
 
@@ -70,7 +71,7 @@ export function BulkDeleteDialog({ open, onOpenChange, items, onSuccess }: BulkD
     } else if (successCount === 0) {
       toast.error(`Failed to delete items`, { id: toastId });
     } else {
-      toast.warning(`Deleted ${successCount} items, ${failCount} failed`, { id: toastId });
+      toast.warning(`Deleted ${successCount}, failed to delete ${failCount}`, { id: toastId });
     }
 
     onOpenChange(false);

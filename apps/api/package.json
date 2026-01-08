@@ -19,6 +19,7 @@
     "@google-cloud/storage": "^7.18.0",
     "@napi-rs/canvas": "^0.1.88",
     "@repo/database": "workspace:*",
+    "@repo/mail": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/storage": "workspace:*",
     "archiver": "^7.0.1",

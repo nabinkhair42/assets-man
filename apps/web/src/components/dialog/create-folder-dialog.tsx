@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCreateFolder } from "@/hooks";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib/utils";
 
 interface CreateFolderDialogProps {
   open: boolean;
@@ -41,8 +42,8 @@ export function CreateFolderDialog({
           setName("");
           onOpenChange(false);
         },
-        onError: () => {
-          toast.error("Failed to create folder");
+        onError: (error) => {
+          toast.error(getApiErrorMessage(error));
         },
       }
     );

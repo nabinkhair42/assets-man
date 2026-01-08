@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { assetService } from "@/services/asset-service";
 import { storageKeys } from "./use-storage";
+import { getMimeType } from "@/lib/utils";
 import type {
   RequestUploadInput,
   UpdateAssetInput,
@@ -82,10 +83,13 @@ export function useUploadFile() {
       folderId?: string;
       onProgress?: (progress: number) => void;
     }) => {
+      // Get MIME type (with fallback for files browser doesn't recognize)
+      const mimeType = getMimeType(file);
+
       // Request presigned URL
       const { uploadUrl, asset } = await assetService.requestUpload({
         fileName: file.name,
-        mimeType: file.type,
+        mimeType,
         size: file.size,
         folderId,
       });
@@ -94,7 +98,7 @@ export function useUploadFile() {
       await assetService.uploadFile(uploadUrl, file, onProgress);
 
       // Generate thumbnail in the background for supported file types
-      if (THUMBNAIL_SUPPORTED_TYPES.includes(file.type)) {
+      if (THUMBNAIL_SUPPORTED_TYPES.includes(mimeType)) {
         assetService.generateThumbnail(asset.id).catch(() => {
           // Silently fail - thumbnail generation is not critical
           console.log("Thumbnail generation failed for asset:", asset.id);
