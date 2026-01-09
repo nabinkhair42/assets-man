@@ -46,6 +46,7 @@ import {
   useMarqueeSelection,
   useUser,
   useFileBrowserShortcuts,
+  useViewMode,
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
@@ -144,7 +145,7 @@ interface FolderBrowserProps {
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { viewMode, setViewMode } = useViewMode();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
@@ -234,6 +235,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleDownload = async (asset: Asset) => {
     try {
+      // Record asset access for recent items (downloads count as access)
+      recentService.recordAccess({ itemId: asset.id, itemType: "asset" }).catch(() => {});
+
       const { url } = await assetService.getDownloadUrl(asset.id);
       // Create a temporary anchor and trigger download
       const link = document.createElement("a");

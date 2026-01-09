@@ -156,7 +156,7 @@ export function DraggableFolderItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-6 w-6 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -294,7 +294,7 @@ export function DraggableFolderItem({
             dragging={isDragging}
             dropTarget={isOver}
           >
-            <div className="flex items-center gap-3 px-3 py-2.5">
+            <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5">
               {/* Folder icon */}
               <div className="relative shrink-0">
                 <FolderIcon className="h-5 w-5 text-muted-foreground" />
@@ -303,15 +303,15 @@ export function DraggableFolderItem({
                 )}
               </div>
 
-              {/* Name */}
-              <span className="flex-1 truncate text-sm font-medium" title={folder.name}>
+              {/* Name - min-w-0 is critical for truncation in flex containers */}
+              <span className="flex-1 min-w-0 truncate text-sm font-medium" title={folder.name}>
                 {folder.name}
               </span>
 
               {/* Selection checkmark or menu - fixed height container to prevent layout shift */}
-              <div className="shrink-0 h-8 w-8 flex items-center justify-center">
+              <div className="shrink-0 h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center">
                 {isSelected ? (
-                  <SelectionCheckmark />
+                  <SelectionCheckmark className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                     {dropdownMenu}

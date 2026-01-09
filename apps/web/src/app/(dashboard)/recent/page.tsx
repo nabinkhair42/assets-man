@@ -23,6 +23,7 @@ import {
   useUser,
   useMarqueeSelection,
   useFileBrowserShortcuts,
+  useViewMode,
 } from "@/hooks";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
@@ -46,7 +47,7 @@ import { useRouter } from "next/navigation";
 export default function RecentPage() {
   const { data: user } = useUser();
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { viewMode, setViewMode } = useViewMode();
   const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
   const [moveItem, setMoveItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
@@ -111,6 +112,9 @@ export default function RecentPage() {
 
   const handleDownload = async (asset: Asset) => {
     try {
+      // Record asset access for recent items (downloads count as access)
+      recentService.recordAccess({ itemId: asset.id, itemType: "asset" }).catch(() => {});
+
       const { url } = await assetService.getDownloadUrl(asset.id);
       const link = document.createElement("a");
       link.href = url;

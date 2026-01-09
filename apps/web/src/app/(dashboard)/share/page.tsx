@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/context-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import { useSharedWithMe, useMarqueeSelection, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
+import { useSharedWithMe, useMarqueeSelection, useKeyboardShortcuts, useViewMode, type KeyboardShortcut } from "@/hooks";
 import { FilePreviewDialog } from "@/components/dialog";
 import { EmptyState, SelectionToolbar, SHARED_LIST_COLUMNS, type SelectedItem, FileIcon } from "@/components/shared";
 import { DataList, DataListHeader, DataListRow, DataListCell, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer, DataGridFolderCard, DataGridFileCard, SelectionCheckmark } from "@/components/ui/data-list";
@@ -47,7 +47,7 @@ interface SharedItem {
 
 export default function SharedWithMePage() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { viewMode, setViewMode } = useViewMode();
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
   const lastSelectedIndex = useRef<number | null>(null);

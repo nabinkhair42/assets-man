@@ -88,7 +88,9 @@ export function AppSidebar() {
                       disabled={isUploading}
                     >
                       <Plus className="size-4" />
-                      <span className="group-data-[collapsible=icon]:hidden">New</span>
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        New
+                      </span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-52">
@@ -97,7 +99,10 @@ export function AppSidebar() {
                       New Folder
                       <DropdownMenuShortcut>Alt+N</DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={triggerUpload} disabled={isUploading}>
+                    <DropdownMenuItem
+                      onClick={triggerUpload}
+                      disabled={isUploading}
+                    >
                       <Upload className="size-4 mr-2" />
                       {isUploading ? "Uploading..." : "Upload File"}
                       <DropdownMenuShortcut>Ctrl+U</DropdownMenuShortcut>
@@ -131,7 +136,7 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <StorageIndicator />
+            <StorageIndicator />
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -164,8 +169,14 @@ export function AppSidebar() {
         <SidebarRail />
       </Sidebar>
 
-      <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
-      <KeyboardShortcutsDialog open={shortcutsDialogOpen} onOpenChange={setShortcutsDialogOpen} />
+      <LogoutDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+      />
+      <KeyboardShortcutsDialog
+        open={shortcutsDialogOpen}
+        onOpenChange={setShortcutsDialogOpen}
+      />
     </>
   );
 }

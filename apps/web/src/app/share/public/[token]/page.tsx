@@ -37,6 +37,7 @@ import { cn, getApiErrorMessage } from "@/lib/utils";
 import { isPreviewable, getFileType } from "@/components/preview";
 import { ReadOnlyFileItem, ReadOnlyFolderItem, type ReadOnlyAsset, type ReadOnlyFolder } from "@/components/files";
 import { FilePreviewDialog } from "@/components/dialog";
+import { useViewMode } from "@/hooks";
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -53,7 +54,7 @@ export default function PublicSharePage() {
   const [folderContents, setFolderContents] = useState<SharedFolderContents | null>(null);
   const [folderLoading, setFolderLoading] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { viewMode, setViewMode } = useViewMode();
   const [downloadingAssetId, setDownloadingAssetId] = useState<string | null>(null);
   const [downloadingFolder, setDownloadingFolder] = useState(false);
 

@@ -230,7 +230,7 @@ const DataGridFolderContainer = React.forwardRef<HTMLDivElement, DataGridFolderC
     <div
       ref={ref}
       className={cn(
-        "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2",
+        "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2",
         className
       )}
       {...props}
@@ -275,11 +275,12 @@ const DataGridFolderCard = React.forwardRef<HTMLDivElement, DataGridFolderCardPr
       ref={ref}
       className={cn(
         "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
-        "hover:border-border hover:bg-accent/30",
+        "hover:border-border hover:bg-accent/50 hover:shadow-[0_1px_3px_rgba(0,0,0,0.08)]",
+        "dark:hover:shadow-[0_1px_4px_rgba(0,0,0,0.2)]",
         dragging && "opacity-50 scale-105",
         dropTarget && "border-primary bg-primary/10",
         pending && "border-primary bg-primary/5",
-        selected && "border-primary/60 bg-primary/5",
+        selected && "border-primary/60 bg-primary/5 shadow-[0_1px_3px_rgba(59,130,246,0.1)]",
         className
       )}
       {...props}
@@ -302,10 +303,11 @@ const DataGridFileCard = React.forwardRef<HTMLDivElement, DataGridFileCardProps>
       ref={ref}
       className={cn(
         "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
-        "hover:border-border/60 hover:shadow-lg hover:shadow-black/5",
+        "hover:border-border/80 hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_12px_rgba(0,0,0,0.1)] hover:-translate-y-0.5",
+        "dark:hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_4px_16px_rgba(0,0,0,0.3)]",
         dragging && "opacity-50 scale-105",
         pending && "border-primary bg-primary/5",
-        selected && "border-primary/60 bg-primary/5 shadow-md shadow-primary/10",
+        selected && "border-primary/60 bg-primary/5 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_12px_rgba(59,130,246,0.15)]",
         className
       )}
       {...props}

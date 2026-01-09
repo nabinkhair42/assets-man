@@ -43,7 +43,8 @@
       "Bash(docker --version:*)",
       "Bash(pnpm build:api:*)",
       "Bash(timeout 5 pnpm start:api:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebSearch"
     ]
   }
 }
