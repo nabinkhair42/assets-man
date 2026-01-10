@@ -279,21 +279,22 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     setPreviewAsset(asset);
   }, []);
 
-  // Selection handlers with shift+click support
+  // Selection handlers with shift+click and ctrl+click support
   const handleItemSelect = useCallback((
     index: number,
     id: string,
     type: "folder" | "asset",
     name: string,
     selected: boolean,
-    shiftKey: boolean
+    shiftKey: boolean,
+    ctrlKey: boolean
   ) => {
     setSelectedItems((prev) => {
-      const next = new Map(prev);
       const key = `${type}-${id}`;
 
-      if (shiftKey && lastSelectedIndex.current !== null && selected) {
-        // Range selection with shift+click
+      if (shiftKey && lastSelectedIndex.current !== null) {
+        // Shift+Click: Range selection from last selected to current
+        const next = new Map(prev);
         const start = Math.min(lastSelectedIndex.current, index);
         const end = Math.max(lastSelectedIndex.current, index);
 
@@ -303,32 +304,42 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
           }
         }
-      } else {
-        // Single item selection
-        if (selected) {
-          next.set(key, { id, type, name });
-        } else {
+        return next;
+      } else if (ctrlKey) {
+        // Ctrl+Click: Toggle item without clearing others (multi-select)
+        const next = new Map(prev);
+        if (next.has(key)) {
           next.delete(key);
+        } else {
+          next.set(key, { id, type, name });
+          lastSelectedIndex.current = index;
+        }
+        return next;
+      } else {
+        // Regular click: Clear all and select only this item (or deselect if already selected alone)
+        if (prev.size === 1 && prev.has(key)) {
+          // If only this item is selected, deselect it
+          lastSelectedIndex.current = null;
+          return new Map();
+        } else {
+          // Select only this item
+          const next = new Map<string, SelectedItem>();
+          next.set(key, { id, type, name });
+          lastSelectedIndex.current = index;
+          return next;
         }
       }
-
-      // Update last selected index
-      if (selected) {
-        lastSelectedIndex.current = index;
-      }
-
-      return next;
     });
   }, [allItems]);
 
-  const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false) => {
+  const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false, ctrlKey = false) => {
     const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
-    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
+    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey, ctrlKey);
   }, [allItems, handleItemSelect]);
 
-  const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false) => {
+  const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false, ctrlKey = false) => {
     const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
-    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
+    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey, ctrlKey);
   }, [allItems, handleItemSelect]);
 
   const handleClearSelection = useCallback(() => {

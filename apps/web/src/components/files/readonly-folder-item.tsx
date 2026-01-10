@@ -23,7 +23,7 @@ interface ReadOnlyFolderItemProps {
   viewMode?: "grid" | "list";
   isSelected?: boolean;
   isPendingSelection?: boolean;
-  onSelect?: (folder: ReadOnlyFolder, selected: boolean, shiftKey?: boolean) => void;
+  onSelect?: (folder: ReadOnlyFolder, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
   selectionMode?: boolean;
 }
 
@@ -41,7 +41,7 @@ export function ReadOnlyFolderItem({
   const handleClick = (e: React.MouseEvent) => {
     if (onSelect) {
       e.stopPropagation();
-      onSelect(folder, !isSelected, e.shiftKey);
+      onSelect(folder, !isSelected, e.shiftKey, e.ctrlKey || e.metaKey);
     }
   };
 

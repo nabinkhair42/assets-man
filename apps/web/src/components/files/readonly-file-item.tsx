@@ -29,7 +29,7 @@ interface ReadOnlyFileItemProps {
   isDownloading?: boolean;
   isSelected?: boolean;
   isPendingSelection?: boolean;
-  onSelect?: (asset: ReadOnlyAsset, selected: boolean, shiftKey?: boolean) => void;
+  onSelect?: (asset: ReadOnlyAsset, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
   selectionMode?: boolean;
 }
 
@@ -52,7 +52,7 @@ export function ReadOnlyFileItem({
 
     if (onSelect) {
       e.stopPropagation();
-      onSelect(asset, !isSelected, e.shiftKey);
+      onSelect(asset, !isSelected, e.shiftKey, e.ctrlKey || e.metaKey);
     }
   };
 

@@ -17,3 +17,4 @@ export {
   type KeyboardShortcut,
   type FileBrowserShortcutActions,
 } from "./use-keyboard-shortcuts";
+export { useSwipe } from "./use-swipe";

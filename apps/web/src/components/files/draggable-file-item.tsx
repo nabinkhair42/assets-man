@@ -51,7 +51,7 @@ interface DraggableFileItemProps {
   index?: number;
   isSelected?: boolean;
   isPendingSelection?: boolean;
-  onSelect?: (asset: Asset, selected: boolean, shiftKey?: boolean) => void;
+  onSelect?: (asset: Asset, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
   selectionMode?: boolean;
   selectedCount?: number;
   onBulkDownload?: () => void;
@@ -216,13 +216,14 @@ export function DraggableFileItem({
     </DropdownMenu>
   );
 
-  // Handle click to toggle selection (Google Drive style)
+  // Handle click for selection (supports Ctrl+Click for multi-select, Shift+Click for range)
   const handleClick = (e: React.MouseEvent) => {
     // Don't toggle if clicking on dropdown or other interactive elements
     if ((e.target as HTMLElement).closest("button")) return;
 
     e.stopPropagation();
-    onSelect?.(asset, !isSelected, e.shiftKey);
+    // Pass both shiftKey and ctrlKey (metaKey for Mac) for proper multi-select
+    onSelect?.(asset, !isSelected, e.shiftKey, e.ctrlKey || e.metaKey);
   };
 
   const handleDoubleClick = () => {

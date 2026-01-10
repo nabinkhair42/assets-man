@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { assetService } from "@/services";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/formatters";
 import { FileIcon } from "@/components/shared";
+import { useSwipe } from "@/hooks";
 import {
   getFileType,
   ImagePreview,
@@ -182,6 +183,17 @@ export function FilePreviewDialog({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, handlePrev, handleNext, onOpenChange, isPdf, pdfPageNumber, pdfNumPages]);
+
+  // Swipe gesture handlers for mobile navigation
+  const swipeHandlers = useMemo(() => ({
+    onSwipeLeft: hasNext ? handleNext : undefined,
+    onSwipeRight: hasPrev ? handlePrev : undefined,
+  }), [hasNext, hasPrev, handleNext, handlePrev]);
+
+  const touchHandlers = useSwipe(swipeHandlers, {
+    threshold: 50,
+    maxTime: 300,
+  });
 
   if (!asset) return null;
 
@@ -356,8 +368,11 @@ export function FilePreviewDialog({
             </div>
           </header>
 
-          {/* Main preview area */}
-          <div className="flex-1 flex items-center justify-center p-2 sm:p-4 min-h-0 overflow-hidden">
+          {/* Main preview area with swipe gesture support */}
+          <div
+            className="flex-1 flex items-center justify-center p-2 sm:p-4 min-h-0 overflow-hidden"
+            {...touchHandlers}
+          >
             {renderPreview()}
           </div>
 
