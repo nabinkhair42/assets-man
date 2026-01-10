@@ -152,7 +152,7 @@ export function AppSidebar() {
                   <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
-            </SidebarMenuItem> */}``
+            </SidebarMenuItem> */}
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => setLogoutDialogOpen(true)}
