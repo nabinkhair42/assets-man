@@ -13,7 +13,23 @@ export interface PreviewComponentProps {
   onDownload: () => void;
 }
 
-export function getFileType(mimeType: string): FileType {
+// File extensions that should be treated as code files
+const codeExtensions = [
+  ".mdx", ".tsx", ".jsx", ".ts", ".js", ".json",
+  ".yaml", ".yml", ".toml", ".xml", ".html", ".css", ".scss", ".less",
+  ".py", ".rb", ".go", ".rs", ".java", ".kt", ".swift", ".c", ".cpp", ".h",
+  ".sh", ".bash", ".zsh", ".ps1", ".sql", ".graphql", ".vue", ".svelte",
+];
+
+export function getFileType(mimeType: string, fileName?: string): FileType {
+  // Check file extension first for code files (handles MDX, TSX, etc.)
+  if (fileName) {
+    const ext = fileName.toLowerCase().substring(fileName.lastIndexOf("."));
+    if (codeExtensions.includes(ext)) {
+      return "code";
+    }
+  }
+
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/")) return "video";
   if (mimeType.startsWith("audio/")) return "audio";
@@ -43,7 +59,7 @@ export function getFileType(mimeType: string): FileType {
   return "other";
 }
 
-export function isPreviewable(mimeType: string): boolean {
-  const fileType = getFileType(mimeType);
+export function isPreviewable(mimeType: string, fileName?: string): boolean {
+  const fileType = getFileType(mimeType, fileName);
   return fileType !== "other" && fileType !== "document";
 }

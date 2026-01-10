@@ -27,14 +27,12 @@ import {
   Clock,
   FolderPlus,
   Star,
-  Trash2,
-  Settings,
-  LogOut,
+  Trash2, LogOut,
   Stone,
   Plus,
   Upload,
   Users,
-  Keyboard,
+  Keyboard
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -147,14 +145,14 @@ export function AppSidebar() {
                 <span>Shortcuts</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+            {/* <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Settings">
                 <Link href="/settings">
                   <Settings className="size-4" />
                   <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </SidebarMenuItem> */}``
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => setLogoutDialogOpen(true)}

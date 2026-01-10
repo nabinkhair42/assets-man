@@ -77,7 +77,7 @@ export function FilePreviewDialog({
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < assets.length - 1;
 
-  const fileType = asset ? getFileType(asset.mimeType) : "other";
+  const fileType = asset ? getFileType(asset.mimeType, asset.name) : "other";
   const isPdf = fileType === "pdf";
 
   const loadPreview = useCallback(async (assetToLoad: Asset) => {

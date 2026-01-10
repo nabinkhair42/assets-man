@@ -30,7 +30,19 @@ export function TextPreview({
   // Determine file type
   const isJson = asset.mimeType === "application/json";
   const isCsv = asset.mimeType.includes("csv");
-  const isCode = asset.mimeType === "application/json" ||
+
+  // Check file extension for code files (handles MDX, TSX, JSX, etc.)
+  const fileExt = asset.name.toLowerCase().substring(asset.name.lastIndexOf("."));
+  const codeExtensions = [
+    ".mdx", ".tsx", ".jsx", ".ts", ".js", ".json",
+    ".yaml", ".yml", ".toml", ".xml", ".html", ".css", ".scss", ".less",
+    ".py", ".rb", ".go", ".rs", ".java", ".kt", ".swift", ".c", ".cpp", ".h",
+    ".sh", ".bash", ".zsh", ".ps1", ".sql", ".graphql", ".vue", ".svelte",
+  ];
+  const isCodeByExtension = codeExtensions.includes(fileExt);
+
+  const isCode = isCodeByExtension ||
+    asset.mimeType === "application/json" ||
     asset.mimeType === "application/javascript" ||
     asset.mimeType === "application/typescript" ||
     asset.mimeType === "application/xml" ||

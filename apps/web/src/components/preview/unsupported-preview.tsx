@@ -12,8 +12,8 @@ interface UnsupportedPreviewProps extends PreviewComponentProps {
   message?: string;
 }
 
-function FileTypeIcon({ mimeType, className }: { mimeType: string; className?: string }) {
-  const fileType = getFileType(mimeType);
+function FileTypeIcon({ mimeType, fileName, className }: { mimeType: string; fileName?: string; className?: string }) {
+  const fileType = getFileType(mimeType, fileName);
 
   switch (fileType) {
     case "image":
@@ -52,7 +52,7 @@ export function UnsupportedPreview({
       <div className="relative">
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 blur-xl animate-pulse" />
         <div className="relative p-8 rounded-2xl bg-muted/50 border border-border">
-          <FileTypeIcon mimeType={asset.mimeType} className="h-24 w-24" />
+          <FileTypeIcon mimeType={asset.mimeType} fileName={asset.name} className="h-24 w-24" />
         </div>
       </div>
 

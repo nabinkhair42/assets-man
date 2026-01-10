@@ -132,7 +132,7 @@ export default function PublicSharePage() {
   // Open preview dialog when unlocked for direct asset shares
   useEffect(() => {
     if (unlocked && shareDetails && shareDetails.item.type === "asset") {
-      if (isPreviewable(shareDetails.item.mimeType || "")) {
+      if (isPreviewable(shareDetails.item.mimeType || "", shareDetails.item.name)) {
         setDirectAssetPreviewOpen(true);
       }
     }
@@ -141,7 +141,7 @@ export default function PublicSharePage() {
   // Open preview dialog for folder asset
   const openFolderAssetPreview = useCallback(
     (asset: { id: string; name: string; mimeType: string; size: number }) => {
-      if (!isPreviewable(asset.mimeType)) return;
+      if (!isPreviewable(asset.mimeType, asset.name)) return;
       setPreviewingAsset(asset);
     },
     []
@@ -499,8 +499,8 @@ export default function PublicSharePage() {
   const { item, share } = shareDetails;
   const isAsset = item.type === "asset";
   const isFolder = item.type === "folder";
-  const canPreview = isAsset && item.mimeType && isPreviewable(item.mimeType);
-  const fileType = item.mimeType ? getFileType(item.mimeType) : "other";
+  const canPreview = isAsset && item.mimeType && isPreviewable(item.mimeType, item.name);
+  const fileType = item.mimeType ? getFileType(item.mimeType, item.name) : "other";
 
   // Create asset-like object for preview components
   const previewAsset = {
@@ -694,7 +694,7 @@ export default function PublicSharePage() {
                           asset={asset}
                           onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
                           onPreview={(a) => {
-                            if (isPreviewable(a.mimeType)) {
+                            if (isPreviewable(a.mimeType, a.name)) {
                               openFolderAssetPreview(a);
                             } else {
                               handleFolderAssetDownload(a.id, a.name);
@@ -735,7 +735,7 @@ export default function PublicSharePage() {
                     asset={asset}
                     onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
                     onPreview={(a) => {
-                      if (isPreviewable(a.mimeType)) {
+                      if (isPreviewable(a.mimeType, a.name)) {
                         openFolderAssetPreview(a);
                       } else {
                         handleFolderAssetDownload(a.id, a.name);
