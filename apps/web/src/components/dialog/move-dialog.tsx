@@ -2,13 +2,14 @@
 
 import { useState, useMemo, useRef } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
@@ -110,57 +111,59 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
   const rootFolders = allFolders.filter((f) => f.parentId === null);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Move {label}</DialogTitle>
-          <DialogDescription>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Move {label}</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Select a destination folder for &quot;{item?.name}&quot;.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <ScrollArea className="h-[300px] border rounded-md p-2">
-          {/* Root option */}
-          <button
-            type="button"
-            onClick={() => setSelectedFolderId(null)}
-            className={cn(
-              "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
-              selectedFolderId === null && "bg-accent"
-            )}
-          >
-            <Home className="h-4 w-4" />
-            <span>My Files</span>
-            {currentParentId === null && (
-              <span className="text-xs text-muted-foreground ml-auto">(current)</span>
-            )}
-          </button>
+        <ResponsiveDialogBody>
+          <ScrollArea className="h-[300px] border rounded-md p-2">
+            {/* Root option */}
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId(null)}
+              className={cn(
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
+                selectedFolderId === null && "bg-accent"
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span>My Files</span>
+              {currentParentId === null && (
+                <span className="text-xs text-muted-foreground ml-auto">(current)</span>
+              )}
+            </button>
 
-          {/* Folder tree */}
-          {rootFolders.map((folder) => (
-            <FolderTreeNode
-              key={folder.id}
-              folder={folder}
-              allFolders={allFolders}
-              depth={0}
-              selectedId={selectedFolderId}
-              currentParentId={currentParentId}
-              excludeIds={excludeIds}
-              onSelect={setSelectedFolderId}
-            />
-          ))}
-        </ScrollArea>
+            {/* Folder tree */}
+            {rootFolders.map((folder) => (
+              <FolderTreeNode
+                key={folder.id}
+                folder={folder}
+                allFolders={allFolders}
+                depth={0}
+                selectedId={selectedFolderId}
+                currentParentId={currentParentId}
+                excludeIds={excludeIds}
+                onSelect={setSelectedFolderId}
+              />
+            ))}
+          </ScrollArea>
+        </ResponsiveDialogBody>
 
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleMove} disabled={isPending || selectedFolderId === currentParentId}>
             {isPending ? "Moving..." : "Move"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 

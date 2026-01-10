@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,14 +61,14 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
   const label = itemType === "folder" ? "Folder" : "File";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Rename {label}</DialogTitle>
-            <DialogDescription>Enter a new name.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Rename {label}</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription>Enter a new name.</ResponsiveDialogDescription>
+          </ResponsiveDialogHeader>
+          <ResponsiveDialogBody className="py-4">
             <Label htmlFor="rename-input">Name</Label>
             <Input
               id="rename-input"
@@ -76,17 +77,17 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
               className="mt-2"
               autoFocus
             />
-          </div>
-          <DialogFooter>
+          </ResponsiveDialogBody>
+          <ResponsiveDialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={!name.trim() || isPending}>
               {isPending ? "Saving..." : "Save"}
             </Button>
-          </DialogFooter>
+          </ResponsiveDialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }

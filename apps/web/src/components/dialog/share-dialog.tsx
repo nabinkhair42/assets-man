@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -130,14 +130,17 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
   const isPending = createUserShare.isPending || createLinkShare.isPending || deleteShare.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 max-h-[90vh] flex flex-col">
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent
+        className="sm:max-w-md p-0 gap-0 max-h-[90vh] flex flex-col"
+        drawerClassName="px-0 pb-0"
+      >
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
-          <DialogTitle className="text-lg font-medium truncate pr-8">
+        <ResponsiveDialogHeader className="px-6 pt-6 pb-4 shrink-0">
+          <ResponsiveDialogTitle className="text-lg font-medium truncate pr-8">
             Share "{item?.name}"
-          </DialogTitle>
-        </DialogHeader>
+          </ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "link" | "email")} className="flex-1 flex flex-col min-h-0">
@@ -345,8 +348,8 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
             </div>
           </TabsContent>
         </Tabs>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 

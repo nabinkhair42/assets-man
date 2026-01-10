@@ -44,7 +44,8 @@
       "Bash(pnpm build:api:*)",
       "Bash(timeout 5 pnpm start:api:*)",
       "Bash(tree:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(test:*)"
     ]
   }
 }

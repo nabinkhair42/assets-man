@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogBody,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
@@ -109,55 +110,57 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
   const rootFolders = allFolders.filter((f) => f.parentId === null);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Move {items.length} Items</DialogTitle>
-          <DialogDescription>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Move {items.length} Items</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
             Select a destination folder for {folderCount > 0 && `${folderCount} folder${folderCount !== 1 ? "s" : ""}`}
             {folderCount > 0 && assetCount > 0 && " and "}
             {assetCount > 0 && `${assetCount} file${assetCount !== 1 ? "s" : ""}`}.
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
 
-        <ScrollArea className="h-[300px] border rounded-md p-2">
-          {/* Root option */}
-          <button
-            type="button"
-            onClick={() => setSelectedFolderId(null)}
-            className={cn(
-              "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
-              selectedFolderId === null && "bg-accent"
-            )}
-          >
-            <Home className="h-4 w-4" />
-            <span>My Files</span>
-          </button>
+        <ResponsiveDialogBody>
+          <ScrollArea className="h-[300px] border rounded-md p-2">
+            {/* Root option */}
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId(null)}
+              className={cn(
+                "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
+                selectedFolderId === null && "bg-accent"
+              )}
+            >
+              <Home className="h-4 w-4" />
+              <span>My Files</span>
+            </button>
 
-          {/* Folder tree */}
-          {rootFolders.map((folder) => (
-            <FolderTreeNode
-              key={folder.id}
-              folder={folder}
-              allFolders={allFolders}
-              depth={0}
-              selectedId={selectedFolderId}
-              excludeIds={excludeIds}
-              onSelect={setSelectedFolderId}
-            />
-          ))}
-        </ScrollArea>
+            {/* Folder tree */}
+            {rootFolders.map((folder) => (
+              <FolderTreeNode
+                key={folder.id}
+                folder={folder}
+                allFolders={allFolders}
+                depth={0}
+                selectedId={selectedFolderId}
+                excludeIds={excludeIds}
+                onSelect={setSelectedFolderId}
+              />
+            ))}
+          </ScrollArea>
+        </ResponsiveDialogBody>
 
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isMoving}>
             Cancel
           </Button>
           <Button onClick={handleMove} disabled={isMoving}>
             {isMoving ? "Moving..." : "Move Here"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   );
 }
 

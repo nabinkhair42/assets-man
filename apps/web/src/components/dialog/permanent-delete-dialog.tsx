@@ -1,15 +1,15 @@
 "use client";
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  ResponsiveAlertDialog,
+  ResponsiveAlertDialogAction,
+  ResponsiveAlertDialogCancel,
+  ResponsiveAlertDialogContent,
+  ResponsiveAlertDialogDescription,
+  ResponsiveAlertDialogFooter,
+  ResponsiveAlertDialogHeader,
+  ResponsiveAlertDialogTitle,
+} from "@/components/ui/responsive-alert-dialog";
 import { usePermanentlyDelete } from "@/hooks";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
@@ -50,29 +50,29 @@ export function PermanentDeleteDialog({
   const label = isFolder ? "folder" : "file";
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Permanently?</AlertDialogTitle>
-          <AlertDialogDescription>
+    <ResponsiveAlertDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveAlertDialogContent>
+        <ResponsiveAlertDialogHeader>
+          <ResponsiveAlertDialogTitle>Delete Permanently?</ResponsiveAlertDialogTitle>
+          <ResponsiveAlertDialogDescription>
             Are you sure you want to permanently delete &quot;{item?.name}&quot;?
             {isFolder && " This will also delete all files inside."}
             <span className="block mt-2 font-medium text-destructive">
               This action cannot be undone. The {label} will be permanently removed.
             </span>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+          </ResponsiveAlertDialogDescription>
+        </ResponsiveAlertDialogHeader>
+        <ResponsiveAlertDialogFooter>
+          <ResponsiveAlertDialogCancel>Cancel</ResponsiveAlertDialogCancel>
+          <ResponsiveAlertDialogAction
             onClick={handleDelete}
             disabled={permanentlyDelete.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {permanentlyDelete.isPending ? "Deleting..." : "Delete Permanently"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </ResponsiveAlertDialogAction>
+        </ResponsiveAlertDialogFooter>
+      </ResponsiveAlertDialogContent>
+    </ResponsiveAlertDialog>
   );
 }
