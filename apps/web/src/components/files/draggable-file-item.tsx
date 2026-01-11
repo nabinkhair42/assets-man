@@ -51,6 +51,7 @@ interface DraggableFileItemProps {
   index?: number;
   isSelected?: boolean;
   isPendingSelection?: boolean;
+  isFocused?: boolean;
   onSelect?: (asset: Asset, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
   selectionMode?: boolean;
   selectedCount?: number;
@@ -74,6 +75,7 @@ export function DraggableFileItem({
   viewMode = "grid",
   isSelected = false,
   isPendingSelection = false,
+  isFocused = false,
   onSelect,
   selectedCount = 0,
   onBulkDownload,
@@ -251,6 +253,7 @@ export function DraggableFileItem({
             onDoubleClick={handleDoubleClick}
             selected={isSelected}
             pending={isPendingSelection}
+            focused={isFocused}
             dragging={isDragging}
           >
             <FileIcon mimeType={asset.mimeType} size="sm" />
@@ -298,6 +301,7 @@ export function DraggableFileItem({
           onDoubleClick={handleDoubleClick}
           selected={isSelected}
           pending={isPendingSelection}
+          focused={isFocused}
           dragging={isDragging}
         >
           {/* Preview area */}

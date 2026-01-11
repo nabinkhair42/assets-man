@@ -49,6 +49,7 @@ interface DraggableFolderItemProps {
   index?: number;
   isSelected?: boolean;
   isPendingSelection?: boolean;
+  isFocused?: boolean;
   onSelect?: (folder: Folder, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
   selectionMode?: boolean;
   selectedCount?: number;
@@ -70,6 +71,7 @@ export function DraggableFolderItem({
   viewMode = "grid",
   isSelected = false,
   isPendingSelection = false,
+  isFocused = false,
   onSelect,
   selectedCount = 0,
   onBulkDelete,
@@ -212,12 +214,20 @@ export function DraggableFolderItem({
 
   // Handle click for selection (supports Ctrl+Click for multi-select, Shift+Click for range)
   const handleClick = (e: React.MouseEvent) => {
-    // Don't toggle if clicking on dropdown or other interactive elements
+    // Don't toggle if clicking on dropdown, name link, or other interactive elements
     if ((e.target as HTMLElement).closest("button")) return;
+    if ((e.target as HTMLElement).closest("[data-folder-name]")) return;
 
     e.stopPropagation();
     // Pass both shiftKey and ctrlKey (metaKey for Mac) for proper multi-select
     onSelect?.(folder, !isSelected, e.shiftKey, e.ctrlKey || e.metaKey);
+  };
+
+  // Handle click on folder name - opens folder directly (Google Drive behavior)
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onOpen(folder.id);
   };
 
   // Auto-select on context menu open (Google Drive behavior)
@@ -242,19 +252,30 @@ export function DraggableFolderItem({
               onDoubleClick={() => onOpen(folder.id)}
               selected={isSelected}
               pending={isPendingSelection}
+              focused={isFocused}
               dragging={isDragging}
               dropTarget={isOver}
             >
               <FileIcon isFolder size="sm" />
               <DataListCell primary title={folder.name}>
-                {/* Mobile: Show truncated name */}
-                <p className="sm:hidden font-medium text-sm text-foreground">
+                {/* Mobile: Show truncated name - clickable to open */}
+                <button
+                  type="button"
+                  data-folder-name
+                  onClick={handleNameClick}
+                  className="sm:hidden font-medium text-sm text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors text-left truncate max-w-full"
+                >
                   {truncateFileName(folder.name, 28, true)}
-                </p>
-                {/* Desktop: Show full name with CSS truncation */}
-                <p className="hidden sm:block truncate font-medium text-sm text-foreground">
+                </button>
+                {/* Desktop: Show full name - clickable to open */}
+                <button
+                  type="button"
+                  data-folder-name
+                  onClick={handleNameClick}
+                  className="hidden sm:block truncate font-medium text-sm text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors text-left max-w-full"
+                >
                   {folder.name}
-                </p>
+                </button>
               </DataListCell>
               {showOwner && owner && (
                 <DataListCell width="w-10" align="center" hideBelow="sm">
@@ -292,6 +313,7 @@ export function DraggableFolderItem({
             onDoubleClick={() => onOpen(folder.id)}
             selected={isSelected}
             pending={isPendingSelection}
+            focused={isFocused}
             dragging={isDragging}
             dropTarget={isOver}
           >
@@ -304,10 +326,16 @@ export function DraggableFolderItem({
                 )}
               </div>
 
-              {/* Name - min-w-0 is critical for truncation in flex containers */}
-              <span className="flex-1 min-w-0 truncate text-sm font-medium" title={folder.name}>
+              {/* Name - clickable to open folder directly */}
+              <button
+                type="button"
+                data-folder-name
+                onClick={handleNameClick}
+                className="flex-1 min-w-0 truncate text-sm font-medium text-left hover:text-primary hover:underline underline-offset-2 transition-colors"
+                title={folder.name}
+              >
                 {folder.name}
-              </span>
+              </button>
 
               {/* Selection checkmark or menu - fixed height container to prevent layout shift */}
               <div className="shrink-0 h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center">

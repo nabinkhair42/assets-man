@@ -100,20 +100,24 @@ DataListBody.displayName = "DataListBody";
 interface DataListRowProps extends React.HTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   pending?: boolean;
+  focused?: boolean;
   dragging?: boolean;
   dropTarget?: boolean;
 }
 
 const DataListRow = React.forwardRef<HTMLDivElement, DataListRowProps>(
-  ({ className, selected, pending, dragging, dropTarget, children, ...props }, ref) => (
+  ({ className, selected, pending, focused, dragging, dropTarget, children, ...props }, ref) => (
     <div
       ref={ref}
+      tabIndex={0}
       className={cn(
         "group flex cursor-pointer items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 transition-all duration-150",
         "hover:bg-accent/50 rounded-lg",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         dragging && "opacity-50 cursor-grabbing",
         dropTarget && "ring-2 ring-primary bg-primary/10",
         pending && "bg-primary/20 ring-2 ring-primary ring-inset",
+        focused && "ring-2 ring-primary bg-accent/30",
         selected && "bg-primary/15 ring-2 ring-primary/60 ring-inset",
         className
       )}
@@ -265,21 +269,25 @@ DataGridFileContainer.displayName = "DataGridFileContainer";
 interface DataGridFolderCardProps extends React.HTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   pending?: boolean;
+  focused?: boolean;
   dragging?: boolean;
   dropTarget?: boolean;
 }
 
 const DataGridFolderCard = React.forwardRef<HTMLDivElement, DataGridFolderCardProps>(
-  ({ className, selected, pending, dragging, dropTarget, children, ...props }, ref) => (
+  ({ className, selected, pending, focused, dragging, dropTarget, children, ...props }, ref) => (
     <div
       ref={ref}
+      tabIndex={0}
       className={cn(
-        "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-150",
-        "hover:border-border hover:bg-accent/50 hover:shadow-[0_1px_3px_rgba(0,0,0,0.08)]",
-        "dark:hover:shadow-[0_1px_4px_rgba(0,0,0,0.2)]",
+        "group relative cursor-pointer rounded-lg border border-border/40 bg-card transition-all duration-200",
+        "hover:border-border hover:bg-accent/50 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-0.5",
+        "dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         dragging && "opacity-50 scale-105",
         dropTarget && "border-primary bg-primary/10",
         pending && "border-primary bg-primary/5",
+        focused && "ring-2 ring-primary bg-accent/30",
         selected && "border-primary/60 bg-primary/5 shadow-[0_1px_3px_rgba(59,130,246,0.1)]",
         className
       )}
@@ -294,19 +302,23 @@ DataGridFolderCard.displayName = "DataGridFolderCard";
 interface DataGridFileCardProps extends React.HTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   pending?: boolean;
+  focused?: boolean;
   dragging?: boolean;
 }
 
 const DataGridFileCard = React.forwardRef<HTMLDivElement, DataGridFileCardProps>(
-  ({ className, selected, pending, dragging, children, ...props }, ref) => (
+  ({ className, selected, pending, focused, dragging, children, ...props }, ref) => (
     <div
       ref={ref}
+      tabIndex={0}
       className={cn(
         "group relative cursor-pointer rounded-xl border border-transparent transition-all duration-200",
         "hover:border-border/80 hover:shadow-[0_1px_2px_rgba(0,0,0,0.05),0_4px_12px_rgba(0,0,0,0.1)] hover:-translate-y-0.5",
         "dark:hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_4px_16px_rgba(0,0,0,0.3)]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         dragging && "opacity-50 scale-105",
         pending && "border-primary bg-primary/5",
+        focused && "ring-2 ring-primary bg-accent/30",
         selected && "border-primary/60 bg-primary/5 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_12px_rgba(59,130,246,0.15)]",
         className
       )}

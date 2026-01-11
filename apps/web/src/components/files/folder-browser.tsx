@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect, useTransition } from "react";
 import { Upload, Folder as FolderIcon, FolderPlus, CheckSquare, RefreshCw } from "lucide-react";
 
 // Types for FileSystem API (folder drag & drop)
@@ -160,6 +160,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const lastSelectedIndex = useRef<number | null>(null);
@@ -223,10 +225,29 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     return items;
   }, [folders, assets]);
 
-  const isLoading = foldersLoading || assetsLoading;
+  const isLoading = foldersLoading || assetsLoading || isNavigating || isPending;
+
+  // Reset navigation state when data finishes loading
+  useEffect(() => {
+    if (!foldersLoading && !assetsLoading && isNavigating) {
+      // Small delay for smooth transition
+      const timer = setTimeout(() => setIsNavigating(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [foldersLoading, assetsLoading, isNavigating]);
 
   const handleNavigate = useCallback((folderId: string | null) => {
-    setCurrentFolderId(folderId);
+    // Show immediate loading feedback
+    setIsNavigating(true);
+
+    // Use React transition for smooth state update
+    startTransition(() => {
+      setCurrentFolderId(folderId);
+      // Clear selection when navigating
+      setSelectedItems(new Map());
+      lastSelectedIndex.current = null;
+    });
+
     // Record folder access for recent items
     if (folderId) {
       recentService.recordAccess({ itemId: folderId, itemType: "folder" }).catch(() => {});
