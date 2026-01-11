@@ -251,7 +251,7 @@ export function FilePreviewDialog({
           <div className="flex flex-col items-center justify-center w-full h-full">
             <iframe
               src={`https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`}
-              className="w-full h-full border-0 rounded-lg bg-white"
+              className="w-full h-full border-0 rounded-lg bg-background"
               style={{ maxWidth: "900px", maxHeight: "calc(100vh - 120px)" }}
               title={asset.name}
             />
@@ -265,19 +265,19 @@ export function FilePreviewDialog({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/90 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/90 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 
-        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none bg-black/95">
+        <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col outline-none bg-background/95">
           {/* Header */}
-          <header className="flex items-center justify-between h-12 sm:h-14 px-2 sm:px-4 bg-black/50 backdrop-blur-sm border-b border-white/10">
+          <header className="flex items-center justify-between h-12 sm:h-14 px-2 sm:px-4 bg-muted backdrop-blur-sm border-b">
             {/* Left: File info */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <FileIcon mimeType={asset.mimeType} size="sm" className="shrink-0" />
               <div className="min-w-0">
-                <DialogPrimitive.Title className="text-white font-medium truncate text-xs sm:text-sm max-w-[120px] sm:max-w-none">
+                <DialogPrimitive.Title className="font-medium truncate text-xs sm:text-sm max-w-[120px] sm:max-w-none">
                   {asset.name}
                 </DialogPrimitive.Title>
-                <p className="text-white/60 text-[10px] sm:text-xs">
+                <p className="text-[10px] sm:text-xs">
                   {formatFileSize(asset.size)}
                   {showNavigation && assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
                   {subtitle && ` • ${subtitle}`}
@@ -293,41 +293,41 @@ export function FilePreviewDialog({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                    className="h-8 w-8"
                     onClick={handlePdfPrevPage}
                     disabled={pdfPageNumber <= 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-white/80 text-sm min-w-[60px] text-center tabular-nums">
+                  <span className="text-sm min-w-[60px] text-center">
                     {pdfPageNumber} / {pdfNumPages}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                    className="h-8 w-8"
                     onClick={handlePdfNextPage}
                     disabled={pdfPageNumber >= pdfNumPages}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                  <div className="w-px h-5 bg-white/20 mx-2 hidden sm:block" />
+                  <div className="w-px h-5 mx-2 hidden sm:block" />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    className="h-8 w-8 hidden sm:flex"
                     onClick={handleZoomOut}
                     disabled={pdfScale <= 0.5}
                   >
                     <ZoomOut className="h-4 w-4" />
                   </Button>
-                  <span className="text-white/60 text-xs min-w-[40px] text-center hidden sm:block">
+                  <span className="text-xs min-w-[40px] text-center hidden sm:block">
                     {Math.round(pdfScale * 100)}%
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    className="h-8 w-8 hidden sm:flex"
                     onClick={handleZoomIn}
                     disabled={pdfScale >= 3.0}
                   >
@@ -336,7 +336,7 @@ export function FilePreviewDialog({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10 hidden sm:flex"
+                    className="h-8 w-8 hidden sm:flex"
                     onClick={handleRotate}
                   >
                     <RotateCw className="h-4 w-4" />
@@ -351,7 +351,7 @@ export function FilePreviewDialog({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 sm:h-9 sm:w-9 text-white/70 hover:text-white hover:bg-white/10"
+                className="h-8 w-8 sm:h-9 sm:w-9"
                 onClick={handleDownload}
               >
                 <Download className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -360,7 +360,7 @@ export function FilePreviewDialog({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 text-white/70 hover:text-white hover:bg-white/10"
+                  className="h-8 w-8 sm:h-9 sm:w-9 "
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
@@ -378,22 +378,22 @@ export function FilePreviewDialog({
 
           {/* Mobile PDF controls toolbar */}
           {isPdf && pdfNumPages > 0 && (
-            <div className="sm:hidden flex items-center justify-center gap-2 px-3 py-2 bg-black/50 backdrop-blur-sm border-t border-white/10">
+            <div className="sm:hidden flex items-center justify-center gap-2 px-3 py-2 bg-muted backdrop-blur-sm border-t">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className=""
                 onClick={handleZoomOut}
                 disabled={pdfScale <= 0.5}
               >
                 <ZoomOut className="h-4 w-4 mr-1" />
                 Out
               </Button>
-              <span className="text-white/60 text-xs">{Math.round(pdfScale * 100)}%</span>
+              <span className="text-xs">{Math.round(pdfScale * 100)}%</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-white/70 hover:text-white hover:bg-white/10"
+                className=""
                 onClick={handleZoomIn}
                 disabled={pdfScale >= 3.0}
               >
@@ -403,7 +403,7 @@ export function FilePreviewDialog({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/10"
+                className="h-8 w-8 "
                 onClick={handleRotate}
               >
                 <RotateCw className="h-4 w-4" />
@@ -420,10 +420,10 @@ export function FilePreviewDialog({
                 className={cn(
                   "absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10",
                   "h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center",
-                  "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
-                  "text-white transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-white/30",
-                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-black/50"
+                  "bg-muted/50 hover:bg-muted/70 backdrop-blur-sm",
+                  "transition-all duration-200",
+                  "focus:outline-none focus:ring-2",
+                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-muted/50"
                 )}
               >
                 <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -434,10 +434,10 @@ export function FilePreviewDialog({
                 className={cn(
                   "absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10",
                   "h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center",
-                  "bg-black/50 hover:bg-black/70 backdrop-blur-sm",
-                  "text-white transition-all duration-200",
-                  "focus:outline-none focus:ring-2 focus:ring-white/30",
-                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-black/50"
+                  "bg-muted/50 hover:bg-muted/70 backdrop-blur-sm",
+                  "transition-all duration-200",
+                  "focus:outline-none focus:ring-2 ",
+                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-muted/50"
                 )}
               >
                 <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />

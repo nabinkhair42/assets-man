@@ -127,7 +127,7 @@ export function TextPreview({
       <div className={cn("flex flex-col items-center justify-center gap-6", className)}>
         <div className={cn(
           "p-8 rounded-2xl",
-          minimal ? "bg-white/5" : "bg-muted/50"
+          minimal ? "bg-background/5" : "bg-muted/50"
         )}>
           <FileIcon className={cn("h-24 w-24", iconColor)} />
         </div>
@@ -167,7 +167,7 @@ export function TextPreview({
     if (minimal) {
       return (
         <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
-          <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+          <div className="flex-1 overflow-auto rounded-lg bg-secondary border min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
             <pre className="p-4 text-sm text-green-400 font-mono whitespace-pre-wrap break-all">
               {formattedJson}
             </pre>
@@ -217,8 +217,8 @@ export function TextPreview({
   if (minimal) {
     return (
       <div className={cn("flex flex-col w-full max-w-4xl h-full", className)}>
-        <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
-          <pre className="p-4 text-sm text-white/80 font-mono whitespace-pre-wrap break-all">
+        <div className="flex-1 overflow-auto rounded-lg bg-secondary border border min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+          <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-all">
             {content}
           </pre>
         </div>
@@ -301,7 +301,7 @@ function CsvPreview({
   if (minimal) {
     return (
       <div className={cn("flex flex-col w-full max-w-5xl h-full", className)}>
-        <div className="flex-1 overflow-auto rounded-lg bg-gray-900/80 border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
+        <div className="flex-1 overflow-auto rounded-lg bg- border border-white/10 min-h-0" style={{ maxHeight: "calc(100vh - 120px)" }}>
           <table className="w-full text-sm text-left">
             <thead className="sticky top-0 bg-gray-800 text-white/80 text-xs">
               <tr>

@@ -2,18 +2,6 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect, useTransition } from "react";
 import { Upload, Folder as FolderIcon, FolderPlus, CheckSquare, RefreshCw } from "lucide-react";
-
-// Types for FileSystem API (folder drag & drop)
-interface FileWithPath {
-  file: File;
-  relativePath: string;
-}
-
-interface FolderStructure {
-  name: string;
-  path: string;
-  children: FolderStructure[];
-}
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -68,6 +56,18 @@ import type { Folder, Asset } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
 import { assetService, recentService, folderService } from "@/services";
 import { useFileActions } from "@/contexts";
+
+// Types for FileSystem API (folder drag & drop)
+interface FileWithPath {
+  file: File;
+  relativePath: string;
+}
+
+interface FolderStructure {
+  name: string;
+  path: string;
+  children: FolderStructure[];
+}
 
 // Helper function to read all entries from a directory
 async function readAllDirectoryEntries(directoryReader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
@@ -306,7 +306,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     id: string,
     type: "folder" | "asset",
     name: string,
-    selected: boolean,
+    _selected: boolean,
     shiftKey: boolean,
     ctrlKey: boolean
   ) => {

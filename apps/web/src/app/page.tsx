@@ -1,23 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/providers/auth-provider";
-import { AuthSkeleton } from "@/components/loaders";
+import { LandingNavbar, HeroSection, FeaturesSection, CTASection } from "@/components/landing";
 
 export default function HomePage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.replace("/files");
-      } else {
-        router.replace("/login");
-      }
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  return <AuthSkeleton />;
+  return (
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <LandingNavbar className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b" />
+      <main className="flex-1 pt-14">
+        <HeroSection />
+        <FeaturesSection />
+        <CTASection />
+      </main>
+    </div>
+  );
 }
