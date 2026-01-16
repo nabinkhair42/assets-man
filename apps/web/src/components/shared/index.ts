@@ -1,6 +1,15 @@
 export { FileIcon, getFileIconData, getFolderIconData, type FileIconData } from "./file-icon";
 export { FileThumbnail, SimpleThumbnail } from "./file-thumbnail";
-export { EmptyState } from "./empty-state";
+export { EmptyState, type EmptyStateVariant } from "./empty-state";
+export {
+  EmptyFolderIllustration,
+  EmptyStarredIllustration,
+  EmptyRecentIllustration,
+  EmptyTrashIllustration,
+  EmptySearchIllustration,
+  EmptyUploadIllustration,
+  EmptyShareIllustration,
+} from "./illustrations";
 export { ListHeader, type ListHeaderColumn } from "./list-header";
 export {
   FILE_LIST_COLUMNS,

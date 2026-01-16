@@ -427,9 +427,15 @@ export default function StarredPage() {
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : starredFolders.length === 0 && starredAssets.length === 0 ? (
                 <EmptyState
-                  icon={Star}
-                  title="No starred items"
-                  description="Star files and folders to access them quickly"
+                  variant="starred"
+                  title="No starred items yet"
+                  description="Star your important files and folders to keep them easily accessible. Click the star icon on any item to add it here."
+                  actions={[
+                    {
+                      label: "Browse files",
+                      onClick: () => router.push("/files"),
+                    },
+                  ]}
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */

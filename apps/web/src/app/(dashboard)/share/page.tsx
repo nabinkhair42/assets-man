@@ -372,9 +372,15 @@ export default function SharedWithMePage() {
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : allItems.length === 0 ? (
                 <EmptyState
-                  icon={Users}
+                  variant="share"
                   title="Nothing shared with you yet"
-                  description="Files and folders shared with you will appear here"
+                  description="When someone shares files or folders with you, they'll appear here. Share your own files to start collaborating!"
+                  actions={[
+                    {
+                      label: "Browse your files",
+                      onClick: () => router.push("/files"),
+                    },
+                  ]}
                 />
               ) : viewMode === "list" ? (
                 <DataList>

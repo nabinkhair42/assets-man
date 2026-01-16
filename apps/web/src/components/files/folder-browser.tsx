@@ -35,6 +35,7 @@ import {
   useUser,
   useFileBrowserShortcuts,
   useViewMode,
+  useWelcomeTour,
 } from "@/hooks";
 import { DraggableFolderItem } from "./draggable-folder-item";
 import { DraggableFileItem } from "./draggable-file-item";
@@ -50,6 +51,7 @@ import {
   ShareDialog,
 } from "@/components/dialog";
 import { EmptyState, InfiniteScrollTrigger, SelectionToolbar, MobileFab, FILE_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { WelcomeTour } from "@/components/onboarding";
 import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
 import type { Folder, Asset } from "@/types";
@@ -144,6 +146,7 @@ interface FolderBrowserProps {
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
+  const { showTour, isLoading: tourLoading, completeTour, skipTour } = useWelcomeTour();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
   const { viewMode, setViewMode } = useViewMode();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
@@ -790,9 +793,22 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : folders.length === 0 && assets.length === 0 ? (
                 <EmptyState
-                  icon={FolderIcon}
+                  variant="folder"
                   title="This folder is empty"
-                  description="Create a folder or upload files to get started"
+                  description="Get started by creating a folder to organize your files or upload your first file."
+                  actions={[
+                    {
+                      label: "Upload files",
+                      onClick: () => fileInputRef.current?.click(),
+                      icon: Upload,
+                    },
+                    {
+                      label: "Create folder",
+                      onClick: () => setCreateFolderOpen(true),
+                      variant: "outline",
+                      icon: FolderPlus,
+                    },
+                  ]}
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */
@@ -1008,6 +1024,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         disabled={uploadingCount > 0}
         hidden={selectionMode}
       />
+
+      {/* Welcome Tour */}
+      {!tourLoading && (
+        <WelcomeTour open={showTour} onComplete={completeTour} onSkip={skipTour} />
+      )}
     </div>
   );
 }

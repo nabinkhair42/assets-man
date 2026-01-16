@@ -21,3 +21,4 @@ export { useSwipe } from "./use-swipe";
 export { useKeyboardNavigation, type NavigableItem } from "./use-keyboard-navigation";
 export { useFocusManager } from "./use-focus-manager";
 export { useNavigationTransition } from "./use-navigation-transition";
+export { useWelcomeTour } from "./use-welcome-tour";

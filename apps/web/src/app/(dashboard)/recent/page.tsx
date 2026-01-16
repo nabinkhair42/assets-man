@@ -428,9 +428,15 @@ export default function RecentPage() {
                 <FileBrowserSkeleton viewMode={viewMode} />
               ) : allItems.length === 0 ? (
                 <EmptyState
-                  icon={Clock}
-                  title="No recent items"
-                  description="Files and folders you open will appear here"
+                  variant="recent"
+                  title="No recent activity"
+                  description="Your recently opened files and folders will appear here for quick access. Start browsing your files to build your history."
+                  actions={[
+                    {
+                      label: "Browse files",
+                      onClick: () => router.push("/files"),
+                    },
+                  ]}
                 />
               ) : viewMode === "grid" ? (
                 /* Grid View - Folders first (compact), then Files */

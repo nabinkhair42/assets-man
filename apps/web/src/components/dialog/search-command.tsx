@@ -179,8 +179,18 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
             </div>
           ) : assets.length === 0 && folders.length === 0 ? (
             <CommandEmpty>
-              <div className="py-8">
-                <p className="text-muted-foreground">No results found for &quot;{query}&quot;</p>
+              <div className="py-10 px-4">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+                    <Search className="h-6 w-6 text-muted-foreground/50" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">No results found</p>
+                    <p className="text-xs text-muted-foreground">
+                      Try searching with different keywords or check your spelling
+                    </p>
+                  </div>
+                </div>
               </div>
             </CommandEmpty>
           ) : (

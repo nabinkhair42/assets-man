@@ -313,9 +313,9 @@ export function TrashBrowser() {
             <TrashSkeleton />
           ) : items.length === 0 ? (
             <EmptyState
-              icon={Trash2}
+              variant="trash"
               title="Trash is empty"
-              description="Items you delete will appear here"
+              description="Items you delete will appear here. Deleted items are permanently removed after 30 days."
             />
           ) : (
             <div className="flex flex-col">
