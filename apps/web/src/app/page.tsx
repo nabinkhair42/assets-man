@@ -1,6 +1,11 @@
 "use client";
 
-import { LandingNavbar, HeroSection, FeaturesSection, CTASection } from "@/components/landing";
+import {
+  LandingNavbar,
+  HeroSection,
+  FeaturesSection,
+  CTASection,
+} from "@/components/landing";
 
 export default function HomePage() {
   return (

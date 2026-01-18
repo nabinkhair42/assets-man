@@ -1,63 +1,89 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo, useEffect, useTransition } from "react";
-import { Upload, Folder as FolderIcon, FolderPlus, CheckSquare, RefreshCw } from "lucide-react";
-import { FileBrowserSkeleton } from "@/components/loaders";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-  ContextMenuSeparator,
-  ContextMenuShortcut,
-} from "@/components/ui/context-menu";
-import { cn, getApiErrorMessage } from "@/lib/utils";
-import {
-  DndContext,
-  DragOverlay,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  type DragStartEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  useFolderContents,
-  useFolders,
-  useInfiniteAssets,
-  useUploadFile,
-  useMoveFolder,
-  useUpdateAsset,
-  useToggleAssetStarred,
-  useToggleFolderStarred,
-  useMarqueeSelection,
-  useUser,
-  useFileBrowserShortcuts,
-  useViewMode,
-  useWelcomeTour,
-} from "@/hooks";
-import { DraggableFolderItem } from "./draggable-folder-item";
-import { DraggableFileItem } from "./draggable-file-item";
 import {
   BulkDeleteDialog,
   BulkMoveDialog,
   CopyDialog,
   CreateFolderDialog,
-  RenameDialog,
   DeleteDialog,
-  MoveDialog,
   FilePreviewDialog,
+  MoveDialog,
+  RenameDialog,
   ShareDialog,
 } from "@/components/dialog";
-import { EmptyState, InfiniteScrollTrigger, SelectionToolbar, MobileFab, FILE_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
-import { WelcomeTour } from "@/components/onboarding";
-import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
-import { toast } from "sonner";
-import type { Folder, Asset } from "@/types";
 import { AppHeader, type SortConfig } from "@/components/layouts";
-import { assetService, recentService, folderService } from "@/services";
+import { FileBrowserSkeleton } from "@/components/loaders";
+import {
+  EmptyState,
+  FILE_LIST_COLUMNS,
+  InfiniteScrollTrigger,
+  MobileFab,
+  SelectionToolbar,
+  type SelectedItem,
+} from "@/components/shared";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  DataGrid,
+  DataGridFileContainer,
+  DataGridFolderContainer,
+  DataGridSection,
+  DataList,
+  DataListHeader,
+} from "@/components/ui/data-list";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFileActions } from "@/contexts";
+import {
+  useFileBrowserShortcuts,
+  useFolderContents,
+  useFolders,
+  useInfiniteAssets,
+  useMarqueeSelection,
+  useMoveFolder,
+  useToggleAssetStarred,
+  useToggleFolderStarred,
+  useUpdateAsset,
+  useUploadFile,
+  useUser,
+  useViewMode,
+  useWelcomeTour,
+} from "@/hooks";
+import { cn, getApiErrorMessage } from "@/lib/utils";
+import { assetService, folderService, recentService } from "@/services";
+import type { Asset, Folder } from "@/types";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  CheckSquare,
+  Folder as FolderIcon,
+  FolderPlus,
+  RefreshCw,
+  Upload,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { toast } from "sonner";
+import { DraggableFileItem } from "./draggable-file-item";
+import { DraggableFolderItem } from "./draggable-folder-item";
 
 // Types for FileSystem API (folder drag & drop)
 interface FileWithPath {
@@ -72,7 +98,9 @@ interface FolderStructure {
 }
 
 // Helper function to read all entries from a directory
-async function readAllDirectoryEntries(directoryReader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+async function readAllDirectoryEntries(
+  directoryReader: FileSystemDirectoryReader,
+): Promise<FileSystemEntry[]> {
   const entries: FileSystemEntry[] = [];
   let batch: FileSystemEntry[];
 
@@ -89,7 +117,7 @@ async function readAllDirectoryEntries(directoryReader: FileSystemDirectoryReade
 // Recursively read a folder entry and collect all files with their paths
 async function readFolderEntry(
   entry: FileSystemDirectoryEntry,
-  basePath: string = ""
+  basePath: string = "",
 ): Promise<{ files: FileWithPath[]; folders: FolderStructure }> {
   const files: FileWithPath[] = [];
   const currentPath = basePath ? `${basePath}/${entry.name}` : entry.name;
@@ -124,7 +152,7 @@ async function readFolderEntry(
 async function createFolderStructure(
   structure: FolderStructure,
   parentFolderId: string | null,
-  folderMap: Map<string, string> = new Map()
+  folderMap: Map<string, string> = new Map(),
 ): Promise<Map<string, string>> {
   const createdFolder = await folderService.create({
     name: structure.name,
@@ -146,30 +174,62 @@ interface FolderBrowserProps {
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
-  const { showTour, isLoading: tourLoading, completeTour, skipTour } = useWelcomeTour();
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
+  const {
+    showTour,
+    isLoading: tourLoading,
+    completeTour,
+    skipTour,
+  } = useWelcomeTour();
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
+    initialFolderId,
+  );
   const { viewMode, setViewMode } = useViewMode();
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: "createdAt", sortOrder: "desc" });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    sortBy: "createdAt",
+    sortOrder: "desc",
+  });
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
-  const [renameItem, setRenameItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
-  const [deleteItem, setDeleteItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
-  const [moveItem, setMoveItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
-  const [copyItem, setCopyItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
-  const [shareItem, setShareItem] = useState<{ item: Folder | Asset; type: "folder" | "asset" } | null>(null);
+  const [renameItem, setRenameItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [deleteItem, setDeleteItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [moveItem, setMoveItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [copyItem, setCopyItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
+  const [shareItem, setShareItem] = useState<{
+    item: Folder | Asset;
+    type: "folder" | "asset";
+  } | null>(null);
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const [activeItem, setActiveItem] = useState<{
+    id: string;
+    type: "folder" | "asset";
+    data: Folder | Asset;
+  } | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(
+    new Map(),
+  );
   const [isNavigating, setIsNavigating] = useState(false);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const lastSelectedIndex = useRef<number | null>(null);
   const contentContainerRef = useRef<HTMLDivElement>(null);
-  const { registerUploadTrigger, registerCreateFolderTrigger, setIsUploading } = useFileActions();
+  const { registerUploadTrigger, registerCreateFolderTrigger, setIsUploading } =
+    useFileActions();
 
   const selectionMode = selectedItems.size > 0;
 
@@ -185,11 +245,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   }, [uploadingCount, setIsUploading]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   // Map asset sortBy to folder sortBy (folders don't have size)
-  const folderSortBy = sortConfig.sortBy === "size" ? "name" : sortConfig.sortBy;
+  const folderSortBy =
+    sortConfig.sortBy === "size" ? "name" : sortConfig.sortBy;
 
   const { data: allFolders = [], refetch: refetchFolders } = useFolders();
   const { data: folders = [], isLoading: foldersLoading } = useFolderContents({
@@ -222,13 +283,33 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   // Combined list of all items for index-based operations
   const allItems = useMemo(() => {
-    const items: Array<{ id: string; type: "folder" | "asset"; name: string; data: Folder | Asset }> = [];
-    folders.forEach((folder) => items.push({ id: folder.id, type: "folder", name: folder.name, data: folder }));
-    assets.forEach((asset) => items.push({ id: asset.id, type: "asset", name: asset.name, data: asset }));
+    const items: Array<{
+      id: string;
+      type: "folder" | "asset";
+      name: string;
+      data: Folder | Asset;
+    }> = [];
+    folders.forEach((folder) =>
+      items.push({
+        id: folder.id,
+        type: "folder",
+        name: folder.name,
+        data: folder,
+      }),
+    );
+    assets.forEach((asset) =>
+      items.push({
+        id: asset.id,
+        type: "asset",
+        name: asset.name,
+        data: asset,
+      }),
+    );
     return items;
   }, [folders, assets]);
 
-  const isLoading = foldersLoading || assetsLoading || isNavigating || isPending;
+  const isLoading =
+    foldersLoading || assetsLoading || isNavigating || isPending;
 
   // Reset navigation state when data finishes loading
   useEffect(() => {
@@ -253,14 +334,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
     // Record folder access for recent items
     if (folderId) {
-      recentService.recordAccess({ itemId: folderId, itemType: "folder" }).catch(() => {});
+      recentService
+        .recordAccess({ itemId: folderId, itemType: "folder" })
+        .catch(() => {});
     }
   }, []);
 
   const handleDownload = async (asset: Asset) => {
     try {
       // Record asset access for recent items (downloads count as access)
-      recentService.recordAccess({ itemId: asset.id, itemType: "asset" }).catch(() => {});
+      recentService
+        .recordAccess({ itemId: asset.id, itemType: "asset" })
+        .catch(() => {});
 
       const { url } = await assetService.getDownloadUrl(asset.id);
       // Create a temporary anchor and trigger download
@@ -275,123 +360,181 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     }
   };
 
-  const handleMove = (item: Folder | Asset, type: "folder" | "asset") => setMoveItem({ item, type });
+  const handleMove = (item: Folder | Asset, type: "folder" | "asset") =>
+    setMoveItem({ item, type });
 
-  const handleStarAsset = useCallback((asset: Asset) => {
-    toggleAssetStarred.mutate(asset.id, {
-      onSuccess: (data) => {
-        toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
-        refetchAssets();
-      },
-      onError: (error) => toast.error(getApiErrorMessage(error)),
-    });
-  }, [toggleAssetStarred, refetchAssets]);
+  const handleStarAsset = useCallback(
+    (asset: Asset) => {
+      toggleAssetStarred.mutate(asset.id, {
+        onSuccess: (data) => {
+          toast.success(
+            data.isStarred ? "Added to starred" : "Removed from starred",
+          );
+          refetchAssets();
+        },
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      });
+    },
+    [toggleAssetStarred, refetchAssets],
+  );
 
-  const handleStarFolder = useCallback((folder: Folder) => {
-    toggleFolderStarred.mutate(folder.id, {
-      onSuccess: (data) => {
-        toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
-        refetchFolders();
-      },
-      onError: (error) => toast.error(getApiErrorMessage(error)),
-    });
-  }, [toggleFolderStarred, refetchFolders]);
+  const handleStarFolder = useCallback(
+    (folder: Folder) => {
+      toggleFolderStarred.mutate(folder.id, {
+        onSuccess: (data) => {
+          toast.success(
+            data.isStarred ? "Added to starred" : "Removed from starred",
+          );
+          refetchFolders();
+        },
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      });
+    },
+    [toggleFolderStarred, refetchFolders],
+  );
 
   const handlePreview = useCallback((asset: Asset) => {
     // Record asset access for recent items
-    recentService.recordAccess({ itemId: asset.id, itemType: "asset" }).catch(() => {});
+    recentService
+      .recordAccess({ itemId: asset.id, itemType: "asset" })
+      .catch(() => {});
     setPreviewAsset(asset);
   }, []);
 
   // Selection handlers with shift+click and ctrl+click support
-  const handleItemSelect = useCallback((
-    index: number,
-    id: string,
-    type: "folder" | "asset",
-    name: string,
-    _selected: boolean,
-    shiftKey: boolean,
-    ctrlKey: boolean
-  ) => {
-    setSelectedItems((prev) => {
-      const key = `${type}-${id}`;
+  const handleItemSelect = useCallback(
+    (
+      index: number,
+      id: string,
+      type: "folder" | "asset",
+      name: string,
+      _selected: boolean,
+      shiftKey: boolean,
+      ctrlKey: boolean,
+    ) => {
+      setSelectedItems((prev) => {
+        const key = `${type}-${id}`;
 
-      if (shiftKey && lastSelectedIndex.current !== null) {
-        // Shift+Click: Range selection from last selected to current
-        const next = new Map(prev);
-        const start = Math.min(lastSelectedIndex.current, index);
-        const end = Math.max(lastSelectedIndex.current, index);
+        if (shiftKey && lastSelectedIndex.current !== null) {
+          // Shift+Click: Range selection from last selected to current
+          const next = new Map(prev);
+          const start = Math.min(lastSelectedIndex.current, index);
+          const end = Math.max(lastSelectedIndex.current, index);
 
-        for (let i = start; i <= end; i++) {
-          const item = allItems[i];
-          if (item) {
-            next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+          for (let i = start; i <= end; i++) {
+            const item = allItems[i];
+            if (item) {
+              next.set(`${item.type}-${item.id}`, {
+                id: item.id,
+                type: item.type,
+                name: item.name,
+              });
+            }
+          }
+          return next;
+        } else if (ctrlKey) {
+          // Ctrl+Click: Toggle item without clearing others (multi-select)
+          const next = new Map(prev);
+          if (next.has(key)) {
+            next.delete(key);
+          } else {
+            next.set(key, { id, type, name });
+            lastSelectedIndex.current = index;
+          }
+          return next;
+        } else {
+          // Regular click: Clear all and select only this item (or deselect if already selected alone)
+          if (prev.size === 1 && prev.has(key)) {
+            // If only this item is selected, deselect it
+            lastSelectedIndex.current = null;
+            return new Map();
+          } else {
+            // Select only this item
+            const next = new Map<string, SelectedItem>();
+            next.set(key, { id, type, name });
+            lastSelectedIndex.current = index;
+            return next;
           }
         }
-        return next;
-      } else if (ctrlKey) {
-        // Ctrl+Click: Toggle item without clearing others (multi-select)
-        const next = new Map(prev);
-        if (next.has(key)) {
-          next.delete(key);
-        } else {
-          next.set(key, { id, type, name });
-          lastSelectedIndex.current = index;
-        }
-        return next;
-      } else {
-        // Regular click: Clear all and select only this item (or deselect if already selected alone)
-        if (prev.size === 1 && prev.has(key)) {
-          // If only this item is selected, deselect it
-          lastSelectedIndex.current = null;
-          return new Map();
-        } else {
-          // Select only this item
-          const next = new Map<string, SelectedItem>();
-          next.set(key, { id, type, name });
-          lastSelectedIndex.current = index;
-          return next;
-        }
-      }
-    });
-  }, [allItems]);
+      });
+    },
+    [allItems],
+  );
 
-  const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false, ctrlKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
-    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey, ctrlKey);
-  }, [allItems, handleItemSelect]);
+  const handleSelectFolder = useCallback(
+    (folder: Folder, selected: boolean, shiftKey = false, ctrlKey = false) => {
+      const index = allItems.findIndex(
+        (item) => item.type === "folder" && item.id === folder.id,
+      );
+      handleItemSelect(
+        index,
+        folder.id,
+        "folder",
+        folder.name,
+        selected,
+        shiftKey,
+        ctrlKey,
+      );
+    },
+    [allItems, handleItemSelect],
+  );
 
-  const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false, ctrlKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
-    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey, ctrlKey);
-  }, [allItems, handleItemSelect]);
+  const handleSelectAsset = useCallback(
+    (asset: Asset, selected: boolean, shiftKey = false, ctrlKey = false) => {
+      const index = allItems.findIndex(
+        (item) => item.type === "asset" && item.id === asset.id,
+      );
+      handleItemSelect(
+        index,
+        asset.id,
+        "asset",
+        asset.name,
+        selected,
+        shiftKey,
+        ctrlKey,
+      );
+    },
+    [allItems, handleItemSelect],
+  );
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
     lastSelectedIndex.current = null;
   }, []);
 
-  const handleMarqueeSelectionChange = useCallback((selectedIds: string[]) => {
-    if (selectedIds.length === 0) {
-      handleClearSelection();
-      return;
-    }
-
-    const newSelection = new Map<string, SelectedItem>();
-    for (const id of selectedIds) {
-      // id format is "folder-{id}" or "asset-{id}"
-      const [type, ...idParts] = id.split("-");
-      const itemId = idParts.join("-");
-      const item = allItems.find((i) => i.type === type && i.id === itemId);
-      if (item) {
-        newSelection.set(id, { id: itemId, type: item.type, name: item.name });
+  const handleMarqueeSelectionChange = useCallback(
+    (selectedIds: string[]) => {
+      if (selectedIds.length === 0) {
+        handleClearSelection();
+        return;
       }
-    }
-    setSelectedItems(newSelection);
-  }, [allItems, handleClearSelection]);
+
+      const newSelection = new Map<string, SelectedItem>();
+      for (const id of selectedIds) {
+        // id format is "folder-{id}" or "asset-{id}"
+        const [type, ...idParts] = id.split("-");
+        const itemId = idParts.join("-");
+        const item = allItems.find((i) => i.type === type && i.id === itemId);
+        if (item) {
+          newSelection.set(id, {
+            id: itemId,
+            type: item.type,
+            name: item.name,
+          });
+        }
+      }
+      setSelectedItems(newSelection);
+    },
+    [allItems, handleClearSelection],
+  );
 
   // Marquee selection hook
-  const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
+  const {
+    isSelecting: isMarqueeSelecting,
+    marqueeRect,
+    pendingSelection,
+    handleMouseDown: handleMarqueeMouseDown,
+  } = useMarqueeSelection({
     items: allItems,
     getItemId: (item) => `${item.type}-${item.id}`,
     onSelectionChange: handleMarqueeSelectionChange,
@@ -418,8 +561,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleBulkDownload = useCallback(async () => {
     const items = Array.from(selectedItems.values());
-    const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
-    const folderIds = items.filter((item) => item.type === "folder").map((item) => item.id);
+    const assetIds = items
+      .filter((item) => item.type === "asset")
+      .map((item) => item.id);
+    const folderIds = items
+      .filter((item) => item.type === "folder")
+      .map((item) => item.id);
 
     if (assetIds.length === 0 && folderIds.length === 0) {
       toast.info("No items selected for download");
@@ -450,7 +597,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const handleSelectAll = useCallback(() => {
     const newSelection = new Map<string, SelectedItem>();
     for (const item of allItems) {
-      newSelection.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
+      newSelection.set(`${item.type}-${item.id}`, {
+        id: item.id,
+        type: item.type,
+        name: item.name,
+      });
     }
     setSelectedItems(newSelection);
   }, [allItems]);
@@ -463,8 +614,15 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
-    const data = active.data.current as { type: "folder" | "asset"; item: Folder | Asset };
-    setActiveItem({ id: active.id as string, type: data.type, data: data.item });
+    const data = active.data.current as {
+      type: "folder" | "asset";
+      item: Folder | Asset;
+    };
+    setActiveItem({
+      id: active.id as string,
+      type: data.type,
+      data: data.item,
+    });
   }, []);
 
   const handleDragEnd = useCallback(
@@ -473,23 +631,31 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       setActiveItem(null);
       if (!over) return;
 
-      const activeData = active.data.current as { type: "folder" | "asset"; item: Folder | Asset };
+      const activeData = active.data.current as {
+        type: "folder" | "asset";
+        item: Folder | Asset;
+      };
       const overId = over.id as string;
 
       let targetFolderId: string | null = null;
       if (overId === "root-drop-zone") targetFolderId = null;
-      else if (overId.startsWith("folder-")) targetFolderId = overId.replace("folder-", "");
+      else if (overId.startsWith("folder-"))
+        targetFolderId = overId.replace("folder-", "");
       else return;
 
       if (activeData.type === "folder") {
         const folder = activeData.item as Folder;
-        if (folder.parentId === targetFolderId || folder.id === targetFolderId) return;
+        if (folder.parentId === targetFolderId || folder.id === targetFolderId)
+          return;
         moveFolder.mutate(
           { id: folder.id, input: { parentId: targetFolderId } },
           {
-            onSuccess: () => { toast.success("Folder moved"); refetchFolders(); },
+            onSuccess: () => {
+              toast.success("Folder moved");
+              refetchFolders();
+            },
             onError: (error) => toast.error(getApiErrorMessage(error)),
-          }
+          },
         );
       } else {
         const asset = activeData.item as Asset;
@@ -497,13 +663,16 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         updateAsset.mutate(
           { id: asset.id, input: { folderId: targetFolderId } },
           {
-            onSuccess: () => { toast.success("File moved"); refetchAssets(); },
+            onSuccess: () => {
+              toast.success("File moved");
+              refetchAssets();
+            },
             onError: (error) => toast.error(getApiErrorMessage(error)),
-          }
+          },
         );
       }
     },
-    [moveFolder, updateAsset, refetchFolders, refetchAssets]
+    [moveFolder, updateAsset, refetchFolders, refetchAssets],
   );
 
   const processFiles = useCallback(
@@ -521,7 +690,10 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           await uploadFile.mutateAsync({
             file,
             folderId: currentFolderId ?? undefined,
-            onProgress: (progress) => toast.loading(`Uploading ${file.name} ${progress}%`, { id: toastId }),
+            onProgress: (progress) =>
+              toast.loading(`Uploading ${file.name} ${progress}%`, {
+                id: toastId,
+              }),
           });
           successCount++;
           setUploadingCount((prev) => prev - 1);
@@ -529,14 +701,17 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         } catch (error) {
           failCount++;
           setUploadingCount((prev) => prev - 1);
-          toast.error(getApiErrorMessage(error, `Failed to upload ${file.name}`), { id: toastId });
+          toast.error(
+            getApiErrorMessage(error, `Failed to upload ${file.name}`),
+            { id: toastId },
+          );
         }
       });
 
       await Promise.all(uploadPromises);
       refetchAssets();
     },
-    [currentFolderId, uploadFile, refetchAssets]
+    [currentFolderId, uploadFile, refetchAssets],
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -550,7 +725,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current++;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) setIsDragging(true);
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0)
+      setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
@@ -579,7 +755,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           return;
         }
 
-        toast.loading(`Creating ${folders.children.length + 1} folder(s)`, { id: toastId });
+        toast.loading(`Creating ${folders.children.length + 1} folder(s)`, {
+          id: toastId,
+        });
 
         // Create folder structure and get path -> folderId mapping
         const folderMap = await createFolderStructure(folders, currentFolderId);
@@ -620,16 +798,25 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         refetchAssets();
 
         if (failCount === 0) {
-          toast.success(`Uploaded ${successCount} file(s) from "${entry.name}"`, { id: toastId });
+          toast.success(
+            `Uploaded ${successCount} file(s) from "${entry.name}"`,
+            { id: toastId },
+          );
         } else {
-          toast.warning(`Uploaded ${successCount} file(s), ${failCount} failed`, { id: toastId });
+          toast.warning(
+            `Uploaded ${successCount} file(s), ${failCount} failed`,
+            { id: toastId },
+          );
         }
       } catch (error) {
         console.error("Folder upload error:", error);
-        toast.error(getApiErrorMessage(error, `Failed to upload folder "${entry.name}"`), { id: toastId });
+        toast.error(
+          getApiErrorMessage(error, `Failed to upload folder "${entry.name}"`),
+          { id: toastId },
+        );
       }
     },
-    [currentFolderId, uploadFile, refetchFolders, refetchAssets]
+    [currentFolderId, uploadFile, refetchFolders, refetchAssets],
   );
 
   const handleDrop = useCallback(
@@ -672,7 +859,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         await processFolderUpload(folderEntry);
       }
     },
-    [processFiles, processFolderUpload]
+    [processFiles, processFolderUpload],
   );
 
   // Keyboard shortcut handlers
@@ -735,12 +922,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       onEscape: handleClearSelection,
       onPreview: handleKeyboardPreview,
     },
-    { enabled: true, hasSelection: selectedItems.size > 0 }
+    { enabled: true, hasSelection: selectedItems.size > 0 },
   );
 
   return (
     <div className="flex flex-col h-full overflow-clip">
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+      />
 
       <AppHeader
         breadcrumbPath={allFolders.filter((f) => f.id === currentFolderId)}
@@ -752,9 +945,16 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         onPreviewAsset={handlePreview}
       />
 
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
         <div
-          className={cn("flex-1 min-h-0 relative transition-colors", isDragging && "bg-primary/5")}
+          className={cn(
+            "flex-1 min-h-0 relative transition-colors",
+            isDragging && "bg-primary/5",
+          )}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -764,7 +964,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg m-2">
               <div className="flex flex-col items-center gap-2 text-primary">
                 <Upload className="h-12 w-12" />
-                <p className="text-lg font-medium">Drop files or folders here to upload</p>
+                <p className="text-lg font-medium">
+                  Drop files or folders here to upload
+                </p>
               </div>
             </div>
           )}
@@ -790,151 +992,211 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                     />
                   )}
                   {isLoading ? (
-                <FileBrowserSkeleton viewMode={viewMode} />
-              ) : folders.length === 0 && assets.length === 0 ? (
-                <EmptyState
-                  variant="folder"
-                  title="This folder is empty"
-                  description="Get started by creating a folder to organize your files or upload your first file."
-                  actions={[
-                    {
-                      label: "Upload files",
-                      onClick: () => fileInputRef.current?.click(),
-                      icon: Upload,
-                    },
-                    {
-                      label: "Create folder",
-                      onClick: () => setCreateFolderOpen(true),
-                      variant: "outline",
-                      icon: FolderPlus,
-                    },
-                  ]}
-                />
-              ) : viewMode === "grid" ? (
-                /* Grid View - Folders first (compact), then Files */
-                <DataGrid>
-                  {/* Folders Section */}
-                  {folders.length > 0 && (
-                    <DataGridSection title="Folders">
-                      <DataGridFolderContainer>
-                        {folders.map((folder, index) => (
-                          <DraggableFolderItem
-                            key={folder.id}
-                            folder={folder}
-                            onOpen={handleNavigate}
-                            onRename={(f) => setRenameItem({ item: f, type: "folder" })}
-                            onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
-                            onMove={(f) => handleMove(f, "folder")}
-                            onCopy={(f) => setCopyItem({ item: f, type: "folder" })}
-                            onShare={(f) => setShareItem({ item: f, type: "folder" })}
-                            onStar={handleStarFolder}
-                            viewMode={viewMode}
-                            index={index}
-                            isSelected={selectedItems.has(`folder-${folder.id}`)}
-                            isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
-                            onSelect={handleSelectFolder}
-                            selectionMode={selectionMode}
-                            selectedCount={selectedItems.size}
-                            onBulkDelete={handleBulkDelete}
-                            onBulkMove={handleBulkMove}
-                            showOwner
-                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
-                          />
-                        ))}
-                      </DataGridFolderContainer>
-                    </DataGridSection>
-                  )}
+                    <FileBrowserSkeleton viewMode={viewMode} />
+                  ) : folders.length === 0 && assets.length === 0 ? (
+                    <EmptyState
+                      variant="folder"
+                      title="This folder is empty"
+                      description="Get started by creating a folder to organize your files or upload your first file."
+                      actions={[
+                        {
+                          label: "Upload files",
+                          onClick: () => fileInputRef.current?.click(),
+                          icon: Upload,
+                        },
+                        {
+                          label: "Create folder",
+                          onClick: () => setCreateFolderOpen(true),
+                          variant: "outline",
+                          icon: FolderPlus,
+                        },
+                      ]}
+                    />
+                  ) : viewMode === "grid" ? (
+                    /* Grid View - Folders first (compact), then Files */
+                    <DataGrid>
+                      {/* Folders Section */}
+                      {folders.length > 0 && (
+                        <DataGridSection title="Folders">
+                          <DataGridFolderContainer>
+                            {folders.map((folder, index) => (
+                              <DraggableFolderItem
+                                key={folder.id}
+                                folder={folder}
+                                onOpen={handleNavigate}
+                                onRename={(f) =>
+                                  setRenameItem({ item: f, type: "folder" })
+                                }
+                                onDelete={(f) =>
+                                  setDeleteItem({ item: f, type: "folder" })
+                                }
+                                onMove={(f) => handleMove(f, "folder")}
+                                onCopy={(f) =>
+                                  setCopyItem({ item: f, type: "folder" })
+                                }
+                                onShare={(f) =>
+                                  setShareItem({ item: f, type: "folder" })
+                                }
+                                onStar={handleStarFolder}
+                                viewMode={viewMode}
+                                index={index}
+                                isSelected={selectedItems.has(
+                                  `folder-${folder.id}`,
+                                )}
+                                isPendingSelection={pendingSelection.has(
+                                  `folder-${folder.id}`,
+                                )}
+                                onSelect={handleSelectFolder}
+                                selectionMode={selectionMode}
+                                selectedCount={selectedItems.size}
+                                onBulkDelete={handleBulkDelete}
+                                onBulkMove={handleBulkMove}
+                                showOwner
+                                owner={
+                                  user?.name
+                                    ? { id: user.id, name: user.name }
+                                    : undefined
+                                }
+                              />
+                            ))}
+                          </DataGridFolderContainer>
+                        </DataGridSection>
+                      )}
 
-                  {/* Files Section */}
-                  {assets.length > 0 && (
-                    <DataGridSection title="Files">
-                      <DataGridFileContainer>
-                        {assets.map((asset, index) => (
-                          <DraggableFileItem
-                            key={asset.id}
-                            asset={asset}
-                            onDownload={handleDownload}
-                            onRename={(a) => setRenameItem({ item: a, type: "asset" })}
-                            onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
-                            onMove={(a) => handleMove(a, "asset")}
-                            onCopy={(a) => setCopyItem({ item: a, type: "asset" })}
-                            onShare={(a) => setShareItem({ item: a, type: "asset" })}
-                            onStar={handleStarAsset}
-                            onPreview={handlePreview}
-                            viewMode={viewMode}
-                            index={folders.length + index}
-                            isSelected={selectedItems.has(`asset-${asset.id}`)}
-                            isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
-                            onSelect={handleSelectAsset}
-                            selectionMode={selectionMode}
-                            selectedCount={selectedItems.size}
-                            onBulkDownload={handleBulkDownload}
-                            onBulkDelete={handleBulkDelete}
-                            onBulkMove={handleBulkMove}
-                            showOwner
-                            owner={user?.name ? { id: user.id, name: user.name } : undefined}
-                          />
-                        ))}
-                      </DataGridFileContainer>
-                    </DataGridSection>
+                      {/* Files Section */}
+                      {assets.length > 0 && (
+                        <DataGridSection title="Files">
+                          <DataGridFileContainer>
+                            {assets.map((asset, index) => (
+                              <DraggableFileItem
+                                key={asset.id}
+                                asset={asset}
+                                onDownload={handleDownload}
+                                onRename={(a) =>
+                                  setRenameItem({ item: a, type: "asset" })
+                                }
+                                onDelete={(a) =>
+                                  setDeleteItem({ item: a, type: "asset" })
+                                }
+                                onMove={(a) => handleMove(a, "asset")}
+                                onCopy={(a) =>
+                                  setCopyItem({ item: a, type: "asset" })
+                                }
+                                onShare={(a) =>
+                                  setShareItem({ item: a, type: "asset" })
+                                }
+                                onStar={handleStarAsset}
+                                onPreview={handlePreview}
+                                viewMode={viewMode}
+                                index={folders.length + index}
+                                isSelected={selectedItems.has(
+                                  `asset-${asset.id}`,
+                                )}
+                                isPendingSelection={pendingSelection.has(
+                                  `asset-${asset.id}`,
+                                )}
+                                onSelect={handleSelectAsset}
+                                selectionMode={selectionMode}
+                                selectedCount={selectedItems.size}
+                                onBulkDownload={handleBulkDownload}
+                                onBulkDelete={handleBulkDelete}
+                                onBulkMove={handleBulkMove}
+                                showOwner
+                                owner={
+                                  user?.name
+                                    ? { id: user.id, name: user.name }
+                                    : undefined
+                                }
+                              />
+                            ))}
+                          </DataGridFileContainer>
+                        </DataGridSection>
+                      )}
+                    </DataGrid>
+                  ) : (
+                    /* List View - Combined */
+                    <DataList>
+                      <DataListHeader columns={FILE_LIST_COLUMNS} />
+                      {folders.map((folder, index) => (
+                        <DraggableFolderItem
+                          key={folder.id}
+                          folder={folder}
+                          onOpen={handleNavigate}
+                          onRename={(f) =>
+                            setRenameItem({ item: f, type: "folder" })
+                          }
+                          onDelete={(f) =>
+                            setDeleteItem({ item: f, type: "folder" })
+                          }
+                          onMove={(f) => handleMove(f, "folder")}
+                          onCopy={(f) =>
+                            setCopyItem({ item: f, type: "folder" })
+                          }
+                          onShare={(f) =>
+                            setShareItem({ item: f, type: "folder" })
+                          }
+                          onStar={handleStarFolder}
+                          viewMode={viewMode}
+                          index={index}
+                          isSelected={selectedItems.has(`folder-${folder.id}`)}
+                          isPendingSelection={pendingSelection.has(
+                            `folder-${folder.id}`,
+                          )}
+                          onSelect={handleSelectFolder}
+                          selectionMode={selectionMode}
+                          selectedCount={selectedItems.size}
+                          onBulkDelete={handleBulkDelete}
+                          onBulkMove={handleBulkMove}
+                          showOwner
+                          owner={
+                            user?.name
+                              ? { id: user.id, name: user.name }
+                              : undefined
+                          }
+                        />
+                      ))}
+                      {assets.map((asset, index) => (
+                        <DraggableFileItem
+                          key={asset.id}
+                          asset={asset}
+                          onDownload={handleDownload}
+                          onRename={(a) =>
+                            setRenameItem({ item: a, type: "asset" })
+                          }
+                          onDelete={(a) =>
+                            setDeleteItem({ item: a, type: "asset" })
+                          }
+                          onMove={(a) => handleMove(a, "asset")}
+                          onCopy={(a) =>
+                            setCopyItem({ item: a, type: "asset" })
+                          }
+                          onShare={(a) =>
+                            setShareItem({ item: a, type: "asset" })
+                          }
+                          onStar={handleStarAsset}
+                          onPreview={handlePreview}
+                          viewMode={viewMode}
+                          index={folders.length + index}
+                          isSelected={selectedItems.has(`asset-${asset.id}`)}
+                          isPendingSelection={pendingSelection.has(
+                            `asset-${asset.id}`,
+                          )}
+                          onSelect={handleSelectAsset}
+                          selectionMode={selectionMode}
+                          selectedCount={selectedItems.size}
+                          onBulkDownload={handleBulkDownload}
+                          onBulkDelete={handleBulkDelete}
+                          onBulkMove={handleBulkMove}
+                          showOwner
+                          owner={
+                            user?.name
+                              ? { id: user.id, name: user.name }
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </DataList>
                   )}
-                </DataGrid>
-              ) : (
-                /* List View - Combined */
-                <DataList>
-                  <DataListHeader columns={FILE_LIST_COLUMNS} />
-                  {folders.map((folder, index) => (
-                    <DraggableFolderItem
-                      key={folder.id}
-                      folder={folder}
-                      onOpen={handleNavigate}
-                      onRename={(f) => setRenameItem({ item: f, type: "folder" })}
-                      onDelete={(f) => setDeleteItem({ item: f, type: "folder" })}
-                      onMove={(f) => handleMove(f, "folder")}
-                      onCopy={(f) => setCopyItem({ item: f, type: "folder" })}
-                      onShare={(f) => setShareItem({ item: f, type: "folder" })}
-                      onStar={handleStarFolder}
-                      viewMode={viewMode}
-                      index={index}
-                      isSelected={selectedItems.has(`folder-${folder.id}`)}
-                      isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
-                      onSelect={handleSelectFolder}
-                      selectionMode={selectionMode}
-                      selectedCount={selectedItems.size}
-                      onBulkDelete={handleBulkDelete}
-                      onBulkMove={handleBulkMove}
-                      showOwner
-                      owner={user?.name ? { id: user.id, name: user.name } : undefined}
-                    />
-                  ))}
-                  {assets.map((asset, index) => (
-                    <DraggableFileItem
-                      key={asset.id}
-                      asset={asset}
-                      onDownload={handleDownload}
-                      onRename={(a) => setRenameItem({ item: a, type: "asset" })}
-                      onDelete={(a) => setDeleteItem({ item: a, type: "asset" })}
-                      onMove={(a) => handleMove(a, "asset")}
-                      onCopy={(a) => setCopyItem({ item: a, type: "asset" })}
-                      onShare={(a) => setShareItem({ item: a, type: "asset" })}
-                      onStar={handleStarAsset}
-                      onPreview={handlePreview}
-                      viewMode={viewMode}
-                      index={folders.length + index}
-                      isSelected={selectedItems.has(`asset-${asset.id}`)}
-                      isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
-                      onSelect={handleSelectAsset}
-                      selectionMode={selectionMode}
-                      selectedCount={selectedItems.size}
-                      onBulkDownload={handleBulkDownload}
-                      onBulkDelete={handleBulkDelete}
-                      onBulkMove={handleBulkMove}
-                      showOwner
-                      owner={user?.name ? { id: user.id, name: user.name } : undefined}
-                    />
-                  ))}
-                </DataList>
-              )}
 
                   {!isLoading && (folders.length > 0 || assets.length > 0) && (
                     <InfiniteScrollTrigger
@@ -984,12 +1246,41 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         </DragOverlay>
       </DndContext>
 
-      <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} parentId={currentFolderId} />
-      <RenameDialog open={!!renameItem} onOpenChange={(open) => !open && setRenameItem(null)} item={renameItem?.item ?? null} itemType={renameItem?.type ?? "folder"} />
-      <DeleteDialog open={!!deleteItem} onOpenChange={(open) => !open && setDeleteItem(null)} item={deleteItem?.item ?? null} itemType={deleteItem?.type ?? "folder"} />
-      <MoveDialog open={!!moveItem} onOpenChange={(open) => !open && setMoveItem(null)} item={moveItem?.item ?? null} itemType={moveItem?.type ?? "folder"} />
-      <CopyDialog open={!!copyItem} onOpenChange={(open) => !open && setCopyItem(null)} item={copyItem?.item ?? null} itemType={copyItem?.type ?? "folder"} />
-      <ShareDialog open={!!shareItem} onOpenChange={(open) => !open && setShareItem(null)} item={shareItem?.item ?? null} itemType={shareItem?.type ?? "folder"} />
+      <CreateFolderDialog
+        open={createFolderOpen}
+        onOpenChange={setCreateFolderOpen}
+        parentId={currentFolderId}
+      />
+      <RenameDialog
+        open={!!renameItem}
+        onOpenChange={(open) => !open && setRenameItem(null)}
+        item={renameItem?.item ?? null}
+        itemType={renameItem?.type ?? "folder"}
+      />
+      <DeleteDialog
+        open={!!deleteItem}
+        onOpenChange={(open) => !open && setDeleteItem(null)}
+        item={deleteItem?.item ?? null}
+        itemType={deleteItem?.type ?? "folder"}
+      />
+      <MoveDialog
+        open={!!moveItem}
+        onOpenChange={(open) => !open && setMoveItem(null)}
+        item={moveItem?.item ?? null}
+        itemType={moveItem?.type ?? "folder"}
+      />
+      <CopyDialog
+        open={!!copyItem}
+        onOpenChange={(open) => !open && setCopyItem(null)}
+        item={copyItem?.item ?? null}
+        itemType={copyItem?.type ?? "folder"}
+      />
+      <ShareDialog
+        open={!!shareItem}
+        onOpenChange={(open) => !open && setShareItem(null)}
+        item={shareItem?.item ?? null}
+        itemType={shareItem?.type ?? "folder"}
+      />
       <BulkDeleteDialog
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
@@ -1024,11 +1315,6 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         disabled={uploadingCount > 0}
         hidden={selectionMode}
       />
-
-      {/* Welcome Tour */}
-      {!tourLoading && (
-        <WelcomeTour open={showTour} onComplete={completeTour} onSkip={skipTour} />
-      )}
     </div>
   );
 }

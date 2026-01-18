@@ -14,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useCopyFolder, useCopyAsset } from "@/hooks";
 import { toast } from "sonner";
-import { Folder as FolderIcon, ChevronRight, ChevronDown, Home } from "lucide-react";
+import {
+  Folder as FolderIcon,
+  ChevronRight,
+  ChevronDown,
+  Home,
+} from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 
@@ -25,12 +30,22 @@ interface CopyDialogProps {
   itemType: "folder" | "asset";
 }
 
-function getParentId(item: Folder | Asset | null, itemType: "folder" | "asset"): string | null {
+function getParentId(
+  item: Folder | Asset | null,
+  itemType: "folder" | "asset",
+): string | null {
   if (!item) return null;
-  return itemType === "folder" ? (item as Folder).parentId : (item as Asset).folderId;
+  return itemType === "folder"
+    ? (item as Folder).parentId
+    : (item as Asset).folderId;
 }
 
-export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogProps) {
+export function CopyDialog({
+  open,
+  onOpenChange,
+  item,
+  itemType,
+}: CopyDialogProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const { data: allFolders = [] } = useFolders();
   const copyFolder = useCopyFolder();
@@ -75,14 +90,14 @@ export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogPro
         {
           onSuccess: (result) => {
             toast.success(
-              `${label} copied with ${result.assetsCopied} files and ${result.foldersCopied} folders`
+              `${label} copied with ${result.assetsCopied} files and ${result.foldersCopied} folders`,
             );
             onOpenChange(false);
           },
           onError: (error) => {
             toast.error(getApiErrorMessage(error));
           },
-        }
+        },
       );
     } else {
       copyAsset.mutate(
@@ -95,7 +110,7 @@ export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogPro
           onError: (error) => {
             toast.error(getApiErrorMessage(error));
           },
-        }
+        },
       );
     }
   };
@@ -112,7 +127,8 @@ export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogPro
         <ResponsiveDialogHeader>
           <ResponsiveDialogTitle>Copy {label}</ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Select a destination folder for the copy of &quot;{item?.name}&quot;.
+            Select a destination folder for the copy of &quot;{item?.name}
+            &quot;.
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
@@ -124,13 +140,15 @@ export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogPro
               onClick={() => setSelectedFolderId(null)}
               className={cn(
                 "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
-                selectedFolderId === null && "bg-accent"
+                selectedFolderId === null && "bg-accent",
               )}
             >
               <Home className="h-4 w-4" />
               <span>My Files</span>
               {currentParentId === null && (
-                <span className="text-xs text-muted-foreground ml-auto">(current)</span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  (current)
+                </span>
               )}
             </button>
 
@@ -151,7 +169,11 @@ export function CopyDialog({ open, onOpenChange, item, itemType }: CopyDialogPro
         </ResponsiveDialogBody>
 
         <ResponsiveDialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button onClick={handleCopy} disabled={isPending}>
@@ -195,7 +217,7 @@ function FolderTreeNode({
           "flex items-center gap-1 px-2 py-1.5 rounded text-sm",
           !isExcluded && "hover:bg-accent cursor-pointer",
           selectedId === folder.id && "bg-accent",
-          isExcluded && "opacity-50 cursor-not-allowed"
+          isExcluded && "opacity-50 cursor-not-allowed",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => !isExcluded && onSelect(folder.id)}
@@ -221,7 +243,9 @@ function FolderTreeNode({
         <FolderIcon className="h-4 w-4 text-blue-500" />
         <span className="truncate">{folder.name}</span>
         {isCurrent && (
-          <span className="text-xs text-muted-foreground ml-auto">(current)</span>
+          <span className="text-xs text-muted-foreground ml-auto">
+            (current)
+          </span>
         )}
       </div>
 
