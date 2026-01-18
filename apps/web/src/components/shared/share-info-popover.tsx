@@ -1,6 +1,15 @@
 "use client";
 
-import { User, Calendar, HardDrive, AlertCircle, Info, Clock, Eye, Pencil } from "lucide-react";
+import {
+  User,
+  Calendar,
+  HardDrive,
+  AlertCircle,
+  Info,
+  Clock,
+  Eye,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -51,7 +60,7 @@ export function ShareInfoPopover({
             variant === "dark"
               ? "text-foreground/80 hover:text-foreground hover:bg-accent"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",
-            className
+            className,
           )}
         >
           <Info className="h-5 w-5" />
@@ -62,7 +71,8 @@ export function ShareInfoPopover({
         sideOffset={8}
         className={cn(
           "w-80 p-0 overflow-hidden",
-          variant === "dark" && "bg-background/95 backdrop-blur-xl border-border"
+          variant === "dark" &&
+            "bg-background/95 backdrop-blur-xl border-border",
         )}
       >
         {/* Header */}
@@ -76,11 +86,7 @@ export function ShareInfoPopover({
         {/* Content */}
         <div className="p-4 space-y-3">
           {/* Owner */}
-          <InfoRow
-            icon={User}
-            label="Shared by"
-            value={share.ownerName}
-          />
+          <InfoRow icon={User} label="Shared by" value={share.ownerName} />
 
           {/* Permission */}
           <InfoRow
@@ -127,7 +133,12 @@ interface InfoRowProps {
   variant?: "default" | "warning" | "destructive";
 }
 
-function InfoRow({ icon: Icon, label, value, variant = "default" }: InfoRowProps) {
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  variant = "default",
+}: InfoRowProps) {
   return (
     <div className="flex items-center gap-3">
       <div
@@ -135,7 +146,7 @@ function InfoRow({ icon: Icon, label, value, variant = "default" }: InfoRowProps
           "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
           variant === "default" && "bg-muted/50",
           variant === "warning" && "bg-amber-500/10",
-          variant === "destructive" && "bg-destructive/10"
+          variant === "destructive" && "bg-destructive/10",
         )}
       >
         <Icon
@@ -143,7 +154,7 @@ function InfoRow({ icon: Icon, label, value, variant = "default" }: InfoRowProps
             "h-4 w-4",
             variant === "default" && "text-muted-foreground",
             variant === "warning" && "text-amber-500",
-            variant === "destructive" && "text-destructive"
+            variant === "destructive" && "text-destructive",
           )}
         />
       </div>
@@ -153,7 +164,7 @@ function InfoRow({ icon: Icon, label, value, variant = "default" }: InfoRowProps
           className={cn(
             "text-sm font-medium truncate",
             variant === "warning" && "text-amber-600",
-            variant === "destructive" && "text-destructive"
+            variant === "destructive" && "text-destructive",
           )}
         >
           {value}

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GithubIcon } from "@/components/icons/github-icon";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface HeroSectionProps {
   className?: string;
@@ -26,14 +27,13 @@ export function HeroSection({ className }: HeroSectionProps) {
 
         {/* Headline */}
         <h1 className="text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-          Your files,{" "}
-          <span className="text-primary">your cloud</span>
+          Your files, <span className="text-primary">your cloud</span>
         </h1>
 
         {/* Subheadline */}
         <p className="mt-6 max-w-xl text-lg text-muted-foreground md:text-xl">
-          Self-hosted file management with your own S3-compatible storage.
-          Open source, privacy-first, and completely under your control.
+          Self-hosted file management with your own S3-compatible storage. Open
+          source, privacy-first, and completely under your control.
         </p>
 
         {/* CTA buttons */}
@@ -62,13 +62,13 @@ export function HeroSection({ className }: HeroSectionProps) {
           >
             <div className="overflow-hidden rounded-lg">
               {/* Light mode image */}
-              <img
+              <Image
                 src="/marketing/files-light.webp"
                 alt="Assets Manager - File browser interface"
                 className="w-full h-auto dark:hidden"
               />
               {/* Dark mode image */}
-              <img
+              <Image
                 src="/marketing/files-dark.webp"
                 alt="Assets Manager - File browser interface"
                 className="w-full h-auto hidden dark:block"

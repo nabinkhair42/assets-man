@@ -46,7 +46,7 @@ export function CreateFolderDialog({
         onError: (error) => {
           toast.error(getApiErrorMessage(error));
         },
-      }
+      },
     );
   };
 
@@ -79,7 +79,10 @@ export function CreateFolderDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || createFolder.isPending}>
+            <Button
+              type="submit"
+              disabled={!name.trim() || createFolder.isPending}
+            >
               {createFolder.isPending ? "Creating..." : "Create"}
             </Button>
           </ResponsiveDialogFooter>

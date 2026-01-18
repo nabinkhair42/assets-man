@@ -32,9 +32,10 @@ export function SelectionToolbar({
   className,
 }: SelectionToolbarProps) {
   // Handle both Map and array formats
-  const items = selectedItems instanceof Map
-    ? Array.from(selectedItems.values())
-    : selectedItems;
+  const items =
+    selectedItems instanceof Map
+      ? Array.from(selectedItems.values())
+      : selectedItems;
   const count = items.length;
   const hasAssets = items.some((item) => item.type === "asset");
 
@@ -47,11 +48,16 @@ export function SelectionToolbar({
     <div
       className={cn(
         "fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-background/30 backdrop-blur-2xl rounded-xl border border-border/50",
-        className
+        className,
       )}
     >
       <div className="flex items-center gap-2 pr-2 border-r">
-        <Button variant="ghost" size="icon-sm" onClick={onClearSelection} className="rounded-full">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClearSelection}
+          className="rounded-full"
+        >
           <X className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium whitespace-nowrap">

@@ -678,10 +678,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const processFiles = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
-      const totalFiles = files.length;
-      let successCount = 0;
-      let failCount = 0;
-      setUploadingCount((prev) => prev + totalFiles);
+      setUploadingCount((prev) => prev + files.length);
 
       // Process files concurrently with individual toast tracking
       const uploadPromises = files.map(async (file) => {
@@ -695,11 +692,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                 id: toastId,
               }),
           });
-          successCount++;
           setUploadingCount((prev) => prev - 1);
           toast.success(`${file.name} uploaded`, { id: toastId });
         } catch (error) {
-          failCount++;
           setUploadingCount((prev) => prev - 1);
           toast.error(
             getApiErrorMessage(error, `Failed to upload ${file.name}`),

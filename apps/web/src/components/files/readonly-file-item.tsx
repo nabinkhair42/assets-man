@@ -2,14 +2,19 @@
 
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileIcon } from "@/components/shared";
 import {
   DataListRow,
   DataListCell,
   DataGridFileCard,
   SelectionCheckmark,
 } from "@/components/ui/data-list";
-import { formatFileSize, formatRelativeTime, truncateFileName } from "@/lib/formatters";
+import { FileIcon, FileThumbnail } from "@/components/shared";
+import { canHaveThumbnail } from "@/hooks";
+import {
+  formatFileSize,
+  formatRelativeTime,
+  truncateFileName,
+} from "@/lib/formatters";
 
 export interface ReadOnlyAsset {
   id: string;
@@ -29,8 +34,12 @@ interface ReadOnlyFileItemProps {
   isDownloading?: boolean;
   isSelected?: boolean;
   isPendingSelection?: boolean;
-  onSelect?: (asset: ReadOnlyAsset, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
-  selectionMode?: boolean;
+  onSelect?: (
+    asset: ReadOnlyAsset,
+    selected: boolean,
+    shiftKey?: boolean,
+    ctrlKey?: boolean,
+  ) => void;
 }
 
 export function ReadOnlyFileItem({
@@ -42,7 +51,6 @@ export function ReadOnlyFileItem({
   isSelected = false,
   isPendingSelection = false,
   onSelect,
-  selectionMode = false,
 }: ReadOnlyFileItemProps) {
   const isListView = viewMode === "list";
 
@@ -65,7 +73,7 @@ export function ReadOnlyFileItem({
     onDownload(asset);
   };
 
-  // List view layout - matches DraggableFileItem
+  // List view layout
   if (isListView) {
     return (
       <DataListRow
@@ -86,19 +94,29 @@ export function ReadOnlyFileItem({
             {asset.name}
           </p>
         </DataListCell>
-        <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+        <DataListCell
+          width="w-24"
+          align="right"
+          hideBelow="sm"
+          className="text-sm text-muted-foreground"
+        >
           {formatFileSize(asset.size)}
         </DataListCell>
-        {asset.updatedAt && (
-          <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
-            {formatRelativeTime(new Date(asset.updatedAt))}
+        {asset.createdAt && (
+          <DataListCell
+            width="w-32"
+            align="right"
+            hideBelow="md"
+            className="text-sm text-muted-foreground"
+          >
+            {formatRelativeTime(new Date(asset.createdAt))}
           </DataListCell>
         )}
         <DataListCell width="w-8" align="right">
           <Button
             variant="ghost"
             size="icon-sm"
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-6 w-6 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={handleDownloadClick}
             disabled={isDownloading}
           >
@@ -113,7 +131,7 @@ export function ReadOnlyFileItem({
     );
   }
 
-  // Grid view layout - matches DraggableFileItem
+  // Grid view layout
   return (
     <DataGridFileCard
       onClick={handleClick}
@@ -123,18 +141,29 @@ export function ReadOnlyFileItem({
       data-item-id={`asset-${asset.id}`}
     >
       {/* Preview area */}
-      <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
-        {/* File icon centered - no authenticated thumbnail fetching in public share */}
+      <div className="relative aspect-4/3 rounded-t-xl bg-muted/50 overflow-hidden">
+        {/* Thumbnail or file icon centered */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <FileIcon mimeType={asset.mimeType} size="xl" />
+          {canHaveThumbnail(asset.mimeType) && asset.thumbnailKey ? (
+            <FileThumbnail
+              assetId={asset.id}
+              mimeType={asset.mimeType}
+              thumbnailKey={asset.thumbnailKey}
+              name={asset.name}
+              size="lg"
+              className="w-full h-full rounded-none"
+            />
+          ) : (
+            <FileIcon mimeType={asset.mimeType} size="xl" />
+          )}
         </div>
 
         {/* Download button */}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon-sm"
-            className="h-8 w-8 rounded-full shadow-md bg-background/90 hover:bg-background"
+            className="h-6 w-6 sm:h-8 sm:w-8 bg-background/80 hover:bg-background"
             onClick={handleDownloadClick}
             disabled={isDownloading}
           >
@@ -154,10 +183,15 @@ export function ReadOnlyFileItem({
 
       {/* Info area */}
       <div className="p-3">
-        <p className="truncate font-medium text-sm text-foreground mb-1" title={asset.name}>
+        <p
+          className="truncate font-medium text-sm text-foreground mb-1"
+          title={asset.name}
+        >
           {asset.name}
         </p>
-        <span className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</span>
+        <span className="text-xs text-muted-foreground">
+          {formatFileSize(asset.size)}
+        </span>
       </div>
     </DataGridFileCard>
   );

@@ -23,7 +23,12 @@ interface ReadOnlyFolderItemProps {
   viewMode?: "grid" | "list";
   isSelected?: boolean;
   isPendingSelection?: boolean;
-  onSelect?: (folder: ReadOnlyFolder, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
+  onSelect?: (
+    folder: ReadOnlyFolder,
+    selected: boolean,
+    shiftKey?: boolean,
+    ctrlKey?: boolean,
+  ) => void;
   selectionMode?: boolean;
 }
 
@@ -34,7 +39,6 @@ export function ReadOnlyFolderItem({
   isSelected = false,
   isPendingSelection = false,
   onSelect,
-  selectionMode = false,
 }: ReadOnlyFolderItemProps) {
   const isListView = viewMode === "list";
 
@@ -70,11 +74,21 @@ export function ReadOnlyFolderItem({
             {folder.name}
           </p>
         </DataListCell>
-        <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+        <DataListCell
+          width="w-24"
+          align="right"
+          hideBelow="sm"
+          className="text-sm text-muted-foreground"
+        >
           —
         </DataListCell>
         {folder.updatedAt && (
-          <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
+          <DataListCell
+            width="w-32"
+            align="right"
+            hideBelow="md"
+            className="text-sm text-muted-foreground"
+          >
             {formatRelativeTime(new Date(folder.updatedAt))}
           </DataListCell>
         )}
@@ -99,7 +113,10 @@ export function ReadOnlyFolderItem({
         <FolderIcon className="h-5 w-5 text-muted-foreground shrink-0" />
 
         {/* Name */}
-        <span className="flex-1 truncate text-sm font-medium" title={folder.name}>
+        <span
+          className="flex-1 truncate text-sm font-medium"
+          title={folder.name}
+        >
           {folder.name}
         </span>
 

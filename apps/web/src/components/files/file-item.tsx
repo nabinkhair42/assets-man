@@ -37,13 +37,36 @@ interface FileItemProps {
 }
 
 function getFileIconData(mimeType: string) {
-  if (mimeType.startsWith("image/")) return { icon: FileImage, color: "text-pink-500", bg: "bg-pink-500/10" };
-  if (mimeType.startsWith("video/")) return { icon: FileVideo, color: "text-purple-500", bg: "bg-purple-500/10" };
-  if (mimeType.startsWith("audio/")) return { icon: FileAudio, color: "text-orange-500", bg: "bg-orange-500/10" };
-  if (mimeType.includes("pdf") || mimeType.includes("document") || mimeType.includes("text"))
+  if (mimeType.startsWith("image/"))
+    return { icon: FileImage, color: "text-pink-500", bg: "bg-pink-500/10" };
+  if (mimeType.startsWith("video/"))
+    return {
+      icon: FileVideo,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10",
+    };
+  if (mimeType.startsWith("audio/"))
+    return {
+      icon: FileAudio,
+      color: "text-orange-500",
+      bg: "bg-orange-500/10",
+    };
+  if (
+    mimeType.includes("pdf") ||
+    mimeType.includes("document") ||
+    mimeType.includes("text")
+  )
     return { icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10" };
-  if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("archive"))
-    return { icon: FileArchive, color: "text-amber-500", bg: "bg-amber-500/10" };
+  if (
+    mimeType.includes("zip") ||
+    mimeType.includes("rar") ||
+    mimeType.includes("archive")
+  )
+    return {
+      icon: FileArchive,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+    };
   return { icon: File, color: "text-muted-foreground", bg: "bg-muted" };
 }
 
@@ -92,13 +115,18 @@ export function FileItem({
     <ContextMenu>
       <ContextMenuTrigger>
         <div className="group flex cursor-pointer items-center gap-3 rounded-xl border border-border/60 bg-card p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${bg}`}>
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-lg ${bg}`}
+          >
             <Icon className={`h-6 w-6 ${color}`} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate font-semibold text-foreground">{asset.name}</p>
+            <p className="truncate font-semibold text-foreground">
+              {asset.name}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {formatFileSize(asset.size)} • {new Date(asset.createdAt).toLocaleDateString()}
+              {formatFileSize(asset.size)} •{" "}
+              {new Date(asset.createdAt).toLocaleDateString()}
             </p>
           </div>
           <DropdownMenu>

@@ -68,7 +68,7 @@ function ShortcutBadge({ shortcut }: { shortcut: ShortcutItem }) {
       {parts.map((part, i) => (
         <kbd
           key={i}
-          className="px-2 py-1 text-xs font-medium bg-muted border border-border rounded-md shadow-sm min-w-[24px] text-center"
+          className="px-2 py-1 text-xs font-medium bg-muted border border-border rounded-md shadow-sm min-w-6 text-center"
         >
           {part}
         </kbd>
@@ -77,7 +77,10 @@ function ShortcutBadge({ shortcut }: { shortcut: ShortcutItem }) {
   );
 }
 
-export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcutsDialogProps) {
+export function KeyboardShortcutsDialog({
+  open,
+  onOpenChange,
+}: KeyboardShortcutsDialogProps) {
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="max-w-md">

@@ -23,7 +23,7 @@ export function ListHeader({ columns, className }: ListHeaderProps) {
     <div
       className={cn(
         "flex items-center gap-2 sm:gap-3 py-2 text-xs font-medium text-muted-foreground tracking-wider border-b border-border/60 mb-1",
-        className
+        className,
       )}
     >
       {columns.map((col, i) => (
@@ -33,7 +33,7 @@ export function ListHeader({ columns, className }: ListHeaderProps) {
             col.width || "flex-1 min-w-0",
             col.align === "right" && "text-right",
             col.align === "center" && "text-center",
-            col.hideBelow && hideClasses[col.hideBelow]
+            col.hideBelow && hideClasses[col.hideBelow],
           )}
         >
           {col.label}

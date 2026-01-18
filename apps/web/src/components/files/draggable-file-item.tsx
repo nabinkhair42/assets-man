@@ -1,7 +1,16 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { MoreVertical, Download, Pencil, Trash2, FolderInput, Star, Copy, Share2 } from "lucide-react";
+import {
+  MoreVertical,
+  Download,
+  Pencil,
+  Trash2,
+  FolderInput,
+  Star,
+  Copy,
+  Share2,
+} from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -29,7 +38,11 @@ import { FileIcon, FileThumbnail } from "@/components/shared";
 import { canHaveThumbnail } from "@/hooks";
 import { SingleAvatar } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
-import { formatFileSize, formatRelativeTime, truncateFileName } from "@/lib/formatters";
+import {
+  formatFileSize,
+  formatRelativeTime,
+  truncateFileName,
+} from "@/lib/formatters";
 import type { Asset } from "@/types";
 
 export interface OwnerInfo {
@@ -52,7 +65,12 @@ interface DraggableFileItemProps {
   isSelected?: boolean;
   isPendingSelection?: boolean;
   isFocused?: boolean;
-  onSelect?: (asset: Asset, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
+  onSelect?: (
+    asset: Asset,
+    selected: boolean,
+    shiftKey?: boolean,
+    ctrlKey?: boolean,
+  ) => void;
   selectionMode?: boolean;
   selectedCount?: number;
   onBulkDownload?: () => void;
@@ -120,7 +138,12 @@ export function DraggableFileItem({
       </ContextMenuItem>
       {onStar && (
         <ContextMenuItem onClick={() => onStar(asset)}>
-          <Star className={cn("mr-2 h-4 w-4", asset.isStarred && "fill-yellow-400 text-yellow-400")} />
+          <Star
+            className={cn(
+              "mr-2 h-4 w-4",
+              asset.isStarred && "fill-yellow-400 text-yellow-400",
+            )}
+          />
           {asset.isStarred ? "Remove from starred" : "Add to starred"}
           <ContextMenuShortcut>Ctrl+S</ContextMenuShortcut>
         </ContextMenuItem>
@@ -179,7 +202,12 @@ export function DraggableFileItem({
         </DropdownMenuItem>
         {onStar && (
           <DropdownMenuItem onClick={() => onStar(asset)}>
-            <Star className={cn("mr-2 h-4 w-4", asset.isStarred && "fill-yellow-400 text-yellow-400")} />
+            <Star
+              className={cn(
+                "mr-2 h-4 w-4",
+                asset.isStarred && "fill-yellow-400 text-yellow-400",
+              )}
+            />
             {asset.isStarred ? "Remove from starred" : "Add to starred"}
             <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -272,10 +300,20 @@ export function DraggableFileItem({
                 <SingleAvatar user={owner} size="sm" />
               </DataListCell>
             )}
-            <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+            <DataListCell
+              width="w-24"
+              align="right"
+              hideBelow="sm"
+              className="text-sm text-muted-foreground"
+            >
               {formatFileSize(asset.size)}
             </DataListCell>
-            <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
+            <DataListCell
+              width="w-32"
+              align="right"
+              hideBelow="md"
+              className="text-sm text-muted-foreground"
+            >
               {formatRelativeTime(new Date(asset.createdAt))}
             </DataListCell>
             <DataListCell width="w-8" align="right">
@@ -305,7 +343,7 @@ export function DraggableFileItem({
           dragging={isDragging}
         >
           {/* Preview area */}
-          <div className="relative aspect-[4/3] rounded-t-xl bg-muted/50 overflow-hidden">
+          <div className="relative aspect-4/3 rounded-t-xl bg-muted/50 overflow-hidden">
             {/* Thumbnail or file icon centered */}
             <div className="absolute inset-0 flex items-center justify-center">
               {canHaveThumbnail(asset.mimeType) ? (
@@ -342,17 +380,24 @@ export function DraggableFileItem({
 
           {/* Info area */}
           <div className="p-3">
-            <p className="truncate font-medium text-sm text-foreground mb-1" title={asset.name}>
+            <p
+              className="truncate font-medium text-sm text-foreground mb-1"
+              title={asset.name}
+            >
               {asset.name}
             </p>
             <div className="flex items-center justify-between">
               {showOwner && owner ? (
                 <div className="flex items-center gap-1.5 min-w-0">
                   <SingleAvatar user={owner} size="xs" showTooltip={false} />
-                  <span className="text-xs text-muted-foreground truncate">{owner.name}</span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {owner.name}
+                  </span>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatFileSize(asset.size)}
+                </span>
               )}
             </div>
           </div>

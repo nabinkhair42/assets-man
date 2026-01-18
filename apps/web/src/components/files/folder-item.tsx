@@ -1,6 +1,12 @@
 "use client";
 
-import { Folder as FolderIcon, MoreVertical, Pencil, Trash2, FolderInput } from "lucide-react";
+import {
+  Folder as FolderIcon,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  FolderInput,
+} from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -66,7 +72,9 @@ export function FolderItem({
             <FolderIcon className="h-6 w-6 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="truncate font-semibold text-foreground">{folder.name}</p>
+            <p className="truncate font-semibold text-foreground">
+              {folder.name}
+            </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {new Date(folder.createdAt).toLocaleDateString()}
             </p>

@@ -42,7 +42,7 @@ export function PermanentDeleteDialog({
         onError: (error) => {
           toast.error(getApiErrorMessage(error), { id: toastId });
         },
-      }
+      },
     );
   };
 
@@ -53,12 +53,16 @@ export function PermanentDeleteDialog({
     <ResponsiveAlertDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveAlertDialogContent>
         <ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogTitle>Delete Permanently?</ResponsiveAlertDialogTitle>
+          <ResponsiveAlertDialogTitle>
+            Delete Permanently?
+          </ResponsiveAlertDialogTitle>
           <ResponsiveAlertDialogDescription>
-            Are you sure you want to permanently delete &quot;{item?.name}&quot;?
+            Are you sure you want to permanently delete &quot;{item?.name}
+            &quot;?
             {isFolder && " This will also delete all files inside."}
             <span className="block mt-2 font-medium text-destructive">
-              This action cannot be undone. The {label} will be permanently removed.
+              This action cannot be undone. The {label} will be permanently
+              removed.
             </span>
           </ResponsiveAlertDialogDescription>
         </ResponsiveAlertDialogHeader>

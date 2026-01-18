@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -14,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
 import { toast } from "sonner";
-import { Folder as FolderIcon, ChevronRight, ChevronDown, Home } from "lucide-react";
+import {
+  Folder as FolderIcon,
+  ChevronRight,
+  ChevronDown,
+  Home,
+} from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder, Asset } from "@/types";
 
@@ -25,25 +30,37 @@ interface MoveDialogProps {
   itemType: "folder" | "asset";
 }
 
-function getParentId(item: Folder | Asset | null, itemType: "folder" | "asset"): string | null {
+function getParentId(
+  item: Folder | Asset | null,
+  itemType: "folder" | "asset",
+): string | null {
   if (!item) return null;
-  return itemType === "folder" ? (item as Folder).parentId : (item as Asset).folderId;
+  return itemType === "folder"
+    ? (item as Folder).parentId
+    : (item as Asset).folderId;
 }
 
-export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogProps) {
+export function MoveDialog({
+  open,
+  onOpenChange,
+  item,
+  itemType,
+}: MoveDialogProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [prevOpen, setPrevOpen] = useState(false);
   const { data: allFolders = [] } = useFolders();
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
-  const prevOpenRef = useRef(open);
 
   const currentParentId = getParentId(item, itemType);
 
-  // Reset selection when dialog opens (state sync during render, not in effect)
-  if (open && !prevOpenRef.current && item) {
+  // Reset selection when dialog opens (React recommended pattern for adjusting state during render)
+  if (open && !prevOpen && item) {
     setSelectedFolderId(currentParentId);
   }
-  prevOpenRef.current = open;
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+  }
 
   // Get IDs to exclude (the item itself and its descendants for folders)
   const excludeIds = useMemo(() => {
@@ -86,7 +103,7 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
           onError: (error) => {
             toast.error(getApiErrorMessage(error));
           },
-        }
+        },
       );
     } else {
       updateAsset.mutate(
@@ -99,7 +116,7 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
           onError: (error) => {
             toast.error(getApiErrorMessage(error));
           },
-        }
+        },
       );
     }
   };
@@ -128,13 +145,15 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
               onClick={() => setSelectedFolderId(null)}
               className={cn(
                 "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
-                selectedFolderId === null && "bg-accent"
+                selectedFolderId === null && "bg-accent",
               )}
             >
               <Home className="h-4 w-4" />
               <span>My Files</span>
               {currentParentId === null && (
-                <span className="text-xs text-muted-foreground ml-auto">(current)</span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  (current)
+                </span>
               )}
             </button>
 
@@ -155,10 +174,17 @@ export function MoveDialog({ open, onOpenChange, item, itemType }: MoveDialogPro
         </ResponsiveDialogBody>
 
         <ResponsiveDialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button onClick={handleMove} disabled={isPending || selectedFolderId === currentParentId}>
+          <Button
+            onClick={handleMove}
+            disabled={isPending || selectedFolderId === currentParentId}
+          >
             {isPending ? "Moving..." : "Move"}
           </Button>
         </ResponsiveDialogFooter>
@@ -199,7 +225,7 @@ function FolderTreeNode({
           "flex items-center gap-1 px-2 py-1.5 rounded text-sm",
           !isExcluded && "hover:bg-accent cursor-pointer",
           selectedId === folder.id && "bg-accent",
-          isExcluded && "opacity-50 cursor-not-allowed"
+          isExcluded && "opacity-50 cursor-not-allowed",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => !isExcluded && onSelect(folder.id)}
@@ -225,7 +251,9 @@ function FolderTreeNode({
         <FolderIcon className="h-4 w-4 text-blue-500" />
         <span className="truncate">{folder.name}</span>
         {isCurrent && (
-          <span className="text-xs text-muted-foreground ml-auto">(current)</span>
+          <span className="text-xs text-muted-foreground ml-auto">
+            (current)
+          </span>
         )}
       </div>
 

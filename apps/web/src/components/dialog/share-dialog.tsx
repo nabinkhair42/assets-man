@@ -20,7 +20,12 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSharesForItem, useCreateUserShare, useCreateLinkShare, useDeleteShare } from "@/hooks";
+import {
+  useSharesForItem,
+  useCreateUserShare,
+  useCreateLinkShare,
+  useDeleteShare,
+} from "@/hooks";
 import { shareService } from "@/services";
 import { toast } from "sonner";
 import {
@@ -37,7 +42,12 @@ import {
   Users,
 } from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import type { Folder as FolderType, Asset, SharePermission, ShareWithDetails } from "@/types";
+import type {
+  Folder as FolderType,
+  Asset,
+  SharePermission,
+  ShareWithDetails,
+} from "@/types";
 
 interface ShareDialogProps {
   open: boolean;
@@ -46,7 +56,12 @@ interface ShareDialogProps {
   itemType: "folder" | "asset";
 }
 
-export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogProps) {
+export function ShareDialog({
+  open,
+  onOpenChange,
+  item,
+  itemType,
+}: ShareDialogProps) {
   const [activeTab, setActiveTab] = useState<"link" | "email">("link");
   const [email, setEmail] = useState("");
   const [permission, setPermission] = useState<SharePermission>("view");
@@ -57,7 +72,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
   const [expiryHours, setExpiryHours] = useState(24);
   const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
-  const { data: shares = [], isLoading } = useSharesForItem(itemType, item?.id ?? "");
+  const { data: shares = [], isLoading } = useSharesForItem(
+    itemType,
+    item?.id ?? "",
+  );
   const createUserShare = useCreateUserShare();
   const createLinkShare = useCreateLinkShare();
   const deleteShare = useDeleteShare();
@@ -82,7 +100,7 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
         onError: (error) => {
           toast.error(getApiErrorMessage(error));
         },
-      }
+      },
     );
   };
 
@@ -108,7 +126,7 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
         onError: (error) => {
           toast.error(getApiErrorMessage(error));
         },
-      }
+      },
     );
   };
 
@@ -127,7 +145,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
     });
   };
 
-  const isPending = createUserShare.isPending || createLinkShare.isPending || deleteShare.isPending;
+  const isPending =
+    createUserShare.isPending ||
+    createLinkShare.isPending ||
+    deleteShare.isPending;
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -138,12 +159,16 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
         {/* Header */}
         <ResponsiveDialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <ResponsiveDialogTitle className="text-lg font-medium truncate pr-8">
-            Share "{item?.name}"
+            Share &apos;{item?.name}&apos;
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "link" | "email")} className="flex-1 flex flex-col min-h-0">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "link" | "email")}
+          className="flex-1 flex flex-col min-h-0"
+        >
           <div className="px-6 shrink-0">
             <TabsList className="w-full grid grid-cols-2 h-10">
               <TabsTrigger value="link" className="gap-2 text-sm">
@@ -158,18 +183,25 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
           </div>
 
           {/* Get Link Tab */}
-          <TabsContent value="link" className="flex-1 overflow-auto mt-0 px-6 pb-6">
+          <TabsContent
+            value="link"
+            className="flex-1 overflow-auto mt-0 px-6 pb-6"
+          >
             <div className="space-y-4 pt-4">
               {/* Existing links */}
               {linkShares.length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active Links</h3>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Active Links
+                  </h3>
                   <div className="space-y-2">
                     {linkShares.map((share) => (
                       <LinkItem
                         key={share.id}
                         share={share}
-                        onCopy={() => handleCopyLink(share.linkToken ?? "", share.id)}
+                        onCopy={() =>
+                          handleCopyLink(share.linkToken ?? "", share.id)
+                        }
                         onRemove={() => handleRemoveShare(share.id)}
                         isCopied={copiedLinkId === share.id}
                         isPending={deleteShare.isPending}
@@ -181,7 +213,9 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
 
               {/* Create new link section */}
               <div className="space-y-4">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Create New Link</h3>
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Create New Link
+                </h3>
 
                 {/* Link permission */}
                 <div className="flex items-center justify-between">
@@ -189,8 +223,13 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">Anyone with link</span>
                   </div>
-                  <Select value={linkPermission} onValueChange={(v) => setLinkPermission(v as SharePermission)}>
-                    <SelectTrigger className="w-[100px] h-8 text-xs">
+                  <Select
+                    value={linkPermission}
+                    onValueChange={(v) =>
+                      setLinkPermission(v as SharePermission)
+                    }
+                  >
+                    <SelectTrigger className="w-25 h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -203,7 +242,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                 {/* Password protection */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password-toggle" className="text-sm flex items-center gap-3 cursor-pointer">
+                    <Label
+                      htmlFor="password-toggle"
+                      className="text-sm flex items-center gap-3 cursor-pointer"
+                    >
                       <Lock className="h-4 w-4 text-muted-foreground" />
                       Password protect
                     </Label>
@@ -227,7 +269,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                 {/* Expiration */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="expiry-toggle" className="text-sm flex items-center gap-3 cursor-pointer">
+                    <Label
+                      htmlFor="expiry-toggle"
+                      className="text-sm flex items-center gap-3 cursor-pointer"
+                    >
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       Set expiration
                     </Label>
@@ -238,7 +283,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                     />
                   </div>
                   {hasExpiry && (
-                    <Select value={expiryHours.toString()} onValueChange={(v) => setExpiryHours(parseInt(v))}>
+                    <Select
+                      value={expiryHours.toString()}
+                      onValueChange={(v) => setExpiryHours(parseInt(v))}
+                    >
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>
@@ -270,7 +318,10 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
           </TabsContent>
 
           {/* Invite People Tab */}
-          <TabsContent value="email" className="flex-1 overflow-auto mt-0 px-6 pb-6">
+          <TabsContent
+            value="email"
+            className="flex-1 overflow-auto mt-0 px-6 pb-6"
+          >
             <div className="space-y-4 pt-4">
               {/* Email input */}
               <div className="space-y-3">
@@ -283,8 +334,11 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                     onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
                     className="h-10"
                   />
-                  <Select value={permission} onValueChange={(v) => setPermission(v as SharePermission)}>
-                    <SelectTrigger className="w-[100px] h-10">
+                  <Select
+                    value={permission}
+                    onValueChange={(v) => setPermission(v as SharePermission)}
+                  >
+                    <SelectTrigger className="w-25 h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -310,13 +364,19 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
               {/* People with access */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">People with access</h3>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    People with access
+                  </h3>
                   {userShares.length > 0 && (
-                    <span className="text-xs text-muted-foreground">{userShares.length}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {userShares.length}
+                    </span>
                   )}
                 </div>
 
-                <ScrollArea className={cn(userShares.length > 4 && "h-[200px]")}>
+                <ScrollArea
+                  className={cn(userShares.length > 4 && "h-50")}
+                >
                   {isLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -326,7 +386,9 @@ export function ShareDialog({ open, onOpenChange, item, itemType }: ShareDialogP
                       <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
                         <Users className="h-6 w-6 text-muted-foreground" />
                       </div>
-                      <p className="text-sm text-muted-foreground">No one has access yet</p>
+                      <p className="text-sm text-muted-foreground">
+                        No one has access yet
+                      </p>
                       <p className="text-xs text-muted-foreground/70 mt-1">
                         Add people by email above
                       </p>
@@ -382,17 +444,25 @@ function PersonItem({ share, onRemove, isPending }: PersonItemProps) {
     "bg-pink-500",
   ];
 
-  const colorIndex = (share.sharedWithEmail?.charCodeAt(0) ?? 0) % colors.length;
+  const colorIndex =
+    (share.sharedWithEmail?.charCodeAt(0) ?? 0) % colors.length;
 
   return (
     <div className="group flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors">
-      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0", colors[colorIndex])}>
+      <div
+        className={cn(
+          "h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0",
+          colors[colorIndex],
+        )}
+      >
         {initials}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{name}</p>
         {share.sharedWithName && share.sharedWithEmail && (
-          <p className="text-xs text-muted-foreground truncate">{share.sharedWithEmail}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {share.sharedWithEmail}
+          </p>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -421,18 +491,34 @@ interface LinkItemProps {
   isPending?: boolean;
 }
 
-function LinkItem({ share, onCopy, onRemove, isCopied, isPending }: LinkItemProps) {
-  const isExpired = share.expiresAt ? new Date(share.expiresAt) < new Date() : false;
+function LinkItem({
+  share,
+  onCopy,
+  onRemove,
+  isCopied,
+  isPending,
+}: LinkItemProps) {
+  const isExpired = share.expiresAt
+    ? new Date(share.expiresAt) < new Date()
+    : false;
 
   return (
-    <div className={cn(
-      "flex items-center gap-3 py-2.5 px-3 rounded-lg border transition-colors",
-      isExpired ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-transparent"
-    )}>
-      <div className={cn(
-        "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
-        isExpired ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
-      )}>
+    <div
+      className={cn(
+        "flex items-center gap-3 py-2.5 px-3 rounded-lg border transition-colors",
+        isExpired
+          ? "bg-destructive/5 border-destructive/20"
+          : "bg-muted/30 border-transparent",
+      )}
+    >
+      <div
+        className={cn(
+          "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+          isExpired
+            ? "bg-destructive/10 text-destructive"
+            : "bg-primary/10 text-primary",
+        )}
+      >
         <Globe className="h-4 w-4" />
       </div>
       <div className="flex-1 min-w-0">

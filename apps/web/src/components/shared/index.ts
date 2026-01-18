@@ -1,4 +1,9 @@
-export { FileIcon, getFileIconData, getFolderIconData, type FileIconData } from "./file-icon";
+export {
+  FileIcon,
+  getFileIconData,
+  getFolderIconData,
+  type FileIconData,
+} from "./file-icon";
 export { FileThumbnail, SimpleThumbnail } from "./file-thumbnail";
 export { EmptyState, type EmptyStateVariant } from "./empty-state";
 export { ListHeader, type ListHeaderColumn } from "./list-header";

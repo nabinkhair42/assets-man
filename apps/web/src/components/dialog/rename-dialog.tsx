@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -25,16 +25,24 @@ interface RenameDialogProps {
   itemType: "folder" | "asset";
 }
 
-export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialogProps) {
+export function RenameDialog({
+  open,
+  onOpenChange,
+  item,
+  itemType,
+}: RenameDialogProps) {
   const [name, setName] = useState("");
+  const [prevItem, setPrevItem] = useState(item);
   const updateFolder = useUpdateFolder();
   const updateAsset = useUpdateAsset();
 
-  useEffect(() => {
+  // Reset name when item changes (React recommended pattern for adjusting state during render)
+  if (item !== prevItem) {
+    setPrevItem(item);
     if (item) {
       setName(item.name);
     }
-  }, [item]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +61,7 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
         onError: (error) => {
           toast.error(getApiErrorMessage(error));
         },
-      }
+      },
     );
   };
 
@@ -66,7 +74,9 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
         <form onSubmit={handleSubmit}>
           <ResponsiveDialogHeader>
             <ResponsiveDialogTitle>Rename {label}</ResponsiveDialogTitle>
-            <ResponsiveDialogDescription>Enter a new name.</ResponsiveDialogDescription>
+            <ResponsiveDialogDescription>
+              Enter a new name.
+            </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
           <ResponsiveDialogBody className="py-4">
             <Label htmlFor="rename-input">Name</Label>
@@ -79,7 +89,11 @@ export function RenameDialog({ open, onOpenChange, item, itemType }: RenameDialo
             />
           </ResponsiveDialogBody>
           <ResponsiveDialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={!name.trim() || isPending}>

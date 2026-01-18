@@ -12,7 +12,12 @@ interface MobileFabProps {
   hidden?: boolean;
 }
 
-export function MobileFab({ onUpload, onNewFolder, disabled, hidden }: MobileFabProps) {
+export function MobileFab({
+  onUpload,
+  onNewFolder,
+  disabled,
+  hidden,
+}: MobileFabProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   if (hidden) return null;
@@ -35,7 +40,7 @@ export function MobileFab({ onUpload, onNewFolder, disabled, hidden }: MobileFab
             "flex flex-col items-end gap-3 transition-all duration-200",
             isOpen
               ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4 pointer-events-none"
+              : "opacity-0 translate-y-4 pointer-events-none",
           )}
         >
           {/* New Folder Action */}
@@ -84,7 +89,7 @@ export function MobileFab({ onUpload, onNewFolder, disabled, hidden }: MobileFab
           size="icon"
           className={cn(
             "h-14 w-14 rounded-full shadow-xl transition-transform duration-200",
-            isOpen && "rotate-45 bg-muted text-muted-foreground hover:bg-muted"
+            isOpen && "rotate-45 bg-muted text-muted-foreground hover:bg-muted",
           )}
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}

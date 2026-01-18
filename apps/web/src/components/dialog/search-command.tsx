@@ -26,12 +26,23 @@ import type { Asset, Folder } from "@/types";
 import { cn } from "@/lib/utils";
 
 function getFileIconData(mimeType: string) {
-  if (mimeType?.startsWith("image/")) return { icon: FileImage, color: "text-pink-500" };
-  if (mimeType?.startsWith("video/")) return { icon: FileVideo, color: "text-purple-500" };
-  if (mimeType?.startsWith("audio/")) return { icon: FileAudio, color: "text-orange-500" };
-  if (mimeType?.includes("pdf") || mimeType?.includes("document") || mimeType?.includes("text"))
+  if (mimeType?.startsWith("image/"))
+    return { icon: FileImage, color: "text-pink-500" };
+  if (mimeType?.startsWith("video/"))
+    return { icon: FileVideo, color: "text-purple-500" };
+  if (mimeType?.startsWith("audio/"))
+    return { icon: FileAudio, color: "text-orange-500" };
+  if (
+    mimeType?.includes("pdf") ||
+    mimeType?.includes("document") ||
+    mimeType?.includes("text")
+  )
     return { icon: FileText, color: "text-blue-500" };
-  if (mimeType?.includes("zip") || mimeType?.includes("rar") || mimeType?.includes("archive"))
+  if (
+    mimeType?.includes("zip") ||
+    mimeType?.includes("rar") ||
+    mimeType?.includes("archive")
+  )
     return { icon: FileArchive, color: "text-amber-500" };
   return { icon: File, color: "text-muted-foreground" };
 }
@@ -49,7 +60,10 @@ interface SearchCommandProps {
   onPreviewAsset?: (asset: Asset) => void;
 }
 
-export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchCommandProps) {
+export function SearchCommand({
+  onNavigateToFolder,
+  onPreviewAsset,
+}: SearchCommandProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -96,29 +110,35 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
     return () => clearTimeout(searchTimeout);
   }, [query]);
 
-  const handleSelectFolder = useCallback((folder: Folder) => {
-    setOpen(false);
-    setQuery("");
-    if (onNavigateToFolder) {
-      onNavigateToFolder(folder.id);
-    } else {
-      router.push(`/files?folderId=${folder.id}`);
-    }
-  }, [onNavigateToFolder, router]);
+  const handleSelectFolder = useCallback(
+    (folder: Folder) => {
+      setOpen(false);
+      setQuery("");
+      if (onNavigateToFolder) {
+        onNavigateToFolder(folder.id);
+      } else {
+        router.push(`/files?folderId=${folder.id}`);
+      }
+    },
+    [onNavigateToFolder, router],
+  );
 
-  const handleSelectAsset = useCallback((asset: Asset) => {
-    setOpen(false);
-    setQuery("");
-    if (onPreviewAsset) {
-      onPreviewAsset(asset);
-    } else if (onNavigateToFolder) {
-      onNavigateToFolder(asset.folderId);
-    } else if (asset.folderId) {
-      router.push(`/files?folderId=${asset.folderId}`);
-    } else {
-      router.push("/files");
-    }
-  }, [onNavigateToFolder, onPreviewAsset, router]);
+  const handleSelectAsset = useCallback(
+    (asset: Asset) => {
+      setOpen(false);
+      setQuery("");
+      if (onPreviewAsset) {
+        onPreviewAsset(asset);
+      } else if (onNavigateToFolder) {
+        onNavigateToFolder(asset.folderId);
+      } else if (asset.folderId) {
+        router.push(`/files?folderId=${asset.folderId}`);
+      } else {
+        router.push("/files");
+      }
+    },
+    [onNavigateToFolder, onPreviewAsset, router],
+  );
 
   const handleOpenChange = (open: boolean) => {
     setOpen(open);
@@ -140,7 +160,7 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
           "text-sm text-muted-foreground",
           "transition-all duration-200",
           "hover:bg-muted/50 hover:border-border",
-          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+          "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50",
         )}
       >
         <Search className="h-4 w-4 shrink-0 opacity-50" />
@@ -169,8 +189,12 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
           {query.length < 2 ? (
             <div className="py-14 text-center">
               <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Type to search your files</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">Enter at least 2 characters</p>
+              <p className="text-sm text-muted-foreground">
+                Type to search your files
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Enter at least 2 characters
+              </p>
             </div>
           ) : isLoading ? (
             <div className="py-14 text-center">
@@ -185,9 +209,12 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
                     <Search className="h-6 w-6 text-muted-foreground/50" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">No results found</p>
+                    <p className="text-sm font-medium text-foreground">
+                      No results found
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      Try searching with different keywords or check your spelling
+                      Try searching with different keywords or check your
+                      spelling
                     </p>
                   </div>
                 </div>
@@ -207,7 +234,9 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                         <FolderIcon className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="flex-1 truncate font-medium">{folder.name}</span>
+                      <span className="flex-1 truncate font-medium">
+                        {folder.name}
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -216,7 +245,9 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
               {assets.length > 0 && (
                 <CommandGroup heading="Files">
                   {assets.map((asset) => {
-                    const { icon: Icon, color } = getFileIconData(asset.mimeType);
+                    const { icon: Icon, color } = getFileIconData(
+                      asset.mimeType,
+                    );
                     return (
                       <CommandItem
                         key={`asset-${asset.id}`}
@@ -224,12 +255,18 @@ export function SearchCommand({ onNavigateToFolder, onPreviewAsset }: SearchComm
                         onSelect={() => handleSelectAsset(asset)}
                         className="cursor-pointer gap-3 py-2.5"
                       >
-                        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-muted")}>
+                        <div
+                          className={cn(
+                            "flex h-8 w-8 items-center justify-center rounded-lg bg-muted",
+                          )}
+                        >
                           <Icon className={cn("h-4 w-4", color)} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-medium">{asset.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatFileSize(asset.size)}
+                          </p>
                         </div>
                       </CommandItem>
                     );

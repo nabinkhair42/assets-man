@@ -32,9 +32,12 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
     <ResponsiveAlertDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveAlertDialogContent>
         <ResponsiveAlertDialogHeader>
-          <ResponsiveAlertDialogTitle>Confirm Logout</ResponsiveAlertDialogTitle>
+          <ResponsiveAlertDialogTitle>
+            Confirm Logout
+          </ResponsiveAlertDialogTitle>
           <ResponsiveAlertDialogDescription>
-            Are you sure you want to logout? You will need to sign in again to access your files.
+            Are you sure you want to logout? You will need to sign in again to
+            access your files.
           </ResponsiveAlertDialogDescription>
         </ResponsiveAlertDialogHeader>
         <ResponsiveAlertDialogFooter>

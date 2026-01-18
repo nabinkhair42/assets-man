@@ -36,7 +36,7 @@ const PdfPreview = dynamic(
   {
     ssr: false,
     loading: () => <LoadingPreview />,
-  }
+  },
 );
 
 interface FilePreviewDialogProps {
@@ -73,7 +73,6 @@ export function FilePreviewDialog({
   const [pdfScale, setPdfScale] = useState(1.0);
   const [pdfRotation, setPdfRotation] = useState(0);
 
-
   const currentIndex = asset ? assets.findIndex((a) => a.id === asset.id) : -1;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < assets.length - 1;
@@ -81,26 +80,29 @@ export function FilePreviewDialog({
   const fileType = asset ? getFileType(asset.mimeType, asset.name) : "other";
   const isPdf = fileType === "pdf";
 
-  const loadPreview = useCallback(async (assetToLoad: Asset) => {
-    setLoading(true);
-    setError(null);
-    setPreviewUrl(null);
-    // Reset PDF state
-    setPdfNumPages(0);
-    setPdfPageNumber(1);
-    setPdfScale(1.0);
-    setPdfRotation(0);
+  const loadPreview = useCallback(
+    async (assetToLoad: Asset) => {
+      setLoading(true);
+      setError(null);
+      setPreviewUrl(null);
+      // Reset PDF state
+      setPdfNumPages(0);
+      setPdfPageNumber(1);
+      setPdfScale(1.0);
+      setPdfRotation(0);
 
-    try {
-      const fetchUrl = customGetDownloadUrl || assetService.getDownloadUrl;
-      const { url } = await fetchUrl(assetToLoad.id);
-      setPreviewUrl(url);
-    } catch {
-      setError("Failed to load preview");
-    } finally {
-      setLoading(false);
-    }
-  }, [customGetDownloadUrl]);
+      try {
+        const fetchUrl = customGetDownloadUrl || assetService.getDownloadUrl;
+        const { url } = await fetchUrl(assetToLoad.id);
+        setPreviewUrl(url);
+      } catch {
+        setError("Failed to load preview");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [customGetDownloadUrl],
+  );
 
   useEffect(() => {
     if (open && asset) {
@@ -148,11 +150,26 @@ export function FilePreviewDialog({
   }, [asset, customGetDownloadUrl, customOnDownload]);
 
   // PDF controls
-  const handlePdfPrevPage = () => setPdfPageNumber((prev) => Math.max(prev - 1, 1));
-  const handlePdfNextPage = () => setPdfPageNumber((prev) => Math.min(prev + 1, pdfNumPages));
-  const handleZoomIn = () => setPdfScale((prev) => Math.min(prev + 0.25, 3.0));
-  const handleZoomOut = () => setPdfScale((prev) => Math.max(prev - 0.25, 0.5));
-  const handleRotate = () => setPdfRotation((prev) => (prev + 90) % 360);
+  const handlePdfPrevPage = useCallback(
+    () => setPdfPageNumber((prev) => Math.max(prev - 1, 1)),
+    [],
+  );
+  const handlePdfNextPage = useCallback(
+    () => setPdfPageNumber((prev) => Math.min(prev + 1, pdfNumPages)),
+    [pdfNumPages],
+  );
+  const handleZoomIn = useCallback(
+    () => setPdfScale((prev) => Math.min(prev + 0.25, 3.0)),
+    [],
+  );
+  const handleZoomOut = useCallback(
+    () => setPdfScale((prev) => Math.max(prev - 0.25, 0.5)),
+    [],
+  );
+  const handleRotate = useCallback(
+    () => setPdfRotation((prev) => (prev + 90) % 360),
+    [],
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -182,13 +199,28 @@ export function FilePreviewDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, handlePrev, handleNext, onOpenChange, isPdf, pdfPageNumber, pdfNumPages]);
+  }, [
+    open,
+    handlePrev,
+    handleNext,
+    onOpenChange,
+    isPdf,
+    pdfPageNumber,
+    pdfNumPages,
+    handlePdfPrevPage,
+    handlePdfNextPage,
+    handleZoomIn,
+    handleZoomOut,
+  ]);
 
   // Swipe gesture handlers for mobile navigation
-  const swipeHandlers = useMemo(() => ({
-    onSwipeLeft: hasNext ? handleNext : undefined,
-    onSwipeRight: hasPrev ? handlePrev : undefined,
-  }), [hasNext, hasPrev, handleNext, handlePrev]);
+  const swipeHandlers = useMemo(
+    () => ({
+      onSwipeLeft: hasNext ? handleNext : undefined,
+      onSwipeRight: hasPrev ? handlePrev : undefined,
+    }),
+    [hasNext, hasPrev, handleNext, handlePrev],
+  );
 
   const touchHandlers = useSwipe(swipeHandlers, {
     threshold: 50,
@@ -239,12 +271,7 @@ export function FilePreviewDialog({
         );
       case "text":
       case "code":
-        return (
-          <TextPreview
-            {...previewProps}
-            minimal
-          />
-        );
+        return <TextPreview {...previewProps} minimal />;
       case "document":
         const encodedUrl = encodeURIComponent(previewUrl);
         return (
@@ -272,14 +299,20 @@ export function FilePreviewDialog({
           <header className="flex items-center justify-between h-12 sm:h-14 px-2 sm:px-4 bg-muted backdrop-blur-sm border-b">
             {/* Left: File info */}
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <FileIcon mimeType={asset.mimeType} size="sm" className="shrink-0" />
+              <FileIcon
+                mimeType={asset.mimeType}
+                size="sm"
+                className="shrink-0"
+              />
               <div className="min-w-0">
-                <DialogPrimitive.Title className="font-medium truncate text-xs sm:text-sm max-w-[120px] sm:max-w-none">
+                <DialogPrimitive.Title className="font-medium truncate text-xs sm:text-sm max-w-30 sm:max-w-none">
                   {asset.name}
                 </DialogPrimitive.Title>
                 <p className="text-[10px] sm:text-xs">
                   {formatFileSize(asset.size)}
-                  {showNavigation && assets.length > 1 && ` • ${currentIndex + 1} of ${assets.length}`}
+                  {showNavigation &&
+                    assets.length > 1 &&
+                    ` • ${currentIndex + 1} of ${assets.length}`}
                   {subtitle && ` • ${subtitle}`}
                 </p>
               </div>
@@ -299,7 +332,7 @@ export function FilePreviewDialog({
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm min-w-[60px] text-center">
+                  <span className="text-sm min-w-15 text-center">
                     {pdfPageNumber} / {pdfNumPages}
                   </span>
                   <Button
@@ -321,7 +354,7 @@ export function FilePreviewDialog({
                   >
                     <ZoomOut className="h-4 w-4" />
                   </Button>
-                  <span className="text-xs min-w-[40px] text-center hidden sm:block">
+                  <span className="text-xs min-w-10 text-center hidden sm:block">
                     {Math.round(pdfScale * 100)}%
                   </span>
                   <Button
@@ -343,7 +376,6 @@ export function FilePreviewDialog({
                   </Button>
                 </>
               )}
-
             </div>
 
             {/* Right: Actions */}
@@ -423,7 +455,7 @@ export function FilePreviewDialog({
                   "bg-muted/50 hover:bg-muted/70 backdrop-blur-sm",
                   "transition-all duration-200",
                   "focus:outline-none focus:ring-2",
-                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-muted/50"
+                  !hasPrev && "opacity-30 cursor-not-allowed hover:bg-muted/50",
                 )}
               >
                 <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -437,7 +469,7 @@ export function FilePreviewDialog({
                   "bg-muted/50 hover:bg-muted/70 backdrop-blur-sm",
                   "transition-all duration-200",
                   "focus:outline-none focus:ring-2 ",
-                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-muted/50"
+                  !hasNext && "opacity-30 cursor-not-allowed hover:bg-muted/50",
                 )}
               >
                 <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />

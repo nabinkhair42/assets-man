@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "@/components/ui/button-group";
+import {
+  ButtonGroup,
+  ButtonGroupSeparator,
+} from "@/components/ui/button-group";
 import { GithubIcon } from "@/components/icons/github-icon";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";

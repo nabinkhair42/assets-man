@@ -20,14 +20,19 @@ interface EmptyTrashDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) {
+export function EmptyTrashDialog({
+  open,
+  onOpenChange,
+}: EmptyTrashDialogProps) {
   const emptyTrash = useEmptyTrash();
 
   const handleEmptyTrash = () => {
     const toastId = toast.loading("Emptying trash");
     emptyTrash.mutate(undefined, {
       onSuccess: (result) => {
-        toast.success(`Deleted ${result.total} items permanently`, { id: toastId });
+        toast.success(`Deleted ${result.total} items permanently`, {
+          id: toastId,
+        });
         onOpenChange(false);
       },
       onError: (error) => {
@@ -42,7 +47,8 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
         <ResponsiveAlertDialogHeader>
           <ResponsiveAlertDialogTitle>Empty Trash?</ResponsiveAlertDialogTitle>
           <ResponsiveAlertDialogDescription>
-            This will permanently delete all items in trash. This action cannot be undone.
+            This will permanently delete all items in trash. This action cannot
+            be undone.
           </ResponsiveAlertDialogDescription>
         </ResponsiveAlertDialogHeader>
         <ResponsiveAlertDialogFooter>
@@ -62,7 +68,12 @@ export function EmptyTrashDialog({ open, onOpenChange }: EmptyTrashDialogProps) 
 // Trigger button for convenience
 export function EmptyTrashTrigger({ onClick }: { onClick: () => void }) {
   return (
-    <Button variant="destructive" size="sm" onClick={onClick} tooltipContent="Permanently delete all items">
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={onClick}
+      tooltipContent="Permanently delete all items"
+    >
       Empty Trash
     </Button>
   );

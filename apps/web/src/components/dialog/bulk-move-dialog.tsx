@@ -14,8 +14,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
 import { toast } from "sonner";
-import { Folder as FolderIcon, ChevronRight, ChevronDown, Home } from "lucide-react";
-import { cn, getApiErrorMessage } from "@/lib/utils";
+import {
+  Folder as FolderIcon,
+  ChevronRight,
+  ChevronDown,
+  Home,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Folder } from "@/types";
 import type { SelectedItem } from "@/components/shared";
 
@@ -26,7 +31,12 @@ interface BulkMoveDialogProps {
   onSuccess?: () => void;
 }
 
-export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMoveDialogProps) {
+export function BulkMoveDialog({
+  open,
+  onOpenChange,
+  items,
+  onSuccess,
+}: BulkMoveDialogProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isMoving, setIsMoving] = useState(false);
   const { data: allFolders = [] } = useFolders();
@@ -72,7 +82,7 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
               {
                 onSuccess: () => resolve(),
                 onError: () => reject(),
-              }
+              },
             );
           });
         } else {
@@ -82,7 +92,7 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
               {
                 onSuccess: () => resolve(),
                 onError: () => reject(),
-              }
+              },
             );
           });
         }
@@ -99,7 +109,9 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
     } else if (successCount === 0) {
       toast.error(`Failed to move items`, { id: toastId });
     } else {
-      toast.warning(`Moved ${successCount}, failed to move ${failCount}`, { id: toastId });
+      toast.warning(`Moved ${successCount}, failed to move ${failCount}`, {
+        id: toastId,
+      });
     }
 
     onOpenChange(false);
@@ -113,23 +125,29 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent className="sm:max-w-md">
         <ResponsiveDialogHeader>
-          <ResponsiveDialogTitle>Move {items.length} Items</ResponsiveDialogTitle>
+          <ResponsiveDialogTitle>
+            Move {items.length} Items
+          </ResponsiveDialogTitle>
           <ResponsiveDialogDescription>
-            Select a destination folder for {folderCount > 0 && `${folderCount} folder${folderCount !== 1 ? "s" : ""}`}
+            Select a destination folder for{" "}
+            {folderCount > 0 &&
+              `${folderCount} folder${folderCount !== 1 ? "s" : ""}`}
             {folderCount > 0 && assetCount > 0 && " and "}
-            {assetCount > 0 && `${assetCount} file${assetCount !== 1 ? "s" : ""}`}.
+            {assetCount > 0 &&
+              `${assetCount} file${assetCount !== 1 ? "s" : ""}`}
+            .
           </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
         <ResponsiveDialogBody>
-          <ScrollArea className="h-[300px] border rounded-md p-2">
+          <ScrollArea className="h-75 border rounded-md p-2">
             {/* Root option */}
             <button
               type="button"
               onClick={() => setSelectedFolderId(null)}
               className={cn(
                 "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent text-left",
-                selectedFolderId === null && "bg-accent"
+                selectedFolderId === null && "bg-accent",
               )}
             >
               <Home className="h-4 w-4" />
@@ -152,7 +170,12 @@ export function BulkMoveDialog({ open, onOpenChange, items, onSuccess }: BulkMov
         </ResponsiveDialogBody>
 
         <ResponsiveDialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isMoving}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isMoving}
+          >
             Cancel
           </Button>
           <Button onClick={handleMove} disabled={isMoving}>
@@ -193,7 +216,7 @@ function FolderTreeNode({
           "flex items-center gap-1 px-2 py-1.5 rounded text-sm",
           !isExcluded && "hover:bg-accent cursor-pointer",
           selectedId === folder.id && "bg-accent",
-          isExcluded && "opacity-50 cursor-not-allowed"
+          isExcluded && "opacity-50 cursor-not-allowed",
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={() => !isExcluded && onSelect(folder.id)}

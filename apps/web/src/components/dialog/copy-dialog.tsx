@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -47,18 +47,20 @@ export function CopyDialog({
   itemType,
 }: CopyDialogProps) {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [prevOpen, setPrevOpen] = useState(false);
   const { data: allFolders = [] } = useFolders();
   const copyFolder = useCopyFolder();
   const copyAsset = useCopyAsset();
-  const prevOpenRef = useRef(open);
 
   const currentParentId = getParentId(item, itemType);
 
-  // Reset selection when dialog opens (state sync during render, not in effect)
-  if (open && !prevOpenRef.current && item) {
+  // Reset selection when dialog opens (React recommended pattern for adjusting state during render)
+  if (open && !prevOpen && item) {
     setSelectedFolderId(currentParentId);
   }
-  prevOpenRef.current = open;
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+  }
 
   // Get IDs to exclude (the item itself and its descendants for folders)
   const excludeIds = useMemo(() => {
@@ -133,7 +135,7 @@ export function CopyDialog({
         </ResponsiveDialogHeader>
 
         <ResponsiveDialogBody>
-          <ScrollArea className="h-[300px] border rounded-md p-2">
+          <ScrollArea className="h-75 border rounded-md p-2">
             {/* Root option */}
             <button
               type="button"

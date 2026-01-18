@@ -1,7 +1,16 @@
 "use client";
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { Folder as FolderIcon, MoreVertical, Pencil, Trash2, FolderInput, Star, Copy, Share2 } from "lucide-react";
+import {
+  Folder as FolderIcon,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  FolderInput,
+  Star,
+  Copy,
+  Share2,
+} from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -50,7 +59,12 @@ interface DraggableFolderItemProps {
   isSelected?: boolean;
   isPendingSelection?: boolean;
   isFocused?: boolean;
-  onSelect?: (folder: Folder, selected: boolean, shiftKey?: boolean, ctrlKey?: boolean) => void;
+  onSelect?: (
+    folder: Folder,
+    selected: boolean,
+    shiftKey?: boolean,
+    ctrlKey?: boolean,
+  ) => void;
   selectionMode?: boolean;
   selectedCount?: number;
   onBulkDelete?: () => void;
@@ -81,7 +95,12 @@ export function DraggableFolderItem({
 }: DraggableFolderItemProps) {
   const isListView = viewMode === "list";
 
-  const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    isDragging,
+  } = useDraggable({
     id: `draggable-folder-${folder.id}`,
     data: { type: "folder", item: folder },
   });
@@ -114,7 +133,12 @@ export function DraggableFolderItem({
       </ContextMenuItem>
       {onStar && (
         <ContextMenuItem onClick={() => onStar(folder)}>
-          <Star className={cn("mr-2 h-4 w-4", folder.isStarred && "fill-yellow-400 text-yellow-400")} />
+          <Star
+            className={cn(
+              "mr-2 h-4 w-4",
+              folder.isStarred && "fill-yellow-400 text-yellow-400",
+            )}
+          />
           {folder.isStarred ? "Remove from starred" : "Add to starred"}
           <ContextMenuShortcut>Ctrl+S</ContextMenuShortcut>
         </ContextMenuItem>
@@ -173,7 +197,12 @@ export function DraggableFolderItem({
         </DropdownMenuItem>
         {onStar && (
           <DropdownMenuItem onClick={() => onStar(folder)}>
-            <Star className={cn("mr-2 h-4 w-4", folder.isStarred && "fill-yellow-400 text-yellow-400")} />
+            <Star
+              className={cn(
+                "mr-2 h-4 w-4",
+                folder.isStarred && "fill-yellow-400 text-yellow-400",
+              )}
+            />
             {folder.isStarred ? "Remove from starred" : "Add to starred"}
             <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -203,7 +232,10 @@ export function DraggableFolderItem({
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onDelete(folder)} variant="destructive">
+        <DropdownMenuItem
+          onClick={() => onDelete(folder)}
+          variant="destructive"
+        >
           <Trash2 className="mr-2 h-4 w-4" />
           Move to trash
           <DropdownMenuShortcut>Del</DropdownMenuShortcut>
@@ -282,10 +314,20 @@ export function DraggableFolderItem({
                   <SingleAvatar user={owner} size="sm" />
                 </DataListCell>
               )}
-              <DataListCell width="w-24" align="right" hideBelow="sm" className="text-sm text-muted-foreground">
+              <DataListCell
+                width="w-24"
+                align="right"
+                hideBelow="sm"
+                className="text-sm text-muted-foreground"
+              >
                 —
               </DataListCell>
-              <DataListCell width="w-32" align="right" hideBelow="md" className="text-sm text-muted-foreground">
+              <DataListCell
+                width="w-32"
+                align="right"
+                hideBelow="md"
+                className="text-sm text-muted-foreground"
+              >
                 {formatRelativeTime(new Date(folder.createdAt))}
               </DataListCell>
               <DataListCell width="w-8" align="right">

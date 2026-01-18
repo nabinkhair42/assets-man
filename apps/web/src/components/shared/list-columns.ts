@@ -7,15 +7,45 @@ import type { ListHeaderColumn } from "./list-header";
 
 // Base columns shared across most pages
 const NAME_COLUMN: ListHeaderColumn = { label: "Name" };
-const OWNER_COLUMN: ListHeaderColumn = { label: "Owner", width: "w-10", align: "center", hideBelow: "sm" };
-const SIZE_COLUMN: ListHeaderColumn = { label: "Size", width: "w-24", align: "right", hideBelow: "sm" };
+const OWNER_COLUMN: ListHeaderColumn = {
+  label: "Owner",
+  width: "w-10",
+  align: "center",
+  hideBelow: "sm",
+};
+const SIZE_COLUMN: ListHeaderColumn = {
+  label: "Size",
+  width: "w-24",
+  align: "right",
+  hideBelow: "sm",
+};
 const ACTIONS_COLUMN: ListHeaderColumn = { label: "", width: "w-8" };
 
 // Date columns for different contexts
-const MODIFIED_COLUMN: ListHeaderColumn = { label: "Modified", width: "w-32", align: "right", hideBelow: "md" };
-const ACCESSED_COLUMN: ListHeaderColumn = { label: "Accessed", width: "w-32", align: "right", hideBelow: "md" };
-const DELETED_COLUMN: ListHeaderColumn = { label: "Deleted", width: "w-32", align: "right", hideBelow: "md" };
-const SHARED_COLUMN: ListHeaderColumn = { label: "Shared", width: "w-32", align: "right", hideBelow: "md" };
+const MODIFIED_COLUMN: ListHeaderColumn = {
+  label: "Modified",
+  width: "w-32",
+  align: "right",
+  hideBelow: "md",
+};
+const ACCESSED_COLUMN: ListHeaderColumn = {
+  label: "Accessed",
+  width: "w-32",
+  align: "right",
+  hideBelow: "md",
+};
+const DELETED_COLUMN: ListHeaderColumn = {
+  label: "Deleted",
+  width: "w-32",
+  align: "right",
+  hideBelow: "md",
+};
+const SHARED_COLUMN: ListHeaderColumn = {
+  label: "Shared",
+  width: "w-32",
+  align: "right",
+  hideBelow: "md",
+};
 
 /**
  * Standard file list columns for Files page

@@ -21,7 +21,12 @@ interface DeleteDialogProps {
   itemType: "folder" | "asset";
 }
 
-export function DeleteDialog({ open, onOpenChange, item, itemType }: DeleteDialogProps) {
+export function DeleteDialog({
+  open,
+  onOpenChange,
+  item,
+  itemType,
+}: DeleteDialogProps) {
   const deleteFolder = useDeleteFolder();
   const deleteAsset = useDeleteAsset();
 
@@ -44,7 +49,8 @@ export function DeleteDialog({ open, onOpenChange, item, itemType }: DeleteDialo
 
   const isPending = deleteFolder.isPending || deleteAsset.isPending;
   const label = itemType === "folder" ? "Folder" : "File";
-  const extraWarning = itemType === "folder" ? " This will also delete all files inside." : "";
+  const extraWarning =
+    itemType === "folder" ? " This will also delete all files inside." : "";
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +66,11 @@ export function DeleteDialog({ open, onOpenChange, item, itemType }: DeleteDialo
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isPending}
+          >
             {isPending ? "Deleting..." : "Delete"}
           </Button>
         </ResponsiveDialogFooter>

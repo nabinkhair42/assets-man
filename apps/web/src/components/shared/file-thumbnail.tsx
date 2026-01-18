@@ -47,7 +47,12 @@ export function FileThumbnail({
   // If we can't have a thumbnail, show the file icon
   if (!canShowThumbnail) {
     if (!showFallback) return null;
-    return <FileIcon mimeType={mimeType} className={cn(sizeClasses[size], className)} />;
+    return (
+      <FileIcon
+        mimeType={mimeType}
+        className={cn(sizeClasses[size], className)}
+      />
+    );
   }
 
   // Loading state - use skeleton for better visual feedback
@@ -66,7 +71,7 @@ export function FileThumbnail({
         className={cn(
           "relative overflow-hidden rounded-lg bg-muted",
           sizeClasses[size],
-          className
+          className,
         )}
       >
         <Image
@@ -83,7 +88,12 @@ export function FileThumbnail({
 
   // Fallback to file icon
   if (showFallback) {
-    return <FileIcon mimeType={mimeType} className={cn(sizeClasses[size], className)} />;
+    return (
+      <FileIcon
+        mimeType={mimeType}
+        className={cn(sizeClasses[size], className)}
+      />
+    );
   }
 
   return null;
@@ -113,7 +123,7 @@ export function SimpleThumbnail({
         className={cn(
           "relative overflow-hidden rounded-lg bg-muted",
           sizeClasses[size],
-          className
+          className,
         )}
       >
         <Image
@@ -128,5 +138,10 @@ export function SimpleThumbnail({
     );
   }
 
-  return <FileIcon mimeType={mimeType} className={cn(sizeClasses[size], className)} />;
+  return (
+    <FileIcon
+      mimeType={mimeType}
+      className={cn(sizeClasses[size], className)}
+    />
+  );
 }
