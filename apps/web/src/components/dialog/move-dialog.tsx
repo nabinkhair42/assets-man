@@ -138,7 +138,7 @@ export function MoveDialog({
         </ResponsiveDialogHeader>
 
         <ResponsiveDialogBody>
-          <ScrollArea className="h-[300px] border rounded-md p-2">
+          <ScrollArea className="h-75 border rounded-md p-2">
             {/* Root option */}
             <button
               type="button"
