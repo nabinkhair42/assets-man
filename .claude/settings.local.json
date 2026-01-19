@@ -45,7 +45,8 @@
       "Bash(timeout 5 pnpm start:api:*)",
       "Bash(tree:*)",
       "WebSearch",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && cat {}')"
     ]
   }
 }

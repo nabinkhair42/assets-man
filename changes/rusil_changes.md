@@ -35,7 +35,7 @@ All of them work in both light and dark mode automatically. Pretty neat.
 
 - **Files page** - When a folder is empty, shows upload + create folder buttons
 - **Starred page** - When nothing is starred, button to browse files
-- **Recent page** - When no recent activity, button to browse files  
+- **Recent page** - When no recent activity, button to browse files
 - **Trash** - When trash is empty (yay!)
 - **Shared page** - When nothing is shared with you
 - **Search** - When no results found
@@ -82,7 +82,7 @@ Added a slick 3-step welcome tour that shows up the first time someone uses the 
 
 ---
 
-## Technical stuff 
+## Technical stuff
 
 ### Empty States
 - Created `components/shared/illustrations.tsx` with SVG components

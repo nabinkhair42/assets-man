@@ -1,17 +1,25 @@
-import { type LucideIcon } from "lucide-react";
+import {
+  type LucideIcon,
+  Folder,
+  Star,
+  Clock,
+  Trash2,
+  Search,
+  CloudUpload,
+  Share2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  EmptyFolderIllustration,
-  EmptyStarredIllustration,
-  EmptyRecentIllustration,
-  EmptyTrashIllustration,
-  EmptySearchIllustration,
-  EmptyUploadIllustration,
-  EmptyShareIllustration,
-} from "./illustrations";
 
-export type EmptyStateVariant = "folder" | "starred" | "recent" | "trash" | "search" | "upload" | "share" | "custom";
+export type EmptyStateVariant =
+  | "folder"
+  | "starred"
+  | "recent"
+  | "trash"
+  | "search"
+  | "upload"
+  | "share"
+  | "custom";
 
 interface EmptyStateAction {
   label: string;
@@ -22,7 +30,7 @@ interface EmptyStateAction {
 
 interface EmptyStateProps {
   variant?: EmptyStateVariant;
-  icon?: LucideIcon; // For custom variant
+  icon?: LucideIcon;
   title: string;
   description?: string;
   className?: string;
@@ -30,14 +38,14 @@ interface EmptyStateProps {
   actions?: EmptyStateAction[];
 }
 
-const illustrationMap = {
-  folder: EmptyFolderIllustration,
-  starred: EmptyStarredIllustration,
-  recent: EmptyRecentIllustration,
-  trash: EmptyTrashIllustration,
-  search: EmptySearchIllustration,
-  upload: EmptyUploadIllustration,
-  share: EmptyShareIllustration,
+const iconMap: Record<Exclude<EmptyStateVariant, "custom">, LucideIcon> = {
+  folder: Folder,
+  starred: Star,
+  recent: Clock,
+  trash: Trash2,
+  search: Search,
+  upload: CloudUpload,
+  share: Share2,
 };
 
 export function EmptyState({
@@ -49,30 +57,30 @@ export function EmptyState({
   children,
   actions,
 }: EmptyStateProps) {
-  const Illustration = variant !== "custom" ? illustrationMap[variant] : null;
+  const Icon = variant !== "custom" ? iconMap[variant] : CustomIcon;
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center min-h-[400px] py-12 px-4 text-center",
-        className
+        "flex flex-col items-center justify-center min-h-100 py-12 px-4 text-center",
+        className,
       )}
     >
-      {/* Illustration or Icon */}
-      <div className="mb-6 animate-fade-in">
-        {Illustration ? (
-          <Illustration className="w-40 h-40 sm:w-48 sm:h-48" />
-        ) : CustomIcon ? (
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/5 rounded-full blur-xl" />
-            <CustomIcon className="relative h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground/50" />
-          </div>
-        ) : null}
-      </div>
+      {/* Icon */}
+      {Icon && (
+        <div className="mb-6">
+          <Icon
+            className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground/40"
+            strokeWidth={1.5}
+          />
+        </div>
+      )}
 
       {/* Content */}
-      <div className="max-w-md space-y-2 animate-fade-in" style={{ animationDelay: "100ms" }}>
-        <h3 className="text-lg sm:text-xl font-medium text-foreground">{title}</h3>
+      <div className="max-w-md space-y-2">
+        <h3 className="text-lg sm:text-xl font-medium text-foreground">
+          {title}
+        </h3>
         {description && (
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
             {description}
@@ -82,16 +90,15 @@ export function EmptyState({
 
       {/* Actions */}
       {actions && actions.length > 0 && (
-        <div
-          className="flex flex-col sm:flex-row gap-3 mt-8 animate-fade-in"
-          style={{ animationDelay: "200ms" }}
-        >
+        <div className="flex flex-col sm:flex-row gap-3 mt-8">
           {actions.map((action, index) => {
             const ActionIcon = action.icon;
             return (
               <Button
                 key={index}
-                variant={action.variant || (index === 0 ? "default" : "outline")}
+                variant={
+                  action.variant || (index === 0 ? "default" : "outline")
+                }
                 onClick={action.onClick}
                 size="lg"
               >
@@ -104,11 +111,7 @@ export function EmptyState({
       )}
 
       {/* Custom children */}
-      {children && (
-        <div className="mt-6 animate-fade-in" style={{ animationDelay: "300ms" }}>
-          {children}
-        </div>
-      )}
+      {children && <div className="mt-6">{children}</div>}
     </div>
   );
 }
