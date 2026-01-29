@@ -4,7 +4,7 @@ import type {
   CreateUserShareInput,
   CreateLinkShareInput,
   UpdateShareInput,
-} from "@/types";
+} from "@/types/share";
 
 export const shareKeys = {
   all: ["shares"] as const,

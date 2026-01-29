@@ -6,7 +6,7 @@ import type {
   MoveFolderInput,
   FolderContentsParams,
   CopyFolderInput,
-} from "@/types";
+} from "@/types/folder";
 
 export const folderKeys = {
   all: ["folders"] as const,

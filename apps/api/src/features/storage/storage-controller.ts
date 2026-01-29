@@ -22,7 +22,7 @@ export async function recalculateStorage(
   res: Response
 ): Promise<void> {
   try {
-    const quota = await storageService.recalculateStorage(req.userId);
+    await storageService.recalculateStorage(req.userId);
     const stats = await storageService.getStorageStats(req.userId);
     sendSuccess(res, { stats }, "Storage recalculated successfully");
   } catch (error) {

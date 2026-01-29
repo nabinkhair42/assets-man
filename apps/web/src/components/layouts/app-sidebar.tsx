@@ -39,7 +39,7 @@ import { usePathname } from "next/navigation";
 import { LogoutDialog } from "@/components/dialog/logout-dialog";
 import { KeyboardShortcutsDialog } from "@/components/dialog/keyboard-shortcuts-dialog";
 import { StorageIndicator } from "@/components/layouts/storage-indicator";
-import { useFileActions } from "@/contexts";
+import { useFileActions } from "@/contexts/file-actions-context";
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },

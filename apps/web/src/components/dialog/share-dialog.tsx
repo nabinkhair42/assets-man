@@ -25,8 +25,8 @@ import {
   useCreateUserShare,
   useCreateLinkShare,
   useDeleteShare,
-} from "@/hooks";
-import { shareService } from "@/services";
+} from "@/hooks/use-shares";
+import { shareService } from "@/services/share-service";
 import { toast } from "sonner";
 import {
   Copy,
@@ -42,12 +42,9 @@ import {
   Users,
 } from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import type {
-  Folder as FolderType,
-  Asset,
-  SharePermission,
-  ShareWithDetails,
-} from "@/types";
+import type { Folder as FolderType } from "@/types/folder";
+import type { Asset } from "@/types/asset";
+import type { SharePermission, ShareWithDetails } from "@/types/share";
 
 interface ShareDialogProps {
   open: boolean;

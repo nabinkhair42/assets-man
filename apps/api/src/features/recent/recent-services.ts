@@ -110,42 +110,43 @@ export async function listRecentItems(
   const { page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Get total count
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(recentActivity)
-    .where(eq(recentActivity.userId, userId));
+  // Get total count and recent items in parallel
+  const [countResults, recentItems] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(recentActivity)
+      .where(eq(recentActivity.userId, userId)),
+    db.query.recentActivity.findMany({
+      where: eq(recentActivity.userId, userId),
+      orderBy: desc(recentActivity.accessedAt),
+      limit,
+      offset,
+      with: {
+        asset: true,
+        folder: true,
+      },
+    }),
+  ]);
 
-  const total = countResult?.count ?? 0;
-
-  // Get recent activity with related items
-  const recentItems = await db.query.recentActivity.findMany({
-    where: eq(recentActivity.userId, userId),
-    orderBy: desc(recentActivity.accessedAt),
-    limit,
-    offset,
-    with: {
-      asset: true,
-      folder: true,
-    },
-  });
+  const total = countResults[0]?.count ?? 0;
 
   // Filter out items that have been deleted or trashed
-  const validItems: RecentItem[] = recentItems
-    .filter((item) => {
-      if (item.itemType === "asset") {
-        return item.asset && !item.asset.trashedAt;
-      } else {
-        return item.folder && !item.folder.trashedAt;
-      }
-    })
-    .map((item) => ({
-      id: item.id,
-      itemType: item.itemType as "asset" | "folder",
-      accessedAt: item.accessedAt.toISOString(),
-      asset: item.asset ?? undefined,
-      folder: item.folder ?? undefined,
-    }));
+  const validItems: RecentItem[] = recentItems.flatMap((item) => {
+    const isValid =
+      item.itemType === "asset"
+        ? item.asset && !item.asset.trashedAt
+        : item.folder && !item.folder.trashedAt;
+    if (!isValid) return [];
+    return [
+      {
+        id: item.id,
+        itemType: item.itemType as "asset" | "folder",
+        accessedAt: item.accessedAt.toISOString(),
+        asset: item.asset ?? undefined,
+        folder: item.folder ?? undefined,
+      },
+    ];
+  });
 
   return {
     items: validItems,

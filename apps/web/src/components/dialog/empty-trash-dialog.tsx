@@ -11,7 +11,7 @@ import {
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useEmptyTrash } from "@/hooks";
+import { useEmptyTrash } from "@/hooks/use-trash";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
 

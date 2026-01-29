@@ -21,8 +21,10 @@ import {
   Folder as FolderIcon,
   Search,
 } from "lucide-react";
-import { assetService, folderService } from "@/services";
-import type { Asset, Folder } from "@/types";
+import { assetService } from "@/services/asset-service";
+import { folderService } from "@/services/folder-service";
+import type { Asset } from "@/types/asset";
+import type { Folder } from "@/types/folder";
 import { cn } from "@/lib/utils";
 
 function getFileIconData(mimeType: string) {

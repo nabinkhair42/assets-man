@@ -8,10 +8,10 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { FileIcon } from "@/components/shared";
+import { FileIcon } from "@/components/shared/file-icon";
 import { cn } from "@/lib/utils";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
-import type { TrashedItem as TrashedItemType } from "@/types";
+import type { TrashedItem as TrashedItemType } from "@/types/trash";
 
 interface TrashItemProps {
   item: TrashedItemType;

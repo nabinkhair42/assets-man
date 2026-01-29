@@ -1,26 +1,21 @@
 "use client";
 
-import {
-  BulkDeleteDialog,
-  BulkMoveDialog,
-  CopyDialog,
-  CreateFolderDialog,
-  DeleteDialog,
-  FilePreviewDialog,
-  MoveDialog,
-  RenameDialog,
-  ShareDialog,
-} from "@/components/dialog";
-import { AppHeader, type SortConfig } from "@/components/layouts";
-import { FileBrowserSkeleton } from "@/components/loaders";
-import {
-  EmptyState,
-  FILE_LIST_COLUMNS,
-  InfiniteScrollTrigger,
-  MobileFab,
-  SelectionToolbar,
-  type SelectedItem,
-} from "@/components/shared";
+import { BulkDeleteDialog } from "@/components/dialog/bulk-delete-dialog";
+import { BulkMoveDialog } from "@/components/dialog/bulk-move-dialog";
+import { CopyDialog } from "@/components/dialog/copy-dialog";
+import { CreateFolderDialog } from "@/components/dialog/create-folder-dialog";
+import { DeleteDialog } from "@/components/dialog/delete-dialog";
+import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { MoveDialog } from "@/components/dialog/move-dialog";
+import { RenameDialog } from "@/components/dialog/rename-dialog";
+import { ShareDialog } from "@/components/dialog/share-dialog";
+import AppHeader, { type SortConfig } from "@/components/layouts/app-header";
+import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
+import { EmptyState } from "@/components/shared/empty-state";
+import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
+import { InfiniteScrollTrigger } from "@/components/shared/infinite-scroll-trigger";
+import { MobileFab } from "@/components/shared/mobile-fab";
+import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -38,25 +33,20 @@ import {
   DataListHeader,
 } from "@/components/ui/data-list";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFileActions } from "@/contexts";
-import {
-  useFileBrowserShortcuts,
-  useFolderContents,
-  useFolders,
-  useInfiniteAssets,
-  useMarqueeSelection,
-  useMoveFolder,
-  useToggleAssetStarred,
-  useToggleFolderStarred,
-  useUpdateAsset,
-  useUploadFile,
-  useUser,
-  useViewMode,
-  useWelcomeTour,
-} from "@/hooks";
+import { useFileActions } from "@/contexts/file-actions-context";
+import { useFileBrowserShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useFolderContents, useFolders, useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
+import { useInfiniteAssets, useToggleAssetStarred, useUpdateAsset, useUploadFile } from "@/hooks/use-assets";
+import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useUser } from "@/hooks/use-user";
+import { useViewMode } from "@/hooks/use-view-mode";
+import { useWelcomeTour } from "@/hooks/use-welcome-tour";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import { assetService, folderService, recentService } from "@/services";
-import type { Asset, Folder } from "@/types";
+import { assetService } from "@/services/asset-service";
+import { folderService } from "@/services/folder-service";
+import { recentService } from "@/services/recent-service";
+import type { Asset } from "@/types/asset";
+import type { Folder } from "@/types/folder";
 import {
   DndContext,
   DragOverlay,
@@ -220,7 +210,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     data: Folder | Asset;
   } | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(
-    new Map(),
+    () => new Map(),
   );
   const [isNavigating, setIsNavigating] = useState(false);
   const [isPending, startTransition] = useTransition();

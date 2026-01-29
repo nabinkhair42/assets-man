@@ -1,4 +1,4 @@
-import { eq, and, or, isNull } from "drizzle-orm";
+import { eq, and, or, isNull, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { createDb, shares, assets, folders, users, type Share } from "@repo/database";
@@ -245,28 +245,27 @@ export async function listUserShares(ownerId: string): Promise<ShareWithDetails[
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
   });
 
-  // Filter out shares where the item has been trashed or deleted
-  const validShares = shareList.filter((share) => {
-    // If it's a folder share, check if folder exists and is not trashed
+  // Filter out shares where the item has been trashed or deleted, and map in one pass
+  return shareList.flatMap((share) => {
     if (share.folderId) {
-      return share.folder && !share.folder.trashedAt;
+      if (!share.folder || share.folder.trashedAt) return [];
+    } else if (share.assetId) {
+      if (!share.asset || share.asset.trashedAt) return [];
+    } else {
+      return [];
     }
-    // If it's an asset share, check if asset exists and is not trashed
-    if (share.assetId) {
-      return share.asset && !share.asset.trashedAt;
-    }
-    return false;
+    return [
+      {
+        ...share,
+        sharedWithName: share.sharedWithUser?.name ?? null,
+        ownerName: null,
+        itemName: share.folder?.name ?? share.asset?.name ?? "Unknown",
+        itemType: (share.folderId ? "folder" : "asset") as "folder" | "asset",
+        mimeType: share.asset?.mimeType ?? null,
+        size: share.asset?.size ?? null,
+      },
+    ];
   });
-
-  return validShares.map((share) => ({
-    ...share,
-    sharedWithName: share.sharedWithUser?.name ?? null,
-    ownerName: null,
-    itemName: share.folder?.name ?? share.asset?.name ?? "Unknown",
-    itemType: share.folderId ? "folder" : "asset",
-    mimeType: share.asset?.mimeType ?? null,
-    size: share.asset?.size ?? null,
-  }));
 }
 
 // List shares shared with a user
@@ -294,28 +293,27 @@ export async function listSharedWithMe(userId: string): Promise<ShareWithDetails
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
   });
 
-  // Filter out shares where the item has been trashed or deleted
-  const validShares = shareList.filter((share) => {
-    // If it's a folder share, check if folder exists and is not trashed
+  // Filter out shares where the item has been trashed or deleted, and map in one pass
+  return shareList.flatMap((share) => {
     if (share.folderId) {
-      return share.folder && !share.folder.trashedAt;
+      if (!share.folder || share.folder.trashedAt) return [];
+    } else if (share.assetId) {
+      if (!share.asset || share.asset.trashedAt) return [];
+    } else {
+      return [];
     }
-    // If it's an asset share, check if asset exists and is not trashed
-    if (share.assetId) {
-      return share.asset && !share.asset.trashedAt;
-    }
-    return false;
+    return [
+      {
+        ...share,
+        sharedWithName: user.name,
+        ownerName: share.owner?.name ?? null,
+        itemName: share.folder?.name ?? share.asset?.name ?? "Unknown",
+        itemType: (share.folderId ? "folder" : "asset") as "folder" | "asset",
+        mimeType: share.asset?.mimeType ?? null,
+        size: share.asset?.size ?? null,
+      },
+    ];
   });
-
-  return validShares.map((share) => ({
-    ...share,
-    sharedWithName: user.name,
-    ownerName: share.owner?.name ?? null,
-    itemName: share.folder?.name ?? share.asset?.name ?? "Unknown",
-    itemType: share.folderId ? "folder" : "asset",
-    mimeType: share.asset?.mimeType ?? null,
-    size: share.asset?.size ?? null,
-  }));
 }
 
 // Get share by link token
@@ -482,72 +480,80 @@ export async function getSharedFolderContents(
     targetFolder = subFolder;
   }
 
-  // Get subfolders
-  const subFolders = await db.query.folders.findMany({
-    where: and(
-      eq(folders.ownerId, ownerId),
-      eq(folders.parentId, targetFolder.id),
-      isNull(folders.trashedAt)
-    ),
-    columns: {
-      id: true,
-      name: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: (f, { asc }) => [asc(f.name)],
-  });
-
-  // Get assets in the folder
-  const folderAssets = await db.query.assets.findMany({
-    where: and(
-      eq(assets.ownerId, ownerId),
-      eq(assets.folderId, targetFolder.id),
-      isNull(assets.trashedAt)
-    ),
-    columns: {
-      id: true,
-      name: true,
-      mimeType: true,
-      size: true,
-      storageKey: true,
-      thumbnailKey: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: (a, { asc }) => [asc(a.name)],
-  });
-
-  // Build breadcrumbs from shared folder to current folder
-  const breadcrumbs: { id: string; name: string }[] = [];
-
+  // Build breadcrumb paths for a single query
+  let breadcrumbPaths: string[] = [];
   if (targetFolder.id !== sharedFolder.id) {
-    // Build path from shared folder to target folder
     const sharedPath = sharedFolder.path;
     const targetPath = targetFolder.path;
     const relativePath = targetPath.substring(sharedPath.length);
     const pathParts = relativePath.split("/").filter(Boolean);
 
-    // Start with the shared folder
-    breadcrumbs.push({ id: sharedFolder.id, name: sharedFolder.name });
-
-    // Add each folder in the path
     let currentPath = sharedPath;
     for (const part of pathParts) {
       currentPath += "/" + part;
-      const pathFolder = await db.query.folders.findFirst({
-        where: and(
-          eq(folders.ownerId, ownerId),
-          eq(folders.path, currentPath)
-        ),
-        columns: { id: true, name: true },
-      });
-      if (pathFolder) {
-        breadcrumbs.push({ id: pathFolder.id, name: pathFolder.name });
+      breadcrumbPaths.push(currentPath);
+    }
+  }
+
+  // Parallelize subfolders, assets, and breadcrumb queries
+  const [subFolders, folderAssets, breadcrumbFolders] = await Promise.all([
+    db.query.folders.findMany({
+      where: and(
+        eq(folders.ownerId, ownerId),
+        eq(folders.parentId, targetFolder.id),
+        isNull(folders.trashedAt)
+      ),
+      columns: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: (f, { asc }) => [asc(f.name)],
+    }),
+    db.query.assets.findMany({
+      where: and(
+        eq(assets.ownerId, ownerId),
+        eq(assets.folderId, targetFolder.id),
+        isNull(assets.trashedAt)
+      ),
+      columns: {
+        id: true,
+        name: true,
+        mimeType: true,
+        size: true,
+        storageKey: true,
+        thumbnailKey: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: (a, { asc }) => [asc(a.name)],
+    }),
+    breadcrumbPaths.length > 0
+      ? db.query.folders.findMany({
+          where: and(
+            eq(folders.ownerId, ownerId),
+            sql`${folders.path} IN (${sql.join(breadcrumbPaths.map(p => sql`${p}`), sql`, `)})`
+          ),
+          columns: { id: true, name: true, path: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  // Build breadcrumbs in order
+  const breadcrumbs: { id: string; name: string }[] = [
+    { id: sharedFolder.id, name: sharedFolder.name },
+  ];
+
+  if (breadcrumbPaths.length > 0) {
+    // Sort breadcrumb folders by path to maintain order
+    const foldersByPath = new Map(breadcrumbFolders.map(f => [f.path, f]));
+    for (const path of breadcrumbPaths) {
+      const folder = foldersByPath.get(path);
+      if (folder) {
+        breadcrumbs.push({ id: folder.id, name: folder.name });
       }
     }
-  } else {
-    breadcrumbs.push({ id: sharedFolder.id, name: sharedFolder.name });
   }
 
   return {

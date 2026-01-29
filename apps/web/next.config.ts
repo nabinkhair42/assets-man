@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  devIndicators: false
-
+  devIndicators: false,
+  experimental: {
+    optimizePackageImports: ["lucide-react", "date-fns", "@dnd-kit/core", "sonner"],
+  },
 };
 
 export default nextConfig;

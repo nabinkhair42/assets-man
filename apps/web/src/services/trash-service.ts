@@ -1,15 +1,14 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { PaginatedResponse, ApiResponse } from "@/types/api";
+import type { Asset } from "@/types/asset";
+import type { Folder } from "@/types/folder";
 import type {
-  PaginatedResponse,
-  ApiResponse,
   TrashedItem,
   ListTrashParams,
   PaginatedTrash,
   EmptyTrashResult,
-  Asset,
-  Folder,
-} from "@/types";
+} from "@/types/trash";
 
 export const trashService = {
   async list(params?: ListTrashParams): Promise<PaginatedTrash> {

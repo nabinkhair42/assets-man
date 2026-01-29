@@ -10,10 +10,10 @@ import {
   ResponsiveAlertDialogHeader,
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog";
-import { usePermanentlyDelete } from "@/hooks";
+import { usePermanentlyDelete } from "@/hooks/use-trash";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
-import type { TrashedItem } from "@/types";
+import type { TrashedItem } from "@/types/trash";
 
 interface PermanentDeleteDialogProps {
   open: boolean;

@@ -34,7 +34,7 @@ export function useMarqueeSelection<T>({
 }: UseMarqueeSelectionOptions<T>) {
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
-  const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set());
+  const [pendingSelection, setPendingSelection] = useState<Set<string>>(() => new Set());
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const scrollOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -44,6 +44,10 @@ export function useMarqueeSelection<T>({
 
   // Use ref to track isSelecting for animation loop (avoids stale closure)
   const isSelectingRef = useRef(false);
+
+  // Store handlers in refs to avoid re-subscribing event listeners on every render
+  const handleMouseMoveRef = useRef<(e: MouseEvent) => void>(() => {});
+  const handleMouseUpRef = useRef<() => void>(() => {});
 
   const getScrollableParent = useCallback((element: HTMLElement | null): HTMLElement | null => {
     if (!element) return null;
@@ -361,19 +365,27 @@ export function useMarqueeSelection<T>({
     startPoint.current = null;
   }, [isSelecting, marqueeRect, containerRef, onSelectionChange, calculateIntersectingItems, stopAutoScroll]);
 
+  // Keep handler refs up to date without causing effect re-subscriptions
+  handleMouseMoveRef.current = handleMouseMove;
+  handleMouseUpRef.current = handleMouseUp;
+
   // Add global mouse event listeners when selecting
+  // Use stable ref-based handlers so this effect only re-subscribes when isSelecting changes
   useEffect(() => {
     if (isSelecting) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+      const onMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
+      const onMouseUp = () => handleMouseUpRef.current();
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
 
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
         stopAutoScroll();
       };
     }
-  }, [isSelecting, handleMouseMove, handleMouseUp, stopAutoScroll]);
+  }, [isSelecting, stopAutoScroll]);
 
   // Cleanup auto-scroll on unmount
   useEffect(() => {

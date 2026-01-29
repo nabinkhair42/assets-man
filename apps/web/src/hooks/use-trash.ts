@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { trashService } from "@/services/trash-service";
-import type { ListTrashParams } from "@/types";
+import type { ListTrashParams } from "@/types/trash";
 import { assetKeys } from "./use-assets";
 import { storageKeys } from "./use-storage";
 

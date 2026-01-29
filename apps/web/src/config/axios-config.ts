@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { envConfig } from "./env-config";
 import { API_ENDPOINTS } from "./api-endpoints";
+import { getCachedToken, setCachedToken, clearCachedToken } from "@/lib/safe-storage";
 
 export const apiClient = axios.create({
   baseURL: envConfig.apiUrl,
@@ -31,7 +32,7 @@ const processQueue = (error: Error | null) => {
 // Request interceptor - add access token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const accessToken = localStorage.getItem("accessToken");
+    const accessToken = getCachedToken();
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -77,13 +78,13 @@ apiClient.interceptors.response.use(
         const response = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH);
         const { tokens } = response.data.data;
 
-        localStorage.setItem("accessToken", tokens.accessToken);
+        setCachedToken(tokens.accessToken);
         processQueue(null);
 
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError as Error);
-        localStorage.removeItem("accessToken");
+        clearCachedToken();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {

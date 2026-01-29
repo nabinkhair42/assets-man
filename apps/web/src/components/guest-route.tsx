@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
-import { AuthSkeleton } from "@/components/loaders";
+import { AuthSkeleton } from "@/components/loaders/auth-skeleton";
 
 interface GuestRouteProps {
   children: React.ReactNode;

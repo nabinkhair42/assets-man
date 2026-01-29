@@ -479,7 +479,7 @@ export async function batchRegenerateThumbnails(
     const results = await thumbnailService.generateThumbnailsBatch(assets.map((a) => a.id));
 
     const succeeded = results.filter((r) => r.success).length;
-    const failed = results.filter((r) => !r.success).length;
+    const failed = results.length - succeeded;
 
     sendSuccess(
       res,

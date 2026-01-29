@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { Folder } from "@/types";
+import type { Folder } from "@/types/folder";
 
 interface FolderItemProps {
   folder: Folder;

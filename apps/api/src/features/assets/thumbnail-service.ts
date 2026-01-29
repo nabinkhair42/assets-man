@@ -29,7 +29,7 @@ const THUMBNAIL_CONFIG = {
 };
 
 // Supported MIME types for thumbnail generation
-const SUPPORTED_IMAGE_TYPES = [
+const SUPPORTED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
@@ -40,42 +40,42 @@ const SUPPORTED_IMAGE_TYPES = [
   "image/avif",
   "image/heic",
   "image/heif",
-];
+]);
 
-const SUPPORTED_VIDEO_TYPES = [
+const SUPPORTED_VIDEO_TYPES = new Set([
   "video/mp4",
   "video/webm",
   "video/quicktime",
   "video/x-msvideo",
   "video/x-matroska",
-];
+]);
 
-const SUPPORTED_PDF_TYPES = [
+const SUPPORTED_PDF_TYPES = new Set([
   "application/pdf",
-];
+]);
 
 // Check if a MIME type supports thumbnail generation
 export function canGenerateThumbnail(mimeType: string): boolean {
   return (
-    SUPPORTED_IMAGE_TYPES.includes(mimeType) ||
-    SUPPORTED_VIDEO_TYPES.includes(mimeType) ||
-    SUPPORTED_PDF_TYPES.includes(mimeType)
+    SUPPORTED_IMAGE_TYPES.has(mimeType) ||
+    SUPPORTED_VIDEO_TYPES.has(mimeType) ||
+    SUPPORTED_PDF_TYPES.has(mimeType)
   );
 }
 
 // Check if it's an image type
 export function isImageType(mimeType: string): boolean {
-  return SUPPORTED_IMAGE_TYPES.includes(mimeType);
+  return SUPPORTED_IMAGE_TYPES.has(mimeType);
 }
 
 // Check if it's a video type
 export function isVideoType(mimeType: string): boolean {
-  return SUPPORTED_VIDEO_TYPES.includes(mimeType);
+  return SUPPORTED_VIDEO_TYPES.has(mimeType);
 }
 
 // Check if it's a PDF type
 export function isPdfType(mimeType: string): boolean {
-  return SUPPORTED_PDF_TYPES.includes(mimeType);
+  return SUPPORTED_PDF_TYPES.has(mimeType);
 }
 
 // Convert a readable stream to a buffer
@@ -315,10 +315,12 @@ export async function generateThumbnail(assetId: string): Promise<ThumbnailResul
 // Batch generate thumbnails for multiple assets
 export async function generateThumbnailsBatch(assetIds: string[]): Promise<ThumbnailResult[]> {
   const results: ThumbnailResult[] = [];
+  const BATCH_SIZE = 5;
 
-  for (const assetId of assetIds) {
-    const result = await generateThumbnail(assetId);
-    results.push(result);
+  for (let i = 0; i < assetIds.length; i += BATCH_SIZE) {
+    const batch = assetIds.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(batch.map((id) => generateThumbnail(id)));
+    results.push(...batchResults);
   }
 
   return results;

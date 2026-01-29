@@ -8,7 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import type { Folder } from "@/types";
+import type { Folder } from "@/types/folder";
 import { Fragment } from "react";
 
 interface FolderBreadcrumbsProps {

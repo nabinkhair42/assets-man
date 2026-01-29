@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Clock } from "lucide-react";
-import { FileBrowserSkeleton } from "@/components/loaders";
+import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DndContext,
@@ -13,35 +13,32 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  useRecentItems,
-  useFolders,
-  useMoveFolder,
-  useUpdateAsset,
-  useToggleAssetStarred,
-  useToggleFolderStarred,
-  useUser,
-  useMarqueeSelection,
-  useFileBrowserShortcuts,
-  useViewMode,
-} from "@/hooks";
+import { useRecentItems } from "@/hooks/use-recent";
+import { useFolders, useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
+import { useUpdateAsset, useToggleAssetStarred } from "@/hooks/use-assets";
+import { useUser } from "@/hooks/use-user";
+import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useFileBrowserShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useViewMode } from "@/hooks/use-view-mode";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
-import {
-  BulkDeleteDialog,
-  BulkMoveDialog,
-  RenameDialog,
-  DeleteDialog,
-  MoveDialog,
-  FilePreviewDialog,
-} from "@/components/dialog";
-import { EmptyState, SelectionToolbar, RECENT_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { BulkDeleteDialog } from "@/components/dialog/bulk-delete-dialog";
+import { BulkMoveDialog } from "@/components/dialog/bulk-move-dialog";
+import { RenameDialog } from "@/components/dialog/rename-dialog";
+import { DeleteDialog } from "@/components/dialog/delete-dialog";
+import { MoveDialog } from "@/components/dialog/move-dialog";
+import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
+import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
+import { RECENT_LIST_COLUMNS } from "@/components/shared/list-columns";
 import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
-import type { Folder, Asset } from "@/types";
-import { AppHeader } from "@/components/layouts";
-import { assetService, recentService } from "@/services";
+import type { Folder } from "@/types/folder";
+import type { Asset } from "@/types/asset";
+import AppHeader from "@/components/layouts/app-header";
+import { assetService } from "@/services/asset-service";
+import { recentService } from "@/services/recent-service";
 import { useRouter } from "next/navigation";
 
 export default function RecentPage() {

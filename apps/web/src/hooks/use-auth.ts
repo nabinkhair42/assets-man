@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authService } from "@/services/auth-service";
 import { storageKeys } from "./use-storage";
 import { useAuth } from "@/providers/auth-provider";
-import type { RegisterInput, LoginInput } from "@/types";
+import { setCachedToken, clearCachedToken } from "@/lib/safe-storage";
+import type { RegisterInput, LoginInput } from "@/types/auth";
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -34,7 +35,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (input: RegisterInput) => authService.register(input),
     onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.tokens.accessToken);
+      setCachedToken(data.tokens.accessToken);
       queryClient.setQueryData(authKeys.me(), data.user);
       setUser(data.user);
     },
@@ -48,7 +49,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (input: LoginInput) => authService.login(input),
     onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.tokens.accessToken);
+      setCachedToken(data.tokens.accessToken);
       queryClient.setQueryData(authKeys.me(), data.user);
       setUser(data.user);
     },
@@ -62,7 +63,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authService.logout(),
     onSuccess: () => {
-      localStorage.removeItem("accessToken");
+      clearCachedToken();
       queryClient.clear();
       setUser(null);
     },

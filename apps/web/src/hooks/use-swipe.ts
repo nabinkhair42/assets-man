@@ -34,6 +34,8 @@ export function useSwipe(
 ) {
   const { threshold = 50, maxTime = 300, preventDefault = false } = options;
   const swipeState = useRef<SwipeState | null>(null);
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -88,22 +90,22 @@ export function useSwipe(
     // Horizontal swipe (dominant direction)
     if (absX > absY && absX > threshold) {
       if (deltaX > 0) {
-        handlers.onSwipeRight?.();
+        handlersRef.current.onSwipeRight?.();
       } else {
-        handlers.onSwipeLeft?.();
+        handlersRef.current.onSwipeLeft?.();
       }
     }
     // Vertical swipe (dominant direction)
     else if (absY > absX && absY > threshold) {
       if (deltaY > 0) {
-        handlers.onSwipeDown?.();
+        handlersRef.current.onSwipeDown?.();
       } else {
-        handlers.onSwipeUp?.();
+        handlersRef.current.onSwipeUp?.();
       }
     }
 
     swipeState.current = null;
-  }, [handlers, threshold, maxTime]);
+  }, [threshold, maxTime]);
 
   const onTouchCancel = useCallback(() => {
     swipeState.current = null;

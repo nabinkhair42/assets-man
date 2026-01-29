@@ -10,7 +10,7 @@ import {
   ResponsiveAlertDialogHeader,
   ResponsiveAlertDialogTitle,
 } from "@/components/ui/responsive-alert-dialog";
-import { useLogout } from "@/hooks";
+import { useLogout } from "@/hooks/use-auth";
 
 interface LogoutDialogProps {
   open: boolean;

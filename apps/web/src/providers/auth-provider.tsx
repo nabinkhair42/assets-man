@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/hooks/use-auth";
-import type { User } from "@/types";
+import { getCachedToken, clearCachedToken } from "@/lib/safe-storage";
+import type { User } from "@/types/auth";
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem("accessToken");
+      const token = getCachedToken();
       
       if (!token) {
         setIsLoading(false);
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         // Token is invalid, clear it
-        localStorage.removeItem("accessToken");
+        clearCachedToken();
         setUser(null);
       } finally {
         setIsLoading(false);

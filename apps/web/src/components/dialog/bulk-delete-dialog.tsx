@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useDeleteFolder, useDeleteAsset } from "@/hooks";
+import { useDeleteFolder } from "@/hooks/use-folders";
+import { useDeleteAsset } from "@/hooks/use-assets";
 import { toast } from "sonner";
-import type { SelectedItem } from "@/components/shared";
+import type { SelectedItem } from "@/components/shared/selection-toolbar";
 import { File, Folder } from "lucide-react";
 
 interface BulkDeleteDialogProps {

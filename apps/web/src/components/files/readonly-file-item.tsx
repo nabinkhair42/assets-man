@@ -8,8 +8,9 @@ import {
   DataGridFileCard,
   SelectionCheckmark,
 } from "@/components/ui/data-list";
-import { FileIcon, FileThumbnail } from "@/components/shared";
-import { canHaveThumbnail } from "@/hooks";
+import { FileIcon } from "@/components/shared/file-icon";
+import { FileThumbnail } from "@/components/shared/file-thumbnail";
+import { canHaveThumbnail } from "@/hooks/use-thumbnail";
 import {
   formatFileSize,
   formatRelativeTime,

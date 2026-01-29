@@ -1,14 +1,14 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { ApiResponse } from "@/types/api";
 import type {
-  ApiResponse,
   User,
   RegisterInput,
   LoginInput,
   AuthResponse,
   RefreshResponse,
-  StorageStats,
-} from "@/types";
+} from "@/types/auth";
+import type { StorageStats } from "@/types/storage";
 
 export interface MeResponse {
   user: User;

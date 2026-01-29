@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
+import { useFolders, useMoveFolder } from "@/hooks/use-folders";
+import { useUpdateAsset } from "@/hooks/use-assets";
 import { toast } from "sonner";
 import {
   Folder as FolderIcon,
@@ -21,7 +22,8 @@ import {
   Home,
 } from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import type { Folder, Asset } from "@/types";
+import type { Folder } from "@/types/folder";
+import type { Asset } from "@/types/asset";
 
 interface MoveDialogProps {
   open: boolean;

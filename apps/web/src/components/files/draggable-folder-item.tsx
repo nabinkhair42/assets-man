@@ -34,11 +34,11 @@ import {
   DataGridFolderCard,
   SelectionCheckmark,
 } from "@/components/ui/data-list";
-import { FileIcon } from "@/components/shared";
+import { FileIcon } from "@/components/shared/file-icon";
 import { SingleAvatar } from "@/components/ui/avatar-group";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime, truncateFileName } from "@/lib/formatters";
-import type { Folder } from "@/types";
+import type { Folder } from "@/types/folder";
 
 export interface OwnerInfo {
   id: string;

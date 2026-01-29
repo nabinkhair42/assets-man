@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo } from "react";
 import { Users, Download, MoreVertical, Folder, ExternalLink } from "lucide-react";
-import { FileBrowserSkeleton } from "@/components/loaders";
+import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,15 +19,21 @@ import {
 } from "@/components/ui/context-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import { useSharedWithMe, useMarqueeSelection, useKeyboardShortcuts, useViewMode, type KeyboardShortcut } from "@/hooks";
-import { FilePreviewDialog } from "@/components/dialog";
-import { EmptyState, SelectionToolbar, SHARED_LIST_COLUMNS, type SelectedItem, FileIcon } from "@/components/shared";
+import { useSharedWithMe } from "@/hooks/use-shares";
+import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
+import { useViewMode } from "@/hooks/use-view-mode";
+import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
+import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
+import { SHARED_LIST_COLUMNS } from "@/components/shared/list-columns";
+import { FileIcon } from "@/components/shared/file-icon";
 import { DataList, DataListHeader, DataListRow, DataListCell, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer, DataGridFolderCard, DataGridFileCard, SelectionCheckmark } from "@/components/ui/data-list";
 import { SingleAvatar } from "@/components/ui/avatar-group";
 import { toast } from "sonner";
-import type { Asset } from "@/types";
-import { AppHeader } from "@/components/layouts";
-import { assetService } from "@/services";
+import type { Asset } from "@/types/asset";
+import AppHeader from "@/components/layouts/app-header";
+import { assetService } from "@/services/asset-service";
 import { useRouter } from "next/navigation";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 

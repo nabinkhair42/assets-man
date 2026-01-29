@@ -43,6 +43,16 @@ const features: Feature[] = [
   },
 ];
 
+const crosshatchStyle = {
+  backgroundImage: `repeating-linear-gradient(
+    -45deg,
+    var(--muted),
+    var(--muted) 1px,
+    transparent 1px,
+    transparent 8px
+  )`,
+};
+
 interface FeaturesSectionProps {
   className?: string;
 }
@@ -78,15 +88,7 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
             {/* Image */}
             <div
               className="flex-1 p-1 rounded-xl border"
-              style={{
-                backgroundImage: `repeating-linear-gradient(
-                -45deg,
-                var(--muted),
-                var(--muted) 1px,
-                transparent 1px,
-                transparent 8px
-              )`,
-              }}
+              style={crosshatchStyle}
             >
               <div className="overflow-hidden rounded-xl">
                 {/* Light mode image */}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { recentService } from "@/services";
-import type { RecordAccessInput } from "@/types";
+import { recentService } from "@/services/recent-service";
+import type { RecordAccessInput } from "@/types/recent";
 
 export const RECENT_QUERY_KEY = ["recent"] as const;
 

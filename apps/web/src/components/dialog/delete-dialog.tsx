@@ -9,10 +9,12 @@ import {
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
-import { useDeleteFolder, useDeleteAsset } from "@/hooks";
+import { useDeleteFolder } from "@/hooks/use-folders";
+import { useDeleteAsset } from "@/hooks/use-assets";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
-import type { Folder, Asset } from "@/types";
+import type { Folder } from "@/types/folder";
+import type { Asset } from "@/types/asset";
 
 interface DeleteDialogProps {
   open: boolean;

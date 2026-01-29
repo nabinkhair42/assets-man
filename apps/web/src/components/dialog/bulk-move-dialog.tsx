@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useFolders, useMoveFolder, useUpdateAsset } from "@/hooks";
+import { useFolders, useMoveFolder } from "@/hooks/use-folders";
+import { useUpdateAsset } from "@/hooks/use-assets";
 import { toast } from "sonner";
 import {
   Folder as FolderIcon,
@@ -21,8 +22,8 @@ import {
   Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Folder } from "@/types";
-import type { SelectedItem } from "@/components/shared";
+import type { Folder } from "@/types/folder";
+import type { SelectedItem } from "@/components/shared/selection-toolbar";
 
 interface BulkMoveDialogProps {
   open: boolean;

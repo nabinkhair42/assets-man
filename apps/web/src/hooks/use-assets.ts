@@ -7,7 +7,7 @@ import type {
   UpdateAssetInput,
   ListAssetsParams,
   CopyAssetInput,
-} from "@/types";
+} from "@/types/asset";
 
 export const assetKeys = {
   all: ["assets"] as const,

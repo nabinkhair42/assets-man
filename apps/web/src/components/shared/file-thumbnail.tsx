@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useThumbnail, canHaveThumbnail } from "@/hooks";
+import { useThumbnail, canHaveThumbnail } from "@/hooks/use-thumbnail";
 import { FileIcon } from "./file-icon";
-import { ThumbnailSkeleton } from "@/components/loaders";
+import { ThumbnailSkeleton } from "@/components/loaders/thumbnail-skeleton";
 
 interface FileThumbnailProps {
   assetId: string;

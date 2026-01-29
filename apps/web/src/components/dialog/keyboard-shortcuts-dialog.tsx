@@ -7,7 +7,7 @@ import {
   ResponsiveDialogTitle,
   ResponsiveDialogBody,
 } from "@/components/ui/responsive-dialog";
-import { formatShortcut } from "@/hooks";
+import { formatShortcut } from "@/hooks/use-keyboard-shortcuts";
 
 interface KeyboardShortcutsDialogProps {
   open: boolean;

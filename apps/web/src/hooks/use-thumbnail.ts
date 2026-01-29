@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { assetService } from "@/services";
+import { assetService } from "@/services/asset-service";
 
 // MIME types that support thumbnails
 const THUMBNAIL_SUPPORTED_TYPES = [

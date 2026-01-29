@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import type { Asset } from "@/types";
+import type { Asset } from "@/types/asset";
 
 interface FileItemProps {
   asset: Asset;

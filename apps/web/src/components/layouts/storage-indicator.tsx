@@ -1,6 +1,6 @@
 "use client";
 
-import { useStorageStats } from "@/hooks";
+import { useStorageStats } from "@/hooks/use-storage";
 import { HardDrive } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";

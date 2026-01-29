@@ -1,8 +1,7 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { ApiResponse, PaginatedResponse } from "@/types/api";
 import type {
-  ApiResponse,
-  PaginatedResponse,
   Asset,
   RequestUploadInput,
   UploadUrlResponse,
@@ -12,7 +11,7 @@ import type {
   DownloadUrlResponse,
   CopyAssetInput,
   BulkDownloadInput,
-} from "@/types";
+} from "@/types/asset";
 
 export const assetService = {
   async list(params?: ListAssetsParams): Promise<PaginatedAssets> {

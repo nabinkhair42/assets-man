@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { QueryProvider, AuthProvider, ThemeProvider } from "@/providers";
+import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/providers/auth-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
 
 const nunitoSans = Nunito_Sans({

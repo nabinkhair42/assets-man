@@ -13,10 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUpdateFolder, useUpdateAsset } from "@/hooks";
+import { useUpdateFolder } from "@/hooks/use-folders";
+import { useUpdateAsset } from "@/hooks/use-assets";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
-import type { Folder, Asset } from "@/types";
+import type { Folder } from "@/types/folder";
+import type { Asset } from "@/types/asset";
 
 interface RenameDialogProps {
   open: boolean;

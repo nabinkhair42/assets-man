@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { AxiosError } from "axios"
-import type { ApiError } from "@/types"
+import type { ApiError } from "@/types/api"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

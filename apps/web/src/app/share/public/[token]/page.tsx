@@ -25,13 +25,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  FileIcon as CustomFileIcon,
-  ShareInfoPopover,
-  FILE_LIST_COLUMNS,
-  SelectionToolbar,
-  type SelectedItem,
-} from "@/components/shared";
+import { FileIcon as CustomFileIcon } from "@/components/shared/file-icon";
+import { ShareInfoPopover } from "@/components/shared/share-info-popover";
+import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
+import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
 import {
   DataGrid,
   DataGridSection,
@@ -41,20 +38,17 @@ import {
   DataListHeader,
   DataListEmpty,
 } from "@/components/ui/data-list";
-import { shareService } from "@/services";
+import { shareService } from "@/services/share-service";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
 import { toast } from "sonner";
-import type { SharedItemDetails, SharedFolderContents, Asset } from "@/types";
+import type { SharedItemDetails, SharedFolderContents } from "@/types/share";
+import type { Asset } from "@/types/asset";
 import { cn, getApiErrorMessage } from "@/lib/utils";
 import { isPreviewable } from "@/components/preview";
-import {
-  ReadOnlyFileItem,
-  ReadOnlyFolderItem,
-  type ReadOnlyAsset,
-  type ReadOnlyFolder,
-} from "@/components/files";
-import { FilePreviewDialog } from "@/components/dialog";
-import { useViewMode } from "@/hooks";
+import { ReadOnlyFileItem, type ReadOnlyAsset } from "@/components/files/readonly-file-item";
+import { ReadOnlyFolderItem, type ReadOnlyFolder } from "@/components/files/readonly-folder-item";
+import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { useViewMode } from "@/hooks/use-view-mode";
 
 export default function PublicSharePage() {
   const params = useParams();

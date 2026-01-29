@@ -1,7 +1,7 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { ApiResponse } from "@/types/api";
 import type {
-  ApiResponse,
   Folder,
   CreateFolderInput,
   UpdateFolderInput,
@@ -9,7 +9,7 @@ import type {
   FolderContentsParams,
   CopyFolderInput,
   CopyFolderResult,
-} from "@/types";
+} from "@/types/folder";
 
 export const folderService = {
   async getAll(): Promise<Folder[]> {

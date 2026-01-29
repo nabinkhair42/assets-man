@@ -1,12 +1,11 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { ApiResponse, PaginatedResponse } from "@/types/api";
 import type {
-  ApiResponse,
-  PaginatedResponse,
   RecentItem,
   RecordAccessInput,
   PaginatedRecentItems,
-} from "@/types";
+} from "@/types/recent";
 
 export const recentService = {
   async list(params?: { page?: number; limit?: number }): Promise<PaginatedRecentItems> {

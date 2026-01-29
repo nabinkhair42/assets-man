@@ -81,16 +81,16 @@ export async function requestUpload(
     throw new Error("INTERNAL_ERROR");
   }
 
-  // Increment user's storage usage
-  await incrementUsedStorage(userId, input.size);
-
-  // Get presigned upload URL
+  // Get presigned upload URL and increment storage in parallel
   const storage = getStorage();
-  const { url } = await storage.getPresignedUploadUrl({
-    key: storageKey,
-    contentType: input.mimeType,
-    expiresIn: 3600, // 1 hour
-  });
+  const [, { url }] = await Promise.all([
+    incrementUsedStorage(userId, input.size),
+    storage.getPresignedUploadUrl({
+      key: storageKey,
+      contentType: input.mimeType,
+      expiresIn: 3600, // 1 hour
+    }),
+  ]);
 
   return {
     uploadUrl: url,
@@ -211,51 +211,51 @@ export async function listAssets(
       OR lower(${assets.originalName}) LIKE ${likePattern}
     )`;
 
-    // Count total matching assets
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(assets)
-      .where(and(
-        eq(assets.ownerId, userId),
-        isNull(assets.trashedAt),
-        fuzzyCondition
-      ));
-
-    const total = countResult?.count ?? 0;
-
-    // Get assets with relevance score, ordered by relevance
-    const results = await db
-      .select({
-        id: assets.id,
-        name: assets.name,
-        originalName: assets.originalName,
-        mimeType: assets.mimeType,
-        size: assets.size,
-        storageKey: assets.storageKey,
-        folderId: assets.folderId,
-        ownerId: assets.ownerId,
-        thumbnailKey: assets.thumbnailKey,
-        isStarred: assets.isStarred,
-        trashedAt: assets.trashedAt,
-        createdAt: assets.createdAt,
-        updatedAt: assets.updatedAt,
-        relevanceScore: sql<number>`GREATEST(
+    // Count total matching assets and get results in parallel
+    const [countResults, results] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(assets)
+        .where(and(
+          eq(assets.ownerId, userId),
+          isNull(assets.trashedAt),
+          fuzzyCondition
+        )),
+      db
+        .select({
+          id: assets.id,
+          name: assets.name,
+          originalName: assets.originalName,
+          mimeType: assets.mimeType,
+          size: assets.size,
+          storageKey: assets.storageKey,
+          folderId: assets.folderId,
+          ownerId: assets.ownerId,
+          thumbnailKey: assets.thumbnailKey,
+          isStarred: assets.isStarred,
+          trashedAt: assets.trashedAt,
+          createdAt: assets.createdAt,
+          updatedAt: assets.updatedAt,
+          relevanceScore: sql<number>`GREATEST(
+            similarity(lower(${assets.name}), ${searchTerm}),
+            similarity(lower(${assets.originalName}), ${searchTerm})
+          )`,
+        })
+        .from(assets)
+        .where(and(
+          eq(assets.ownerId, userId),
+          isNull(assets.trashedAt),
+          fuzzyCondition
+        ))
+        .orderBy(sql`GREATEST(
           similarity(lower(${assets.name}), ${searchTerm}),
           similarity(lower(${assets.originalName}), ${searchTerm})
-        )`,
-      })
-      .from(assets)
-      .where(and(
-        eq(assets.ownerId, userId),
-        isNull(assets.trashedAt),
-        fuzzyCondition
-      ))
-      .orderBy(sql`GREATEST(
-        similarity(lower(${assets.name}), ${searchTerm}),
-        similarity(lower(${assets.originalName}), ${searchTerm})
-      ) DESC`)
-      .limit(limit)
-      .offset(offset);
+        ) DESC`)
+        .limit(limit)
+        .offset(offset),
+    ]);
+
+    const total = countResults[0]?.count ?? 0;
 
     return {
       assets: results.map(r => ({
@@ -283,25 +283,25 @@ export async function listAssets(
 
   const whereClause = and(...baseConditions);
 
-  // Get total count
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(assets)
-    .where(whereClause);
-
-  const total = countResult?.count ?? 0;
-
   // Build order by clause
   const sortColumn = getAssetSortColumn(sortBy);
   const orderByClause = sortOrder === "asc" ? asc(sortColumn) : desc(sortColumn);
 
-  // Get assets
-  const assetList = await db.query.assets.findMany({
-    where: whereClause,
-    orderBy: orderByClause,
-    limit,
-    offset,
-  });
+  // Get total count and assets in parallel
+  const [countResults, assetList] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(assets)
+      .where(whereClause),
+    db.query.assets.findMany({
+      where: whereClause,
+      orderBy: orderByClause,
+      limit,
+      offset,
+    }),
+  ]);
+
+  const total = countResults[0]?.count ?? 0;
 
   return {
     assets: assetList,
@@ -408,21 +408,21 @@ export async function listTrashedAssets(
   const { page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Get total count of trashed assets
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(assets)
-    .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)));
+  // Get total count and trashed assets in parallel
+  const [countResults, assetList] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(assets)
+      .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt))),
+    db.query.assets.findMany({
+      where: and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
+      orderBy: (assets, { desc }) => [desc(assets.trashedAt)],
+      limit,
+      offset,
+    }),
+  ]);
 
-  const total = countResult?.count ?? 0;
-
-  // Get trashed assets
-  const assetList = await db.query.assets.findMany({
-    where: and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)),
-    orderBy: (assets, { desc }) => [desc(assets.trashedAt)],
-    limit,
-    offset,
-  });
+  const total = countResults[0]?.count ?? 0;
 
   return {
     assets: assetList,
@@ -445,22 +445,19 @@ export async function permanentlyDeleteAsset(
     throw new Error("NOT_FOUND");
   }
 
-  // Delete from storage
+  // Delete from storage (parallelize asset + thumbnail deletion)
   const storage = getStorage();
-  await storage.deleteObject(asset.storageKey);
-
-  // Delete thumbnail if exists
+  const deletePromises: Promise<unknown>[] = [storage.deleteObject(asset.storageKey)];
   if (asset.thumbnailKey) {
-    await storage.deleteObject(asset.thumbnailKey);
+    deletePromises.push(storage.deleteObject(asset.thumbnailKey));
   }
+  await Promise.all(deletePromises);
 
-  // Delete from database
-  await db
-    .delete(assets)
-    .where(and(eq(assets.id, assetId), eq(assets.ownerId, userId)));
-
-  // Decrement user's storage usage
-  await decrementUsedStorage(userId, asset.size);
+  // Delete from database and decrement storage in parallel
+  await Promise.all([
+    db.delete(assets).where(and(eq(assets.id, assetId), eq(assets.ownerId, userId))),
+    decrementUsedStorage(userId, asset.size),
+  ]);
 }
 
 export async function emptyTrashAssets(userId: string): Promise<number> {
@@ -471,13 +468,14 @@ export async function emptyTrashAssets(userId: string): Promise<number> {
   if (trashedAssets.length === 0) return 0;
 
   const storage = getStorage();
-  const keys = trashedAssets.map((a) => a.storageKey);
-  const thumbnailKeys = trashedAssets
-    .filter((a) => a.thumbnailKey)
-    .map((a) => a.thumbnailKey as string);
-
-  // Calculate total size to decrement
-  const totalSize = trashedAssets.reduce((sum, a) => sum + a.size, 0);
+  const keys: string[] = [];
+  const thumbnailKeys: string[] = [];
+  let totalSize = 0;
+  for (const a of trashedAssets) {
+    keys.push(a.storageKey);
+    if (a.thumbnailKey) thumbnailKeys.push(a.thumbnailKey);
+    totalSize += a.size;
+  }
 
   // Delete from storage
   await storage.deleteObjects([...keys, ...thumbnailKeys]);
@@ -554,21 +552,21 @@ export async function listStarredAssets(
   const { page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Get total count
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(assets)
-    .where(and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt)));
+  // Get total count and starred assets in parallel
+  const [countResults, assetList] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(assets)
+      .where(and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt))),
+    db.query.assets.findMany({
+      where: and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt)),
+      orderBy: (assets, { desc }) => [desc(assets.updatedAt)],
+      limit,
+      offset,
+    }),
+  ]);
 
-  const total = countResult?.count ?? 0;
-
-  // Get starred assets
-  const assetList = await db.query.assets.findMany({
-    where: and(eq(assets.ownerId, userId), eq(assets.isStarred, true), isNull(assets.trashedAt)),
-    orderBy: (assets, { desc }) => [desc(assets.updatedAt)],
-    limit,
-    offset,
-  });
+  const total = countResults[0]?.count ?? 0;
 
   return {
     assets: assetList,
@@ -610,16 +608,15 @@ export async function copyAsset(
   // Generate new storage key for the copy
   const newStorageKey = generateStorageKey(userId, asset.name, targetFolderId ?? undefined);
 
-  // Copy the file in storage
+  // Copy file and thumbnail in parallel
   const storage = getStorage();
-  await storage.copyObject(asset.storageKey, newStorageKey);
-
-  // Copy thumbnail if exists
   let newThumbnailKey: string | null = null;
+  const copyPromises: Promise<void>[] = [storage.copyObject(asset.storageKey, newStorageKey)];
   if (asset.thumbnailKey) {
     newThumbnailKey = generateStorageKey(userId, `thumb_${asset.name}`, targetFolderId ?? undefined);
-    await storage.copyObject(asset.thumbnailKey, newThumbnailKey);
+    copyPromises.push(storage.copyObject(asset.thumbnailKey, newThumbnailKey));
   }
+  await Promise.all(copyPromises);
 
   // Generate a unique name if there's a conflict
   let copyName = `${asset.name} (copy)`;

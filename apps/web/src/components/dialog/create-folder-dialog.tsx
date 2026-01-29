@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateFolder } from "@/hooks";
+import { useCreateFolder } from "@/hooks/use-folders";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
 

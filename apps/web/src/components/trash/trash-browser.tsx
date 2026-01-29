@@ -2,19 +2,26 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import { Trash2, RotateCcw, X, RefreshCw } from "lucide-react";
-import { TrashSkeleton } from "@/components/loaders";
+import { TrashSkeleton } from "@/components/loaders/trash-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SearchCommand } from "@/components/dialog/search-command";
 import { Button } from "@/components/ui/button";
-import { EmptyTrashDialog, EmptyTrashTrigger, PermanentDeleteDialog } from "@/components/dialog";
-import { EmptyState, ListHeader, InfiniteScrollTrigger, TRASH_LIST_COLUMNS, type SelectedItem } from "@/components/shared";
+import { EmptyTrashDialog, EmptyTrashTrigger } from "@/components/dialog/empty-trash-dialog";
+import { PermanentDeleteDialog } from "@/components/dialog/permanent-delete-dialog";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ListHeader } from "@/components/shared/list-header";
+import { InfiniteScrollTrigger } from "@/components/shared/infinite-scroll-trigger";
+import { TRASH_LIST_COLUMNS } from "@/components/shared/list-columns";
+import { type SelectedItem } from "@/components/shared/selection-toolbar";
 import { TrashItem } from "./trash-item";
-import { useInfiniteTrash, useRestoreItem, useMarqueeSelection, usePermanentlyDelete, useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks";
+import { useInfiniteTrash, useRestoreItem, usePermanentlyDelete } from "@/hooks/use-trash";
+import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
+import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
-import type { TrashedItem } from "@/types";
+import type { TrashedItem } from "@/types/trash";
 
 export function TrashBrowser() {
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);

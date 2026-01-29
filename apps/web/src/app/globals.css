@@ -194,6 +194,12 @@
   }
 }
 
+/* Content-visibility optimization for off-screen items in long lists */
+[data-item-id] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
+}
+
 /* Custom utility classes */
 @layer utilities {
   .shadow-soft {
@@ -243,4 +249,5 @@
   .animate-fade-in {
     animation: fade-in 0.5s ease-out forwards;
   }
+
 }

@@ -1,6 +1,7 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type { ApiResponse, StorageStats } from "@/types";
+import type { ApiResponse } from "@/types/api";
+import type { StorageStats } from "@/types/storage";
 
 export const storageService = {
   async getStats(): Promise<StorageStats> {

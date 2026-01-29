@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safe-storage";
 
 const STORAGE_KEY = "assets-man-welcome-tour-completed";
 
@@ -10,7 +11,7 @@ export function useWelcomeTour() {
 
   useEffect(() => {
     // Check if tour has been completed
-    const completed = localStorage.getItem(STORAGE_KEY);
+    const completed = safeGetItem(STORAGE_KEY);
     if (!completed) {
       setShowTour(true);
     }
@@ -18,17 +19,17 @@ export function useWelcomeTour() {
   }, []);
 
   const completeTour = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
+    safeSetItem(STORAGE_KEY, "true");
     setShowTour(false);
   };
 
   const skipTour = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
+    safeSetItem(STORAGE_KEY, "true");
     setShowTour(false);
   };
 
   const restartTour = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    safeRemoveItem(STORAGE_KEY);
     setShowTour(true);
   };
 

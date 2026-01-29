@@ -14,21 +14,19 @@ import {
   RotateCw,
 } from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import type { Asset } from "@/types";
-import { assetService } from "@/services";
+import type { Asset } from "@/types/asset";
+import { assetService } from "@/services/asset-service";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/formatters";
-import { FileIcon } from "@/components/shared";
-import { useSwipe } from "@/hooks";
-import {
-  getFileType,
-  ImagePreview,
-  VideoPreview,
-  AudioPreview,
-  TextPreview,
-  UnsupportedPreview,
-  LoadingPreview,
-} from "@/components/preview";
+import { FileIcon } from "@/components/shared/file-icon";
+import { useSwipe } from "@/hooks/use-swipe";
+import { getFileType } from "@/components/preview/types";
+import { ImagePreview } from "@/components/preview/image-preview";
+import { VideoPreview } from "@/components/preview/video-preview";
+import { AudioPreview } from "@/components/preview/audio-preview";
+import { TextPreview } from "@/components/preview/text-preview";
+import { UnsupportedPreview } from "@/components/preview/unsupported-preview";
+import { LoadingPreview } from "@/components/preview/loading-preview";
 
 // Dynamic import for PDF preview to avoid SSR issues with react-pdf
 const PdfPreview = dynamic(

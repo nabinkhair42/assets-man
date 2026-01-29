@@ -15,7 +15,7 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
   const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragStart = useRef({ x: 0, y: 0 });
   const [prevAssetId, setPrevAssetId] = useState(asset.id);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -54,26 +54,34 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
   }, []);
 
   // Handle wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     setZoom((prev) => Math.min(Math.max(prev + delta, 0.25), 5));
   }, []);
 
+  // Attach native wheel listener with { passive: false } to allow preventDefault
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
   // Handle drag to pan
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (zoom <= 1) return;
     setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
   }, [zoom, position]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
     setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
     });
-  }, [isDragging, dragStart]);
+  }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -111,7 +119,6 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
           zoom > 1 && "cursor-grab",
           isDragging && "cursor-grabbing"
         )}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

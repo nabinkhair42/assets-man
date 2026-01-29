@@ -5,6 +5,16 @@ import { GithubIcon } from "@/components/icons/github-icon";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+const crosshatchStyle = {
+  backgroundImage: `repeating-linear-gradient(
+    -45deg,
+    var(--muted),
+    var(--muted) 1px,
+    transparent 1px,
+    transparent 8px
+  )`,
+};
+
 interface HeroSectionProps {
   className?: string;
 }
@@ -50,28 +60,22 @@ export function HeroSection({ className }: HeroSectionProps) {
         <div className="mt-16 w-full">
           <div
             className="relative rounded-xl border p-2"
-            style={{
-              backgroundImage: `repeating-linear-gradient(
-              -45deg,
-              var(--muted),
-              var(--muted) 1px,
-              transparent 1px,
-              transparent 8px
-            )`,
-            }}
+            style={crosshatchStyle}
           >
-            <div className="overflow-hidden rounded-lg">
+            <div className="relative overflow-hidden rounded-lg aspect-video">
               {/* Light mode image */}
               <Image
                 src="/marketing/files-light.webp"
                 alt="Assets Manager - File browser interface"
-                className="w-full h-auto dark:hidden"
+                fill
+                className="object-cover dark:hidden"
               />
               {/* Dark mode image */}
               <Image
                 src="/marketing/files-dark.webp"
                 alt="Assets Manager - File browser interface"
-                className="w-full h-auto hidden dark:block"
+                fill
+                className="object-cover hidden dark:block"
               />
             </div>
           </div>

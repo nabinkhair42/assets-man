@@ -1,7 +1,7 @@
 "use client";
 
 import { Folder as FolderIcon, ChevronRight } from "lucide-react";
-import { FileIcon } from "@/components/shared";
+import { FileIcon } from "@/components/shared/file-icon";
 import {
   DataListRow,
   DataListCell,

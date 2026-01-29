@@ -1,7 +1,7 @@
 import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
+import type { ApiResponse } from "@/types/api";
 import type {
-  ApiResponse,
   Share,
   ShareWithDetails,
   CreateUserShareInput,
@@ -12,7 +12,7 @@ import type {
   SharedItemDetails,
   SharedAssetDownload,
   SharedFolderContents,
-} from "@/types";
+} from "@/types/share";
 
 export const shareService = {
   async createUserShare(input: CreateUserShareInput): Promise<Share> {

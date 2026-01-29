@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 
 const VIEW_MODE_KEY = "assets-view-mode";
 
@@ -12,7 +13,7 @@ export function useViewMode(defaultMode: ViewMode = "grid") {
 
   // Read from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(VIEW_MODE_KEY);
+    const stored = safeGetItem(VIEW_MODE_KEY);
     if (stored === "grid" || stored === "list") {
       setViewModeState(stored);
     }
@@ -22,7 +23,7 @@ export function useViewMode(defaultMode: ViewMode = "grid") {
   // Persist to localStorage when changed
   const setViewMode = useCallback((mode: ViewMode) => {
     setViewModeState(mode);
-    localStorage.setItem(VIEW_MODE_KEY, mode);
+    safeSetItem(VIEW_MODE_KEY, mode);
   }, []);
 
   return {

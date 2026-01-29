@@ -55,14 +55,13 @@ async function updateChildPaths(
   if (childFolders.length === 0) return 0;
 
   // Update each child folder's path by replacing the old prefix with new prefix
-  for (const child of childFolders) {
+  await Promise.all(childFolders.map((child) => {
     const updatedPath = newPath + child.path.substring(oldPath.length);
-
-    await db
+    return db
       .update(folders)
       .set({ path: updatedPath, updatedAt: new Date() })
       .where(eq(folders.id, child.id));
-  }
+  }));
 
   return childFolders.length;
 }
@@ -201,22 +200,25 @@ export async function moveFolder(
   folderId: string,
   input: MoveFolderInput
 ): Promise<Folder> {
-  const folder = await getFolderById(userId, folderId);
-
-  if (!folder) {
-    throw new Error("NOT_FOUND");
-  }
-
   // Prevent moving to self
   if (input.parentId === folderId) {
     throw new Error("INVALID_MOVE");
+  }
+
+  // Parallelize source + target folder lookups
+  const [folder, newParent] = await Promise.all([
+    getFolderById(userId, folderId),
+    input.parentId ? getFolderById(userId, input.parentId) : Promise.resolve(null),
+  ]);
+
+  if (!folder) {
+    throw new Error("NOT_FOUND");
   }
 
   const oldPath = folder.path;
   let newPath: string;
 
   if (input.parentId) {
-    const newParent = await getFolderById(userId, input.parentId);
     if (!newParent) {
       throw new Error("PARENT_NOT_FOUND");
     }
@@ -317,21 +319,21 @@ export async function listTrashedFolders(
   const { page, limit } = query;
   const offset = (page - 1) * limit;
 
-  // Get total count of trashed folders
-  const [countResult] = await db
-    .select({ count: count() })
-    .from(folders)
-    .where(and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)));
+  // Get total count and trashed folders in parallel
+  const [countResults, folderList] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(folders)
+      .where(and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt))),
+    db.query.folders.findMany({
+      where: and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
+      orderBy: (folders, { desc }) => [desc(folders.trashedAt)],
+      limit,
+      offset,
+    }),
+  ]);
 
-  const total = countResult?.count ?? 0;
-
-  // Get trashed folders
-  const folderList = await db.query.folders.findMany({
-    where: and(eq(folders.ownerId, userId), isNotNull(folders.trashedAt)),
-    orderBy: (folders, { desc }) => [desc(folders.trashedAt)],
-    limit,
-    offset,
-  });
+  const total = countResults[0]?.count ?? 0;
 
   return {
     folders: folderList,
@@ -533,19 +535,18 @@ export async function copyFolder(
 
   const storage = getStorage();
 
-  for (const asset of folderAssets) {
+  await Promise.all(folderAssets.map(async (asset) => {
     // Generate new storage key
     const newStorageKey = generateStorageKey(userId, asset.name, newFolder.id);
 
-    // Copy the file in storage
-    await storage.copyObject(asset.storageKey, newStorageKey);
-
-    // Copy thumbnail if exists
+    // Copy file and thumbnail in parallel
     let newThumbnailKey: string | null = null;
+    const copyPromises: Promise<void>[] = [storage.copyObject(asset.storageKey, newStorageKey)];
     if (asset.thumbnailKey) {
       newThumbnailKey = generateStorageKey(userId, `thumb_${asset.name}`, newFolder.id);
-      await storage.copyObject(asset.thumbnailKey, newThumbnailKey);
+      copyPromises.push(storage.copyObject(asset.thumbnailKey, newThumbnailKey));
     }
+    await Promise.all(copyPromises);
 
     // Create new asset record
     await db.insert(assets).values({
@@ -560,7 +561,7 @@ export async function copyFolder(
     });
 
     assetsCopied++;
-  }
+  }));
 
   // Recursively copy subfolders
   const subfolders = await db.query.folders.findMany({
