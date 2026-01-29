@@ -35,8 +35,12 @@ export function BulkDeleteDialog({
   const deleteFolder = useDeleteFolder();
   const deleteAsset = useDeleteAsset();
 
-  const folderCount = items.filter((i) => i.type === "folder").length;
-  const assetCount = items.filter((i) => i.type === "asset").length;
+  let folderCount = 0;
+  let assetCount = 0;
+  for (const i of items) {
+    if (i.type === "folder") folderCount++;
+    else assetCount++;
+  }
 
   const handleDelete = async () => {
     if (items.length === 0) return;

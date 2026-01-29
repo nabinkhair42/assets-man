@@ -64,6 +64,18 @@ export function MoveDialog({
     setPrevOpen(open);
   }
 
+  // Build parent→children index for O(1) child lookups
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string | null, Folder[]>();
+    for (const f of allFolders) {
+      const key = f.parentId;
+      const list = map.get(key);
+      if (list) list.push(f);
+      else map.set(key, [f]);
+    }
+    return map;
+  }, [allFolders]);
+
   // Get IDs to exclude (the item itself and its descendants for folders)
   const excludeIds = useMemo(() => {
     if (!item || itemType !== "folder") return new Set<string>();
@@ -71,17 +83,19 @@ export function MoveDialog({
     const ids = new Set<string>([item.id]);
 
     function addDescendants(parentId: string) {
-      allFolders.forEach((f) => {
-        if (f.parentId === parentId && !ids.has(f.id)) {
+      const children = childrenByParent.get(parentId);
+      if (!children) return;
+      for (const f of children) {
+        if (!ids.has(f.id)) {
           ids.add(f.id);
           addDescendants(f.id);
         }
-      });
+      }
     }
 
     addDescendants(item.id);
     return ids;
-  }, [item, itemType, allFolders]);
+  }, [item, itemType, childrenByParent]);
 
   const handleMove = () => {
     if (!item) return;
@@ -126,8 +140,7 @@ export function MoveDialog({
   const isPending = moveFolder.isPending || updateAsset.isPending;
   const label = itemType === "folder" ? "Folder" : "File";
 
-  // Build tree of root-level folders
-  const rootFolders = allFolders.filter((f) => f.parentId === null);
+  const rootFolders = childrenByParent.get(null) ?? [];
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -164,7 +177,7 @@ export function MoveDialog({
               <FolderTreeNode
                 key={folder.id}
                 folder={folder}
-                allFolders={allFolders}
+                childrenByParent={childrenByParent}
                 depth={0}
                 selectedId={selectedFolderId}
                 currentParentId={currentParentId}
@@ -197,7 +210,7 @@ export function MoveDialog({
 
 interface FolderTreeNodeProps {
   folder: Folder;
-  allFolders: Folder[];
+  childrenByParent: Map<string | null, Folder[]>;
   depth: number;
   selectedId: string | null;
   currentParentId: string | null;
@@ -207,7 +220,7 @@ interface FolderTreeNodeProps {
 
 const FolderTreeNode = memo(function FolderTreeNode({
   folder,
-  allFolders,
+  childrenByParent,
   depth,
   selectedId,
   currentParentId,
@@ -215,7 +228,7 @@ const FolderTreeNode = memo(function FolderTreeNode({
   onSelect,
 }: FolderTreeNodeProps) {
   const [expanded, setExpanded] = useState(true);
-  const children = allFolders.filter((f) => f.parentId === folder.id);
+  const children = childrenByParent.get(folder.id) ?? [];
   const isExcluded = excludeIds.has(folder.id);
   const hasChildren = children.length > 0;
   const isCurrent = currentParentId === folder.id;
@@ -264,7 +277,7 @@ const FolderTreeNode = memo(function FolderTreeNode({
           <FolderTreeNode
             key={child.id}
             folder={child}
-            allFolders={allFolders}
+            childrenByParent={childrenByParent}
             depth={depth + 1}
             selectedId={selectedId}
             currentParentId={currentParentId}

@@ -319,16 +319,21 @@ export async function bulkDownload(
     // Pipe archive to response
     archive.pipe(res);
 
-    // Add files to archive
+    // Prefetch all streams in parallel, then append sequentially to archive
     const storage = assetService.getStorageForBulkDownload();
 
-    for (const item of downloadAssets) {
-      try {
-        const stream = await storage.getObjectStream(item.asset.storageKey);
-        archive.append(stream, { name: item.path });
-      } catch (err) {
-        console.error(`Failed to add ${item.path} to archive:`, err);
-        // Continue with other files
+    const streamResults = await Promise.allSettled(
+      downloadAssets.map(async (item) => ({
+        stream: await storage.getObjectStream(item.asset.storageKey),
+        path: item.path,
+      }))
+    );
+
+    for (const result of streamResults) {
+      if (result.status === "fulfilled") {
+        archive.append(result.value.stream, { name: result.value.path });
+      } else {
+        console.error(`Failed to fetch stream for archive:`, result.reason);
       }
     }
 
@@ -389,16 +394,21 @@ export async function sharedBulkDownload(
     // Pipe archive to response
     archive.pipe(res);
 
-    // Add files to archive
+    // Prefetch all streams in parallel, then append sequentially to archive
     const storage = assetService.getStorageForBulkDownload();
 
-    for (const item of downloadAssets) {
-      try {
-        const stream = await storage.getObjectStream(item.asset.storageKey);
-        archive.append(stream, { name: item.path });
-      } catch (err) {
-        console.error(`Failed to add ${item.path} to archive:`, err);
-        // Continue with other files
+    const streamResults = await Promise.allSettled(
+      downloadAssets.map(async (item) => ({
+        stream: await storage.getObjectStream(item.asset.storageKey),
+        path: item.path,
+      }))
+    );
+
+    for (const result of streamResults) {
+      if (result.status === "fulfilled") {
+        archive.append(result.value.stream, { name: result.value.path });
+      } else {
+        console.error(`Failed to fetch stream for archive:`, result.reason);
       }
     }
 

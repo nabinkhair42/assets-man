@@ -44,26 +44,48 @@ export function BulkMoveDialog({
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
 
-  const folderCount = items.filter((i) => i.type === "folder").length;
-  const assetCount = items.filter((i) => i.type === "asset").length;
+  let folderCount = 0;
+  let assetCount = 0;
+  for (const i of items) {
+    if (i.type === "folder") folderCount++;
+    else assetCount++;
+  }
+
+  // Build parent→children index for O(1) child lookups
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string | null, Folder[]>();
+    for (const f of allFolders) {
+      const key = f.parentId;
+      const list = map.get(key);
+      if (list) list.push(f);
+      else map.set(key, [f]);
+    }
+    return map;
+  }, [allFolders]);
 
   // Get IDs to exclude (folders being moved and their descendants)
   const excludeIds = useMemo(() => {
-    const folderItems = items.filter((i) => i.type === "folder");
-    const ids = new Set<string>(folderItems.map((i) => i.id));
+    const ids = new Set<string>();
+    for (const i of items) {
+      if (i.type === "folder") ids.add(i.id);
+    }
 
     function addDescendants(parentId: string) {
-      allFolders.forEach((f) => {
-        if (f.parentId === parentId && !ids.has(f.id)) {
+      const children = childrenByParent.get(parentId);
+      if (!children) return;
+      for (const f of children) {
+        if (!ids.has(f.id)) {
           ids.add(f.id);
           addDescendants(f.id);
         }
-      });
+      }
     }
 
-    folderItems.forEach((item) => addDescendants(item.id));
+    for (const i of items) {
+      if (i.type === "folder") addDescendants(i.id);
+    }
     return ids;
-  }, [items, allFolders]);
+  }, [items, childrenByParent]);
 
   const handleMove = async () => {
     if (items.length === 0) return;
@@ -124,8 +146,7 @@ export function BulkMoveDialog({
     onSuccess?.();
   };
 
-  // Build tree of root-level folders
-  const rootFolders = allFolders.filter((f) => f.parentId === null);
+  const rootFolders = childrenByParent.get(null) ?? [];
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
@@ -165,7 +186,7 @@ export function BulkMoveDialog({
               <FolderTreeNode
                 key={folder.id}
                 folder={folder}
-                allFolders={allFolders}
+                childrenByParent={childrenByParent}
                 depth={0}
                 selectedId={selectedFolderId}
                 excludeIds={excludeIds}
@@ -195,7 +216,7 @@ export function BulkMoveDialog({
 
 interface FolderTreeNodeProps {
   folder: Folder;
-  allFolders: Folder[];
+  childrenByParent: Map<string | null, Folder[]>;
   depth: number;
   selectedId: string | null;
   excludeIds: Set<string>;
@@ -204,14 +225,14 @@ interface FolderTreeNodeProps {
 
 const FolderTreeNode = memo(function FolderTreeNode({
   folder,
-  allFolders,
+  childrenByParent,
   depth,
   selectedId,
   excludeIds,
   onSelect,
 }: FolderTreeNodeProps) {
   const [expanded, setExpanded] = useState(true);
-  const children = allFolders.filter((f) => f.parentId === folder.id);
+  const children = childrenByParent.get(folder.id) ?? [];
   const isExcluded = excludeIds.has(folder.id);
   const hasChildren = children.length > 0;
 
@@ -254,7 +275,7 @@ const FolderTreeNode = memo(function FolderTreeNode({
           <FolderTreeNode
             key={child.id}
             folder={child}
-            allFolders={allFolders}
+            childrenByParent={childrenByParent}
             depth={depth + 1}
             selectedId={selectedId}
             excludeIds={excludeIds}

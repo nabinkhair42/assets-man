@@ -78,6 +78,7 @@ export function FileThumbnail({
           src={thumbnailUrl}
           alt={name}
           fill
+          sizes="(max-width: 640px) 40vw, 200px"
           className="object-cover"
           onError={() => setImageError(true)}
           unoptimized // Since these are presigned URLs
@@ -130,6 +131,7 @@ export function SimpleThumbnail({
           src={thumbnailUrl}
           alt={name}
           fill
+          sizes="(max-width: 640px) 40vw, 200px"
           className="object-cover"
           onError={() => setImageError(true)}
           unoptimized

@@ -1,14 +1,16 @@
 "use client";
 
-import { BulkDeleteDialog } from "@/components/dialog/bulk-delete-dialog";
-import { BulkMoveDialog } from "@/components/dialog/bulk-move-dialog";
-import { CopyDialog } from "@/components/dialog/copy-dialog";
+import dynamic from "next/dynamic";
 import { CreateFolderDialog } from "@/components/dialog/create-folder-dialog";
-import { DeleteDialog } from "@/components/dialog/delete-dialog";
-import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
-import { MoveDialog } from "@/components/dialog/move-dialog";
 import { RenameDialog } from "@/components/dialog/rename-dialog";
-import { ShareDialog } from "@/components/dialog/share-dialog";
+import { DeleteDialog } from "@/components/dialog/delete-dialog";
+
+const BulkDeleteDialog = dynamic(() => import("@/components/dialog/bulk-delete-dialog").then(m => ({ default: m.BulkDeleteDialog })));
+const BulkMoveDialog = dynamic(() => import("@/components/dialog/bulk-move-dialog").then(m => ({ default: m.BulkMoveDialog })));
+const CopyDialog = dynamic(() => import("@/components/dialog/copy-dialog").then(m => ({ default: m.CopyDialog })));
+const FilePreviewDialog = dynamic(() => import("@/components/dialog/file-preview-dialog").then(m => ({ default: m.FilePreviewDialog })));
+const MoveDialog = dynamic(() => import("@/components/dialog/move-dialog").then(m => ({ default: m.MoveDialog })));
+const ShareDialog = dynamic(() => import("@/components/dialog/share-dialog").then(m => ({ default: m.ShareDialog })));
 import AppHeader, { type SortConfig } from "@/components/layouts/app-header";
 import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -151,9 +153,11 @@ async function createFolderStructure(
 
   folderMap.set(structure.path, createdFolder.id);
 
-  for (const child of structure.children) {
-    await createFolderStructure(child, createdFolder.id, folderMap);
-  }
+  await Promise.all(
+    structure.children.map((child) =>
+      createFolderStructure(child, createdFolder.id, folderMap)
+    )
+  );
 
   return folderMap;
 }
@@ -270,6 +274,10 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     if (!assetsData?.pages) return [];
     return assetsData.pages.flatMap((page) => page.assets);
   }, [assetsData]);
+
+  // Index maps for O(1) lookups in keyboard handlers
+  const folderMap = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
+  const assetMap = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
 
   // Combined list of all items for index-based operations
   const allItems = useMemo(() => {
@@ -551,12 +559,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleBulkDownload = useCallback(async () => {
     const items = Array.from(selectedItems.values());
-    const assetIds = items
-      .filter((item) => item.type === "asset")
-      .map((item) => item.id);
-    const folderIds = items
-      .filter((item) => item.type === "folder")
-      .map((item) => item.id);
+    const assetIds: string[] = [];
+    const folderIds: string[] = [];
+    for (const item of items) {
+      if (item.type === "asset") assetIds.push(item.id);
+      else folderIds.push(item.id);
+    }
 
     if (assetIds.length === 0 && folderIds.length === 0) {
       toast.info("No items selected for download");
@@ -851,17 +859,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const handleKeyboardStar = useCallback(() => {
     if (selectedItems.size === 0) return;
     const items = Array.from(selectedItems.values());
-    // Star first item (for single selection, or toggle all for batch)
     for (const item of items) {
       if (item.type === "folder") {
-        const folder = folders.find((f) => f.id === item.id);
-        if (folder) toggleFolderStarred.mutate(folder.id);
+        if (folderMap.has(item.id)) toggleFolderStarred.mutate(item.id);
       } else {
-        const asset = assets.find((a) => a.id === item.id);
-        if (asset) toggleAssetStarred.mutate(asset.id);
+        if (assetMap.has(item.id)) toggleAssetStarred.mutate(item.id);
       }
     }
-  }, [selectedItems, folders, assets, toggleFolderStarred, toggleAssetStarred]);
+  }, [selectedItems, folderMap, assetMap, toggleFolderStarred, toggleAssetStarred]);
 
   const handleKeyboardRename = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -869,13 +874,13 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     if (!item) return;
 
     if (item.type === "folder") {
-      const folder = folders.find((f) => f.id === item.id);
+      const folder = folderMap.get(item.id);
       if (folder) setRenameItem({ item: folder, type: "folder" });
     } else {
-      const asset = assets.find((a) => a.id === item.id);
+      const asset = assetMap.get(item.id);
       if (asset) setRenameItem({ item: asset, type: "asset" });
     }
-  }, [selectedItems, folders, assets]);
+  }, [selectedItems, folderMap, assetMap]);
 
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -883,14 +888,12 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     if (!item) return;
 
     if (item.type === "folder") {
-      // Open folder
       handleNavigate(item.id);
     } else {
-      // Preview asset
-      const asset = assets.find((a) => a.id === item.id);
+      const asset = assetMap.get(item.id);
       if (asset) setPreviewAsset(asset);
     }
-  }, [selectedItems, assets, handleNavigate]);
+  }, [selectedItems, assetMap, handleNavigate]);
 
   // Keyboard shortcuts
   useFileBrowserShortcuts(
