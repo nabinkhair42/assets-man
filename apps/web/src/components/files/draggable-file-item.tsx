@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import {
   MoreVertical,
@@ -113,7 +114,7 @@ export function DraggableFileItem({
   // Show bulk actions when multiple items are selected and this item is part of selection
   const showBulkActions = isSelected && selectedCount > 1;
 
-  const menuItems = showBulkActions ? (
+  const menuItems = useMemo(() => showBulkActions ? (
     <>
       <ContextMenuItem onClick={onBulkDownload}>
         <Download className="mr-2 h-4 w-4" />
@@ -180,9 +181,9 @@ export function DraggableFileItem({
         <ContextMenuShortcut>Del</ContextMenuShortcut>
       </ContextMenuItem>
     </>
-  );
+  ), [showBulkActions, selectedCount, onBulkDownload, onBulkMove, onBulkDelete, asset, onDownload, onStar, onRename, onMove, onCopy, onShare, onDelete]);
 
-  const dropdownMenu = (
+  const dropdownMenu = useMemo(() => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -245,7 +246,7 @@ export function DraggableFileItem({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  ), [asset, onDownload, onStar, onRename, onMove, onCopy, onShare, onDelete]);
 
   // Handle click for selection (supports Ctrl+Click for multi-select, Shift+Click for range)
   const handleClick = (e: React.MouseEvent) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { memo, useState, useMemo } from "react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -205,7 +205,7 @@ interface FolderTreeNodeProps {
   onSelect: (id: string) => void;
 }
 
-function FolderTreeNode({
+const FolderTreeNode = memo(function FolderTreeNode({
   folder,
   allFolders,
   depth,
@@ -274,4 +274,4 @@ function FolderTreeNode({
         ))}
     </div>
   );
-}
+});

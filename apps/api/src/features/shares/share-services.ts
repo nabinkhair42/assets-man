@@ -700,10 +700,12 @@ export async function getSharedFolderAssetsForDownload(
       },
     });
 
-    for (const subfolder of subFolders) {
-      const newRelativePath = relativePath ? `${relativePath}/${subfolder.name}` : subfolder.name;
-      await collectAssets(subfolder.id, newRelativePath);
-    }
+    await Promise.all(
+      subFolders.map((subfolder) => {
+        const newRelativePath = relativePath ? `${relativePath}/${subfolder.name}` : subfolder.name;
+        return collectAssets(subfolder.id, newRelativePath);
+      })
+    );
   }
 
   await collectAssets(targetFolder.id, "");

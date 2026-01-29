@@ -134,45 +134,37 @@ export async function getSharedAssetDownloadUrl(
   userId: string,
   assetId: string
 ): Promise<{ url: string; asset: Asset }> {
-  // First try owned asset
-  const ownedAsset = await db.query.assets.findFirst({
-    where: and(eq(assets.id, assetId), eq(assets.ownerId, userId)),
-  });
+  // Check owned asset and shared asset in parallel
+  const [ownedAsset, share] = await Promise.all([
+    db.query.assets.findFirst({
+      where: and(eq(assets.id, assetId), eq(assets.ownerId, userId)),
+    }),
+    db.query.shares.findFirst({
+      where: and(
+        eq(shares.assetId, assetId),
+        eq(shares.sharedWithUserId, userId),
+        or(isNull(shares.expiresAt), sql`${shares.expiresAt} > NOW()`)
+      ),
+      with: {
+        asset: true,
+      },
+    }),
+  ]);
 
-  if (ownedAsset) {
-    const storage = getStorage();
-    const { url } = await storage.getPresignedDownloadUrl({
-      key: ownedAsset.storageKey,
-      expiresIn: 3600,
-      filename: ownedAsset.name,
-    });
-    return { url, asset: ownedAsset };
-  }
+  const resolvedAsset = ownedAsset ?? share?.asset;
 
-  // Check if asset is shared with user
-  const share = await db.query.shares.findFirst({
-    where: and(
-      eq(shares.assetId, assetId),
-      eq(shares.sharedWithUserId, userId),
-      or(isNull(shares.expiresAt), sql`${shares.expiresAt} > NOW()`)
-    ),
-    with: {
-      asset: true,
-    },
-  });
-
-  if (!share?.asset) {
+  if (!resolvedAsset) {
     throw new Error("NOT_FOUND");
   }
 
   const storage = getStorage();
   const { url } = await storage.getPresignedDownloadUrl({
-    key: share.asset.storageKey,
+    key: resolvedAsset.storageKey,
     expiresIn: 3600,
-    filename: share.asset.name,
+    filename: resolvedAsset.name,
   });
 
-  return { url, asset: share.asset };
+  return { url, asset: resolvedAsset };
 }
 
 function getAssetSortColumn(sortBy: string) {
@@ -699,9 +691,11 @@ async function getFolderDescendants(
     where: and(eq(folders.parentId, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
   });
 
-  // Recursively get descendants of subfolders
-  for (const subfolder of subfolders) {
-    const subResult = await getFolderDescendants(userId, subfolder.id, folderPath);
+  // Recursively get descendants of subfolders in parallel
+  const subResults = await Promise.all(
+    subfolders.map((subfolder) => getFolderDescendants(userId, subfolder.id, folderPath))
+  );
+  for (const subResult of subResults) {
     result.assets.push(...subResult.assets);
     result.folders.push(...subResult.folders);
   }
@@ -735,9 +729,11 @@ export async function getBulkDownloadAssets(
     }
   }
 
-  // Get assets from selected folders (including all descendants)
-  for (const folderId of folderIds) {
-    const folderContents = await getFolderDescendants(userId, folderId);
+  // Get assets from selected folders (including all descendants) in parallel
+  const allFolderContents = await Promise.all(
+    folderIds.map((folderId) => getFolderDescendants(userId, folderId))
+  );
+  for (const folderContents of allFolderContents) {
     for (const item of folderContents.assets) {
       if (!addedAssetIds.has(item.asset.id)) {
         result.push(item);
@@ -767,26 +763,27 @@ export async function getSharedBulkDownloadAssets(
 
   if (!user) return [];
 
+  // Batch query all shares for the requested assets
+  const shareList = await db.query.shares.findMany({
+    where: and(
+      inArray(shares.assetId, assetIds),
+      eq(shares.shareType, "user"),
+      or(
+        eq(shares.sharedWithUserId, userId),
+        eq(shares.sharedWithEmail, user.email)
+      )
+    ),
+    with: {
+      asset: true,
+    },
+  });
+
   const result: BulkDownloadAsset[] = [];
+  const seen = new Set<string>();
 
-  // For each asset, check if it's shared with the user
-  for (const assetId of assetIds) {
-    // Check if there's a share for this asset that the user has access to
-    const share = await db.query.shares.findFirst({
-      where: and(
-        eq(shares.assetId, assetId),
-        eq(shares.shareType, "user"),
-        or(
-          eq(shares.sharedWithUserId, userId),
-          eq(shares.sharedWithEmail, user.email)
-        )
-      ),
-      with: {
-        asset: true,
-      },
-    });
-
-    if (share?.asset && !share.asset.trashedAt) {
+  for (const share of shareList) {
+    if (share.asset && !share.asset.trashedAt && !seen.has(share.asset.id)) {
+      seen.add(share.asset.id);
       result.push({
         asset: share.asset,
         path: share.asset.name,

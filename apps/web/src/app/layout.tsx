@@ -9,6 +9,7 @@ import "./globals.css";
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
   variable: "--font-nunito-sans",
+  display: "swap",
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://assets-man.nabinkhair.com.np";

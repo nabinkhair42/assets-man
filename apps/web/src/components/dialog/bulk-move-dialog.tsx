@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { memo, useState, useMemo } from "react";
 import {
   ResponsiveDialog,
   ResponsiveDialogContent,
@@ -74,10 +74,10 @@ export function BulkMoveDialog({
 
     const toastId = toast.loading(`Moving ${items.length} items`);
 
-    for (const item of items) {
-      try {
+    const results = await Promise.allSettled(
+      items.map((item) => {
         if (item.type === "folder") {
-          await new Promise<void>((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             moveFolder.mutate(
               { id: item.id, input: { parentId: selectedFolderId } },
               {
@@ -87,7 +87,7 @@ export function BulkMoveDialog({
             );
           });
         } else {
-          await new Promise<void>((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             updateAsset.mutate(
               { id: item.id, input: { folderId: selectedFolderId } },
               {
@@ -97,8 +97,13 @@ export function BulkMoveDialog({
             );
           });
         }
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
         successCount++;
-      } catch {
+      } else {
         failCount++;
       }
     }
@@ -197,7 +202,7 @@ interface FolderTreeNodeProps {
   onSelect: (id: string) => void;
 }
 
-function FolderTreeNode({
+const FolderTreeNode = memo(function FolderTreeNode({
   folder,
   allFolders,
   depth,
@@ -258,4 +263,4 @@ function FolderTreeNode({
         ))}
     </div>
   );
-}
+});

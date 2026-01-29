@@ -188,8 +188,10 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Smooth transitions for theme switching */
-  * {
+  /* Smooth transitions for theme switching — targeted to interactive elements */
+  button, a, input, select, textarea,
+  [role="menuitem"], [role="button"],
+  .transition-theme {
     @apply transition-colors duration-150;
   }
 }

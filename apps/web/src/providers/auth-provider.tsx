@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/hooks/use-auth";
 import { getCachedToken, clearCachedToken } from "@/lib/safe-storage";
@@ -60,15 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [queryClient]);
 
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      setUser,
+    }),
+    [user, isLoading, setUser]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        setUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

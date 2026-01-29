@@ -1,4 +1,4 @@
-import { eq, and, desc, count, isNull } from "drizzle-orm";
+import { eq, and, desc, count, isNull, sql, notInArray } from "drizzle-orm";
 import { createDb, recentActivity, assets, folders, type Asset, type Folder } from "@repo/database";
 import { config } from "@/config/env.js";
 import type { RecordAccessInput, ListRecentQuery } from "@/schema/recent-schema.js";
@@ -70,37 +70,21 @@ export async function recordAccess(
     });
   }
 
-  // Optionally: Limit recent items to last 100 per user
-  // This prevents the table from growing indefinitely
-  const recentCount = await db
-    .select({ count: count() })
-    .from(recentActivity)
-    .where(eq(recentActivity.userId, userId));
-
-  if ((recentCount[0]?.count ?? 0) > 100) {
-    // Delete oldest entries beyond 100
-    const oldestToKeep = await db.query.recentActivity.findMany({
-      where: eq(recentActivity.userId, userId),
-      orderBy: desc(recentActivity.accessedAt),
-      limit: 100,
-      offset: 0,
-    });
-
-    if (oldestToKeep.length === 100) {
-      const cutoffDate = oldestToKeep[99]?.accessedAt;
-      if (cutoffDate) {
-        await db
-          .delete(recentActivity)
-          .where(
-            and(
-              eq(recentActivity.userId, userId),
-              // Delete entries older than the 100th most recent
-              eq(recentActivity.accessedAt, cutoffDate)
-            )
-          );
-      }
-    }
-  }
+  // Prune entries beyond the most recent 100 per user in a single query
+  await db.delete(recentActivity).where(
+    and(
+      eq(recentActivity.userId, userId),
+      notInArray(
+        recentActivity.id,
+        db
+          .select({ id: recentActivity.id })
+          .from(recentActivity)
+          .where(eq(recentActivity.userId, userId))
+          .orderBy(desc(recentActivity.accessedAt))
+          .limit(100)
+      )
+    )
+  );
 }
 
 export async function listRecentItems(

@@ -568,8 +568,10 @@ export async function copyFolder(
     where: and(eq(folders.parentId, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
   });
 
-  for (const subfolder of subfolders) {
-    const result = await copyFolder(userId, subfolder.id, newFolder.id);
+  const subResults = await Promise.all(
+    subfolders.map((subfolder) => copyFolder(userId, subfolder.id, newFolder.id))
+  );
+  for (const result of subResults) {
     assetsCopied += result.assetsCopied;
     foldersCopied += result.foldersCopied;
   }

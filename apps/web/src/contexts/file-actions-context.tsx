@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 interface FileActionsContextType {
   triggerUpload: () => void;
@@ -18,33 +18,36 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   const createFolderTriggerRef = useRef<(() => void) | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const triggerUpload = () => {
+  const triggerUpload = useCallback(() => {
     uploadTriggerRef.current?.();
-  };
+  }, []);
 
-  const triggerCreateFolder = () => {
+  const triggerCreateFolder = useCallback(() => {
     createFolderTriggerRef.current?.();
-  };
+  }, []);
 
-  const registerUploadTrigger = (trigger: () => void) => {
+  const registerUploadTrigger = useCallback((trigger: () => void) => {
     uploadTriggerRef.current = trigger;
-  };
+  }, []);
 
-  const registerCreateFolderTrigger = (trigger: () => void) => {
+  const registerCreateFolderTrigger = useCallback((trigger: () => void) => {
     createFolderTriggerRef.current = trigger;
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      triggerUpload,
+      triggerCreateFolder,
+      registerUploadTrigger,
+      registerCreateFolderTrigger,
+      isUploading,
+      setIsUploading,
+    }),
+    [isUploading, triggerUpload, triggerCreateFolder, registerUploadTrigger, registerCreateFolderTrigger]
+  );
 
   return (
-    <FileActionsContext.Provider
-      value={{
-        triggerUpload,
-        triggerCreateFolder,
-        registerUploadTrigger,
-        registerCreateFolderTrigger,
-        isUploading,
-        setIsUploading,
-      }}
-    >
+    <FileActionsContext.Provider value={value}>
       {children}
     </FileActionsContext.Provider>
   );
