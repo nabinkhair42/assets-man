@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { config } from "@/config/env.js";
@@ -10,6 +11,7 @@ import { validateServices, logConfig } from "@/service-validator/index.js";
 const app = express();
 
 // Middleware
+app.use(compression());
 app.use(helmet());
 app.use(corsMiddleware);
 app.use(express.json());

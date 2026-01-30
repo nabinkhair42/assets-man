@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +27,7 @@ interface TrashItemProps {
   onBulkDelete?: () => void;
 }
 
-export function TrashItem({
+export const TrashItem = memo(function TrashItem({
   item,
   onRestore,
   onPermanentDelete,
@@ -142,4 +143,4 @@ export function TrashItem({
       <ContextMenuContent>{menuItems}</ContextMenuContent>
     </ContextMenu>
   );
-}
+});

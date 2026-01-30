@@ -599,7 +599,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleBulkOperationSuccess = useCallback(() => {
     handleClearSelection();
-    Promise.all([refetchFolders(), refetchAssets()]);
+    Promise.all([refetchFolders(), refetchAssets()]).catch(() => {});
   }, [handleClearSelection, refetchFolders, refetchAssets]);
 
   const handleBulkDownload = useCallback(async () => {

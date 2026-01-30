@@ -67,18 +67,16 @@ export default function RecentPage() {
 
   const selectionMode = selectedItems.size > 0;
 
-  // Preload dialogs based on user intent (Rule 2.5)
+  // Preload dialogs when user enters selection mode (Rule 2.5)
   useEffect(() => {
     if (!selectionMode) return;
     preloadBulkDeleteDialog();
     preloadBulkMoveDialog();
-    if (selectedItems.size === 1) {
-      preloadRenameDialog();
-      preloadDeleteDialog();
-      preloadMoveDialog();
-      preloadFilePreviewDialog();
-    }
-  }, [selectionMode, selectedItems.size]);
+    preloadRenameDialog();
+    preloadDeleteDialog();
+    preloadMoveDialog();
+    preloadFilePreviewDialog();
+  }, [selectionMode]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })

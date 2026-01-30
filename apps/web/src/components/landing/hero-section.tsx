@@ -68,6 +68,8 @@ export function HeroSection({ className }: HeroSectionProps) {
                 src="/marketing/files-light.webp"
                 alt="Assets Manager - File browser interface"
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                priority
                 className="object-cover dark:hidden"
               />
               {/* Dark mode image */}
@@ -75,6 +77,8 @@ export function HeroSection({ className }: HeroSectionProps) {
                 src="/marketing/files-dark.webp"
                 alt="Assets Manager - File browser interface"
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                priority
                 className="object-cover hidden dark:block"
               />
             </div>

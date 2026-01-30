@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useThumbnailUrl, canHaveThumbnail } from "@/hooks/use-thumbnail";
@@ -23,7 +23,7 @@ const sizeClasses = {
   lg: "w-24 h-24",
 };
 
-export function FileThumbnail({
+export const FileThumbnail = memo(function FileThumbnail({
   assetId,
   mimeType,
   thumbnailKey,
@@ -127,7 +127,7 @@ export function FileThumbnail({
   }
 
   return <div ref={ref} />;
-}
+});
 
 // Simple thumbnail display without auto-generation (for performance in lists)
 interface SimpleThumbnailProps {

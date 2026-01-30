@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/hooks/use-auth";
 import { getCachedToken, clearCachedToken } from "@/lib/safe-storage";
+import { authService } from "@/services/auth-service";
+import { storageKeys } from "@/hooks/use-storage";
 import type { User } from "@/types/auth";
 
 interface AuthContextType {
@@ -38,11 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Fetch user data — load service modules in parallel
-        const [{ authService }, { storageKeys }] = await Promise.all([
-          import("@/services/auth-service"),
-          import("@/hooks/use-storage"),
-        ]);
         const response = await authService.getMe();
         setUser(response.user);
         queryClient.setQueryData(authKeys.me(), response.user);

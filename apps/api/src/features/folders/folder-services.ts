@@ -43,27 +43,22 @@ async function updateChildPaths(
 ): Promise<number> {
   if (oldPath === newPath) return 0;
 
-  // Find all folders whose path starts with the old path followed by "/"
-  // This ensures we only get descendants, not the folder itself
-  const childFolders = await db.query.folders.findMany({
-    where: and(
-      eq(folders.ownerId, userId),
-      sql`${folders.path} LIKE ${oldPath + '/%'}`
-    ),
-  });
+  // Single SQL UPDATE: replace oldPath prefix with newPath for all descendants
+  const result = await db
+    .update(folders)
+    .set({
+      path: sql`${newPath} || substring(${folders.path} from ${oldPath.length + 1})`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(folders.ownerId, userId),
+        sql`${folders.path} LIKE ${oldPath + '/%'}`
+      )
+    )
+    .returning({ id: folders.id });
 
-  if (childFolders.length === 0) return 0;
-
-  // Update each child folder's path by replacing the old prefix with new prefix
-  await Promise.all(childFolders.map((child) => {
-    const updatedPath = newPath + child.path.substring(oldPath.length);
-    return db
-      .update(folders)
-      .set({ path: updatedPath, updatedAt: new Date() })
-      .where(eq(folders.id, child.id));
-  }));
-
-  return childFolders.length;
+  return result.length;
 }
 
 export async function createFolder(

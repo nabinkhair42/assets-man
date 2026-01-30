@@ -82,11 +82,14 @@ export default function SharedWithMePage() {
   const sharedFolders = useMemo(() => allItems.filter((item) => item.type === "folder"), [allItems]);
   const sharedFiles = useMemo(() => allItems.filter((item) => item.type === "asset"), [allItems]);
 
-  // Index maps for O(1) lookups
+  // Index maps for O(1) lookups (keyed by both "type-id" and bare "id")
   const allItemIndex = useMemo(() => {
     const map = new Map<string, { item: SharedItem; index: number }>();
-    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
-    map.forEach(({ item }) => map.set(item.id, { item, index: 0 }));
+    allItems.forEach((item, index) => {
+      const entry = { item, index };
+      map.set(`${item.type}-${item.id}`, entry);
+      map.set(item.id, entry);
+    });
     return map;
   }, [allItems]);
   const sharesById = useMemo(() => new Map(shares.map((s) => [s.id, s])), [shares]);

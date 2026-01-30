@@ -37,6 +37,8 @@ export function useMarqueeSelection<T>({
   const [pendingSelection, setPendingSelection] = useState<Set<string>>(() => new Set());
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const scrollOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Cache container rect during drag to avoid repeated layout reflows
+  const cachedContainerRect = useRef<DOMRect | null>(null);
 
   // Auto-scroll refs
   const autoScrollAnimationRef = useRef<number | null>(null);
@@ -83,7 +85,7 @@ export function useMarqueeSelection<T>({
       if (!container) return [];
 
       const scrollableParent = getScrollableParent(container);
-      const containerRect = container.getBoundingClientRect();
+      const containerRect = cachedContainerRect.current ?? container.getBoundingClientRect();
       const currentScrollX = scrollableParent?.scrollLeft ?? 0;
       const currentScrollY = scrollableParent?.scrollTop ?? 0;
 
@@ -94,15 +96,17 @@ export function useMarqueeSelection<T>({
 
       const itemElements = container.querySelectorAll(itemSelector);
       const intersectingIds: string[] = [];
+      const cLeft = containerRect.left;
+      const cTop = containerRect.top;
 
       itemElements.forEach((element) => {
         const itemRect = element.getBoundingClientRect();
 
         // Convert item rect to container-relative coordinates with scroll
-        const itemLeft = itemRect.left - containerRect.left + currentScrollX;
-        const itemRight = itemRect.right - containerRect.left + currentScrollX;
-        const itemTop = itemRect.top - containerRect.top + currentScrollY;
-        const itemBottom = itemRect.bottom - containerRect.top + currentScrollY;
+        const itemLeft = itemRect.left - cLeft + currentScrollX;
+        const itemRight = itemRect.right - cLeft + currentScrollX;
+        const itemTop = itemRect.top - cTop + currentScrollY;
+        const itemBottom = itemRect.bottom - cTop + currentScrollY;
 
         // Check for intersection
         const intersects =
@@ -206,7 +210,7 @@ export function useMarqueeSelection<T>({
 
       // Update the marquee rect if scroll happened
       if (scrolledX !== 0 || scrolledY !== 0) {
-        const containerRect = container.getBoundingClientRect();
+        const containerRect = cachedContainerRect.current ?? container.getBoundingClientRect();
         const currentScrollX = scrollableParent.scrollLeft;
         const currentScrollY = scrollableParent.scrollTop;
 
@@ -272,6 +276,7 @@ export function useMarqueeSelection<T>({
 
       const scrollableParent = getScrollableParent(container);
       const rect = container.getBoundingClientRect();
+      cachedContainerRect.current = rect;
 
       // Store scroll offset at start
       scrollOffset.current = {
@@ -299,7 +304,7 @@ export function useMarqueeSelection<T>({
 
       const container = containerRef.current;
       const scrollableParent = getScrollableParent(container);
-      const rect = container.getBoundingClientRect();
+      const rect = cachedContainerRect.current ?? container.getBoundingClientRect();
 
       // Store mouse position for auto-scroll
       lastMousePosition.current = { clientX: e.clientX, clientY: e.clientY };
@@ -341,6 +346,7 @@ export function useMarqueeSelection<T>({
       setMarqueeRect(null);
       setPendingSelection(new Set());
       startPoint.current = null;
+      cachedContainerRect.current = null;
       return;
     }
 
@@ -355,6 +361,7 @@ export function useMarqueeSelection<T>({
       setMarqueeRect(null);
       setPendingSelection(new Set());
       startPoint.current = null;
+      cachedContainerRect.current = null;
       return;
     }
 

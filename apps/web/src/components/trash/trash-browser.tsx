@@ -23,7 +23,8 @@ import { InfiniteScrollTrigger } from "@/components/shared/infinite-scroll-trigg
 import { TRASH_LIST_COLUMNS } from "@/components/shared/list-columns";
 import { type SelectedItem } from "@/components/shared/selection-toolbar";
 import { TrashItem } from "./trash-item";
-import { useInfiniteTrash, useRestoreItem, usePermanentlyDelete } from "@/hooks/use-trash";
+import { useInfiniteTrash, useRestoreItem, usePermanentlyDelete, trashKeys } from "@/hooks/use-trash";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { TrashedItem } from "@/types/trash";
 
 export function TrashBrowser() {
+  const queryClient = useQueryClient();
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrashedItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(() => new Map());
@@ -264,9 +266,8 @@ export function TrashBrowser() {
   useKeyboardShortcuts({ shortcuts, enabled: true });
 
   const handleRefresh = useCallback(() => {
-    // Trigger a refetch by invalidating the query
-    window.location.reload();
-  }, []);
+    queryClient.invalidateQueries({ queryKey: trashKeys.lists() });
+  }, [queryClient]);
 
   return (
     <div className="flex flex-col h-full">
