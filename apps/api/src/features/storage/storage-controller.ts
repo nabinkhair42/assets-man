@@ -11,7 +11,7 @@ export async function getStorageStats(
   try {
     const stats = await storageService.getStorageStats(req.userId);
     sendSuccess(res, { stats }, "Storage statistics retrieved");
-  } catch (error) {
+  } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to get storage statistics", 500);
   }
 }
@@ -25,7 +25,7 @@ export async function recalculateStorage(
     await storageService.recalculateStorage(req.userId);
     const stats = await storageService.getStorageStats(req.userId);
     sendSuccess(res, { stats }, "Storage recalculated successfully");
-  } catch (error) {
+  } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to recalculate storage", 500);
   }
 }

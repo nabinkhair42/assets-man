@@ -337,6 +337,23 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     return { folderMap: fMap, assetMap: aMap, allItemIndex: index };
   }, [allItems]);
 
+  // O(1) breadcrumb path: build folder lookup from allFolders, walk parentId chain
+  const breadcrumbPath = useMemo(() => {
+    if (!currentFolderId) return [];
+    const lookup = new Map<string, Folder>();
+    for (const f of allFolders) lookup.set(f.id, f);
+    const path: Folder[] = [];
+    let id: string | null = currentFolderId;
+    while (id) {
+      const folder = lookup.get(id);
+      if (!folder) break;
+      path.push(folder);
+      id = folder.parentId;
+    }
+    path.reverse();
+    return path;
+  }, [allFolders, currentFolderId]);
+
   const isLoading =
     foldersLoading || assetsLoading || isNavigating || isPending;
 
@@ -952,7 +969,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
       />
 
       <AppHeader
-        breadcrumbPath={allFolders.filter((f) => f.id === currentFolderId)}
+        breadcrumbPath={breadcrumbPath}
         handleNavigate={handleNavigate}
         viewMode={viewMode}
         setViewMode={setViewMode}

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import {
   MoreVertical,
@@ -82,7 +83,7 @@ interface DraggableFileItemProps {
   showOwner?: boolean;
 }
 
-export function DraggableFileItem({
+export const DraggableFileItem = memo(function DraggableFileItem({
   asset,
   onDownload,
   onRename,
@@ -430,4 +431,4 @@ export function DraggableFileItem({
       <ContextMenuContent>{menuItems}</ContextMenuContent>
     </ContextMenu>
   );
-}
+});

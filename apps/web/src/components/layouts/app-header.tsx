@@ -13,6 +13,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Asset, Folder, SortBy, SortOrder } from '@/types'
 import { ArrowDown, ArrowUp, ArrowUpDown, LayoutGrid, List, RefreshCw } from 'lucide-react'
+import { useCallback } from 'react'
 
 export interface SortConfig {
   sortBy: SortBy
@@ -49,17 +50,17 @@ const AppHeader = ({
     ? breadcrumbPath[breadcrumbPath.length - 1]?.name
     : "My Files";
 
-  const handleSortByChange = (value: string) => {
+  const handleSortByChange = useCallback((value: string) => {
     if (onSortChange && sortConfig) {
       onSortChange({ ...sortConfig, sortBy: value as SortBy })
     }
-  }
+  }, [onSortChange, sortConfig]);
 
-  const handleSortOrderChange = (value: string) => {
+  const handleSortOrderChange = useCallback((value: string) => {
     if (onSortChange && sortConfig) {
       onSortChange({ ...sortConfig, sortOrder: value as SortOrder })
     }
-  }
+  }, [onSortChange, sortConfig]);
 
   return (
     <header className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">

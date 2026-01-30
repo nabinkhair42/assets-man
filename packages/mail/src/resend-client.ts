@@ -55,7 +55,7 @@ export function createResendClient(config: MailConfig): MailClient {
       };
 
       try {
-        const { data, error } = await resend.emails.send({
+        const { error } = await resend.emails.send({
           from: fromAddress,
           to: options.to,
           subject: "Reset your password - Assets Man",
@@ -83,7 +83,7 @@ export function createResendClient(config: MailConfig): MailClient {
       };
 
       try {
-        const { data, error } = await resend.emails.send({
+        const { error } = await resend.emails.send({
           from: fromAddress,
           to: options.to,
           subject: "Welcome to Assets Man",

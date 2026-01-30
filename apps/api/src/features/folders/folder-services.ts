@@ -444,12 +444,13 @@ export async function toggleStarred(
 }
 
 export async function listStarredFolders(
-  userId: string
+  userId: string,
+  maxResults = 200
 ): Promise<Folder[]> {
-  // Get all starred folders (no pagination for simplicity)
   const folderList = await db.query.folders.findMany({
     where: and(eq(folders.ownerId, userId), eq(folders.isStarred, true), isNull(folders.trashedAt)),
     orderBy: (folders, { desc }) => [desc(folders.updatedAt)],
+    limit: maxResults,
   });
 
   return folderList;

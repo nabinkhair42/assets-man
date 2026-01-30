@@ -22,6 +22,7 @@ export function useFolders() {
   return useQuery({
     queryKey: folderKeys.list(),
     queryFn: () => folderService.getAll(),
+    staleTime: 30 * 1000, // 30s — folder structure changes infrequently
   });
 }
 

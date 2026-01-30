@@ -1,4 +1,4 @@
-import { eq, and, desc, count, isNull, sql, notInArray } from "drizzle-orm";
+import { eq, and, desc, count, notInArray } from "drizzle-orm";
 import { createDb, recentActivity, assets, folders, type Asset, type Folder } from "@repo/database";
 import { config } from "@/config/env.js";
 import type { RecordAccessInput, ListRecentQuery } from "@/schema/recent-schema.js";

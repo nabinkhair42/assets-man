@@ -90,36 +90,41 @@ export default function RecentPage() {
   const toggleAssetStarred = useToggleAssetStarred();
   const toggleFolderStarred = useToggleFolderStarred();
 
-  // Extract folders, assets, and allItems in a single iteration (Rule 7.6)
-  const { recentFolders, recentAssets, allItems } = useMemo(() => {
-    if (!recentData?.items) return { recentFolders: [] as Folder[], recentAssets: [] as Asset[], allItems: [] as { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }[] };
+  // Extract folders, assets, allItems, and index maps in a single pass
+  const { recentFolders, recentAssets, allItems, folderMap, assetMap, allItemIndex } = useMemo(() => {
+    if (!recentData?.items) {
+      return {
+        recentFolders: [] as Folder[],
+        recentAssets: [] as Asset[],
+        allItems: [] as { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }[],
+        folderMap: new Map<string, Folder>(),
+        assetMap: new Map<string, Asset>(),
+        allItemIndex: new Map<string, { item: { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }; index: number }>(),
+      };
+    }
     const folders: Folder[] = [];
     const assets: Asset[] = [];
     const items: { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }[] = [];
+    const fMap = new Map<string, Folder>();
+    const aMap = new Map<string, Asset>();
+    const index = new Map<string, { item: typeof items[0]; index: number }>();
     for (const item of recentData.items) {
       if (item.itemType === "folder" && item.folder) {
         folders.push(item.folder);
-        items.push({ id: item.folder.id, type: item.itemType, name: item.folder.name, data: item.folder, accessedAt: item.accessedAt });
+        const entry = { id: item.folder.id, type: item.itemType as "folder", name: item.folder.name, data: item.folder, accessedAt: item.accessedAt };
+        items.push(entry);
+        fMap.set(item.folder.id, item.folder);
+        index.set(`folder-${item.folder.id}`, { item: entry, index: items.length - 1 });
       } else if (item.itemType === "asset" && item.asset) {
         assets.push(item.asset);
-        items.push({ id: item.asset.id, type: item.itemType, name: item.asset.name, data: item.asset, accessedAt: item.accessedAt });
+        const entry = { id: item.asset.id, type: item.itemType as "asset", name: item.asset.name, data: item.asset, accessedAt: item.accessedAt };
+        items.push(entry);
+        aMap.set(item.asset.id, item.asset);
+        index.set(`asset-${item.asset.id}`, { item: entry, index: items.length - 1 });
       }
     }
-    return { recentFolders: folders, recentAssets: assets, allItems: items };
+    return { recentFolders: folders, recentAssets: assets, allItems: items, folderMap: fMap, assetMap: aMap, allItemIndex: index };
   }, [recentData]);
-
-  // Single-pass index maps for O(1) lookups in keyboard/marquee handlers
-  const { folderMap, assetMap, allItemIndex } = useMemo(() => {
-    const folders = new Map<string, Folder>();
-    const assets = new Map<string, Asset>();
-    const index = new Map<string, { item: typeof allItems[0]; index: number }>();
-    allItems.forEach((item, i) => {
-      index.set(`${item.type}-${item.id}`, { item, index: i });
-      if (item.type === "folder") folders.set(item.id, item.data as Folder);
-      else assets.set(item.id, item.data as Asset);
-    });
-    return { folderMap: folders, assetMap: assets, allItemIndex: index };
-  }, [allItems]);
 
   const handleNavigate = useCallback((folderId: string | null) => {
     if (folderId) {

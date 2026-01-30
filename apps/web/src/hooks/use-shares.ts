@@ -50,8 +50,11 @@ export function useCreateUserShare() {
 
   return useMutation({
     mutationFn: (input: CreateUserShareInput) => shareService.createUserShare(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shareKeys.all });
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: shareKeys.mine() });
+      const itemType = input.folderId ? "folder" as const : "asset" as const;
+      const itemId = (input.folderId ?? input.assetId)!;
+      queryClient.invalidateQueries({ queryKey: shareKeys.forItem(itemType, itemId) });
     },
   });
 }
@@ -61,8 +64,11 @@ export function useCreateLinkShare() {
 
   return useMutation({
     mutationFn: (input: CreateLinkShareInput) => shareService.createLinkShare(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shareKeys.all });
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: shareKeys.mine() });
+      const itemType = input.folderId ? "folder" as const : "asset" as const;
+      const itemId = (input.folderId ?? input.assetId)!;
+      queryClient.invalidateQueries({ queryKey: shareKeys.forItem(itemType, itemId) });
     },
   });
 }
@@ -74,7 +80,8 @@ export function useUpdateShare() {
     mutationFn: ({ id, input }: { id: string; input: UpdateShareInput }) =>
       shareService.updateShare(id, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shareKeys.all });
+      queryClient.invalidateQueries({ queryKey: shareKeys.mine() });
+      queryClient.invalidateQueries({ queryKey: [...shareKeys.all, "item"] });
     },
   });
 }
@@ -85,7 +92,8 @@ export function useDeleteShare() {
   return useMutation({
     mutationFn: (id: string) => shareService.deleteShare(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: shareKeys.all });
+      queryClient.invalidateQueries({ queryKey: shareKeys.mine() });
+      queryClient.invalidateQueries({ queryKey: [...shareKeys.all, "item"] });
     },
   });
 }

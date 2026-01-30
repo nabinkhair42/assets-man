@@ -220,9 +220,9 @@ export async function listSharesForItem(
       itemType === "folder" ? eq(shares.folderId, itemId) : eq(shares.assetId, itemId)
     ),
     with: {
-      sharedWithUser: true,
-      folder: true,
-      asset: true,
+      sharedWithUser: { columns: { name: true } },
+      folder: { columns: { name: true } },
+      asset: { columns: { name: true, mimeType: true, size: true } },
     },
   });
 
@@ -238,15 +238,16 @@ export async function listSharesForItem(
 }
 
 // List all shares created by a user
-export async function listUserShares(ownerId: string): Promise<ShareWithDetails[]> {
+export async function listUserShares(ownerId: string, maxResults = 200): Promise<ShareWithDetails[]> {
   const shareList = await db.query.shares.findMany({
     where: eq(shares.ownerId, ownerId),
     with: {
-      sharedWithUser: true,
-      folder: true,
-      asset: true,
+      sharedWithUser: { columns: { name: true } },
+      folder: { columns: { name: true, trashedAt: true } },
+      asset: { columns: { name: true, mimeType: true, size: true, trashedAt: true } },
     },
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
+    limit: maxResults,
   });
 
   // Filter out shares where the item has been trashed or deleted, and map in one pass
@@ -290,9 +291,9 @@ export async function listSharedWithMe(userId: string): Promise<ShareWithDetails
       )
     ),
     with: {
-      owner: true,
-      folder: true,
-      asset: true,
+      owner: { columns: { name: true } },
+      folder: { columns: { name: true, trashedAt: true } },
+      asset: { columns: { name: true, mimeType: true, size: true, trashedAt: true } },
     },
     orderBy: (shares, { desc }) => [desc(shares.createdAt)],
   });
@@ -485,7 +486,7 @@ export async function getSharedFolderContents(
   }
 
   // Build breadcrumb paths for a single query
-  let breadcrumbPaths: string[] = [];
+  const breadcrumbPaths: string[] = [];
   if (targetFolder.id !== sharedFolder.id) {
     const sharedPath = sharedFolder.path;
     const targetPath = targetFolder.path;

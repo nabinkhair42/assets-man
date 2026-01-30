@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   Folder as FolderIcon,
@@ -76,7 +77,7 @@ interface DraggableFolderItemProps {
   showOwner?: boolean;
 }
 
-export function DraggableFolderItem({
+export const DraggableFolderItem = memo(function DraggableFolderItem({
   folder,
   onOpen,
   onRename,
@@ -436,4 +437,4 @@ export function DraggableFolderItem({
       </ContextMenu>
     </div>
   );
-}
+});

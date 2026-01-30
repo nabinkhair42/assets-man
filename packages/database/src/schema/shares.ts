@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, pgEnum, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { folders } from "./folders";
 import { assets } from "./assets";
@@ -50,6 +50,7 @@ export const shares = pgTable(
     index("idx_shares_asset_user").on(table.assetId, table.sharedWithUserId),
     index("idx_shares_folder_user").on(table.folderId, table.sharedWithUserId),
     index("idx_shares_owner_type").on(table.ownerId, table.shareType),
+    index("idx_shares_owner_created").on(table.ownerId, table.createdAt),
   ]
 );
 

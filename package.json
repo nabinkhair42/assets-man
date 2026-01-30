@@ -13,13 +13,15 @@
     "db:generate": "turbo db:generate",
     "db:push": "turbo db:push",
     "db:studio": "turbo db:studio",
-    "db:enable-trgm": "pnpm --filter @repo/database db:enable-trgm"
+    "db:enable-trgm": "pnpm --filter @repo/database db:enable-trgm",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.26.1",
   "devDependencies": {
-    "turbo": "^2.7.5"
+    "husky": "^9.1.7",
+    "turbo": "^2.8.0"
   }
 }

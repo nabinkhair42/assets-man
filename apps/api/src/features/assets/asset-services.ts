@@ -248,10 +248,7 @@ export async function listAssets(
           isNull(assets.trashedAt),
           fuzzyCondition
         ))
-        .orderBy(sql`GREATEST(
-          similarity(lower(${assets.name}), ${searchTerm}),
-          similarity(lower(${assets.originalName}), ${searchTerm})
-        ) DESC`)
+        .orderBy(sql`"relevanceScore" DESC`)
         .limit(limit)
         .offset(offset),
     ]);
@@ -579,27 +576,28 @@ export async function copyAsset(
   assetId: string,
   targetFolderId: string | null | undefined
 ): Promise<Asset> {
-  const asset = await getAssetById(userId, assetId);
+  // Run asset lookup and folder verification in parallel
+  const [asset, targetFolder] = await Promise.all([
+    getAssetById(userId, assetId),
+    targetFolderId
+      ? db.query.folders.findFirst({
+          where: and(eq(folders.id, targetFolderId), eq(folders.ownerId, userId)),
+        })
+      : Promise.resolve(null),
+  ]);
 
   if (!asset) {
     throw new Error("NOT_FOUND");
   }
 
-  // Check storage quota before copying
+  if (targetFolderId && !targetFolder) {
+    throw new Error("FOLDER_NOT_FOUND");
+  }
+
+  // Check storage quota (requires asset.size from above)
   const quotaCheck = await checkQuotaAvailable(userId, asset.size);
   if (!quotaCheck.available) {
     throw new Error("QUOTA_EXCEEDED");
-  }
-
-  // Verify target folder exists if provided
-  if (targetFolderId) {
-    const folder = await db.query.folders.findFirst({
-      where: and(eq(folders.id, targetFolderId), eq(folders.ownerId, userId)),
-    });
-
-    if (!folder) {
-      throw new Error("FOLDER_NOT_FOUND");
-    }
   }
 
   // Generate new storage key for the copy

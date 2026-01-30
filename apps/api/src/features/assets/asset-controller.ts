@@ -1,6 +1,30 @@
+import type { Readable } from "stream";
 import type { Response } from "express";
 import archiver from "archiver";
 import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js";
+
+// Concurrency-limited Promise.allSettled
+async function allSettledWithConcurrency<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency: number
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let index = 0;
+
+  async function runNext(): Promise<void> {
+    while (index < tasks.length) {
+      const i = index++;
+      try {
+        results[i] = { status: "fulfilled", value: await tasks[i]!() };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => runNext()));
+  return results;
+}
 import * as assetService from "./asset-services.js";
 import * as thumbnailService from "./thumbnail-service.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
@@ -319,14 +343,15 @@ export async function bulkDownload(
     // Pipe archive to response
     archive.pipe(res);
 
-    // Prefetch all streams in parallel, then append sequentially to archive
+    // Fetch streams with limited concurrency, then append sequentially to archive
     const storage = assetService.getStorageForBulkDownload();
 
-    const streamResults = await Promise.allSettled(
-      downloadAssets.map(async (item) => ({
-        stream: await storage.getObjectStream(item.asset.storageKey),
+    const streamResults = await allSettledWithConcurrency(
+      downloadAssets.map((item) => async () => ({
+        stream: await storage.getObjectStream(item.asset.storageKey) as Readable,
         path: item.path,
-      }))
+      })),
+      5
     );
 
     for (const result of streamResults) {
@@ -394,14 +419,15 @@ export async function sharedBulkDownload(
     // Pipe archive to response
     archive.pipe(res);
 
-    // Prefetch all streams in parallel, then append sequentially to archive
+    // Fetch streams with limited concurrency, then append sequentially to archive
     const storage = assetService.getStorageForBulkDownload();
 
-    const streamResults = await Promise.allSettled(
-      downloadAssets.map(async (item) => ({
-        stream: await storage.getObjectStream(item.asset.storageKey),
+    const streamResults = await allSettledWithConcurrency(
+      downloadAssets.map((item) => async () => ({
+        stream: await storage.getObjectStream(item.asset.storageKey) as Readable,
         path: item.path,
-      }))
+      })),
+      5
     );
 
     for (const result of streamResults) {

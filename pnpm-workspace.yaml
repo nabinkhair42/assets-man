@@ -1,9 +1,10 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
 
 onlyBuiltDependencies:
+  - bcrypt
   - esbuild
+  - ffmpeg-static
   - sharp
   - unrs-resolver
-  - bcrypt

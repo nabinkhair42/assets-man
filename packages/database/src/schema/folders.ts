@@ -21,6 +21,7 @@ export const folders = pgTable(
   (table) => [
     index("idx_folders_owner_parent").on(table.ownerId, table.parentId),
     index("idx_folders_owner_trashed").on(table.ownerId, table.trashedAt),
+    index("idx_folders_owner_starred").on(table.ownerId, table.isStarred),
   ]
 );
 

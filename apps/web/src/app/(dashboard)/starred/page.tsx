@@ -103,25 +103,26 @@ export default function StarredPage() {
     return starredAssetsData.pages.flatMap((page) => page.assets);
   }, [starredAssetsData]);
 
-  const allItems = useMemo(() => {
+  // Build allItems and index maps in a single pass
+  const { allItems, folderMap, assetMap, allItemIndex } = useMemo(() => {
     const items: Array<{ id: string; type: "folder" | "asset"; name: string; data: Folder | Asset }> = [];
-    starredFolders.forEach((folder) => items.push({ id: folder.id, type: "folder", name: folder.name, data: folder }));
-    starredAssets.forEach((asset) => items.push({ id: asset.id, type: "asset", name: asset.name, data: asset }));
-    return items;
+    const fMap = new Map<string, Folder>();
+    const aMap = new Map<string, Asset>();
+    const index = new Map<string, { item: typeof items[0]; index: number }>();
+    for (const folder of starredFolders) {
+      const entry = { id: folder.id, type: "folder" as const, name: folder.name, data: folder };
+      items.push(entry);
+      fMap.set(folder.id, folder);
+      index.set(`folder-${folder.id}`, { item: entry, index: items.length - 1 });
+    }
+    for (const asset of starredAssets) {
+      const entry = { id: asset.id, type: "asset" as const, name: asset.name, data: asset };
+      items.push(entry);
+      aMap.set(asset.id, asset);
+      index.set(`asset-${asset.id}`, { item: entry, index: items.length - 1 });
+    }
+    return { allItems: items, folderMap: fMap, assetMap: aMap, allItemIndex: index };
   }, [starredFolders, starredAssets]);
-
-  // Single-pass index maps for O(1) lookups in keyboard/marquee handlers
-  const { folderMap, assetMap, allItemIndex } = useMemo(() => {
-    const folders = new Map<string, Folder>();
-    const assets = new Map<string, Asset>();
-    const index = new Map<string, { item: typeof allItems[0]; index: number }>();
-    allItems.forEach((item, i) => {
-      index.set(`${item.type}-${item.id}`, { item, index: i });
-      if (item.type === "folder") folders.set(item.id, item.data as Folder);
-      else assets.set(item.id, item.data as Asset);
-    });
-    return { folderMap: folders, assetMap: assets, allItemIndex: index };
-  }, [allItems]);
 
   const isLoading = foldersLoading || assetsLoading;
 
@@ -156,21 +157,19 @@ export default function StarredPage() {
     toggleAssetStarred.mutate(asset.id, {
       onSuccess: (data) => {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
-        refetchAssets();
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
-  }, [toggleAssetStarred, refetchAssets]);
+  }, [toggleAssetStarred]);
 
   const handleStarFolder = useCallback((folder: Folder) => {
     toggleFolderStarred.mutate(folder.id, {
       onSuccess: (data) => {
         toast.success(data.isStarred ? "Added to starred" : "Removed from starred");
-        refetchFolders();
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
-  }, [toggleFolderStarred, refetchFolders]);
+  }, [toggleFolderStarred]);
 
   // Selection handlers
   const handleItemSelect = useCallback((
