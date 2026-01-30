@@ -19,6 +19,13 @@ export interface PasswordResetEmailOptions {
   expiresInMinutes?: number;
 }
 
+export interface EmailVerificationEmailOptions {
+  to: string;
+  verificationUrl: string;
+  userName?: string;
+  expiresInHours?: number;
+}
+
 export interface WelcomeEmailOptions {
   to: string;
   userName: string;
@@ -35,6 +42,11 @@ export interface MailClient {
    * Send a password reset email
    */
   sendPasswordResetEmail(options: PasswordResetEmailOptions): Promise<{ success: boolean; error?: string }>;
+
+  /**
+   * Send an email verification email
+   */
+  sendEmailVerificationEmail(options: EmailVerificationEmailOptions): Promise<{ success: boolean; error?: string }>;
 
   /**
    * Send a welcome email to new users

@@ -8,6 +8,11 @@ export const API_ENDPOINTS = {
     ME: "/api/auth/me",
     FORGOT_PASSWORD: "/api/auth/forgot-password",
     RESET_PASSWORD: "/api/auth/reset-password",
+    VERIFY_EMAIL: "/api/auth/verify-email",
+    RESEND_VERIFICATION: "/api/auth/resend-verification",
+    UPDATE_PROFILE: "/api/auth/profile",
+    CHANGE_PASSWORD: "/api/auth/change-password",
+    DELETE_ACCOUNT: "/api/auth/account",
   },
 
   // Folders

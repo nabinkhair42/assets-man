@@ -8,6 +8,9 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   emailVerified: boolean("email_verified").default(false),
   googleId: text("google_id").unique(),
+  // Email verification fields
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
   // Password reset fields
   passwordResetToken: text("password_reset_token"),
   passwordResetExpiresAt: timestamp("password_reset_expires_at"),

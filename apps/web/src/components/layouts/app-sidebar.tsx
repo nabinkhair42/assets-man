@@ -32,7 +32,8 @@ import {
   Plus,
   Upload,
   Users,
-  Keyboard
+  Keyboard,
+  Settings
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -155,6 +156,18 @@ export function AppSidebar() {
                 <span>
                   {resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}
                 </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/settings"}
+                tooltip="Settings"
+              >
+                <Link href="/settings">
+                  <Settings className="size-4" />
+                  <span>Settings</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>

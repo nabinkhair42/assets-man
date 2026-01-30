@@ -248,7 +248,10 @@ export async function listAssets(
           isNull(assets.trashedAt),
           fuzzyCondition
         ))
-        .orderBy(sql`"relevanceScore" DESC`)
+        .orderBy(sql`GREATEST(
+            similarity(lower(${assets.name}), ${searchTerm}),
+            similarity(lower(${assets.originalName}), ${searchTerm})
+          ) DESC`)
         .limit(limit)
         .offset(offset),
     ]);

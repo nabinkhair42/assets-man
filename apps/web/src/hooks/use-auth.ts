@@ -3,7 +3,12 @@ import { authService } from "@/services/auth-service";
 import { storageKeys } from "./use-storage";
 import { useAuth } from "@/providers/auth-provider";
 import { setCachedToken, clearCachedToken } from "@/lib/safe-storage";
-import type { RegisterInput, LoginInput } from "@/types/auth";
+import type {
+  RegisterInput,
+  LoginInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+} from "@/types/auth";
 
 export const authKeys = {
   all: ["auth"] as const,
@@ -62,6 +67,47 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: () => authService.logout(),
+    onSuccess: () => {
+      clearCachedToken();
+      queryClient.clear();
+      setUser(null);
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuth();
+
+  return useMutation({
+    mutationFn: (data: UpdateProfileInput) => authService.updateProfile(data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(authKeys.me(), data.user);
+      setUser(data.user);
+    },
+  });
+}
+
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuth();
+
+  return useMutation({
+    mutationFn: (data: ChangePasswordInput) => authService.changePassword(data),
+    onSuccess: () => {
+      clearCachedToken();
+      queryClient.clear();
+      setUser(null);
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuth();
+
+  return useMutation({
+    mutationFn: (password: string) => authService.deleteAccount(password),
     onSuccess: () => {
       clearCachedToken();
       queryClient.clear();

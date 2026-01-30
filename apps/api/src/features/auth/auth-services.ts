@@ -12,7 +12,12 @@ import {
   verifyRefreshToken,
   getRefreshTokenExpiry,
 } from "@/utils/auth-utils.js";
-import type { RegisterInput, LoginInput } from "@/schema/auth-schema.js";
+import type {
+  RegisterInput,
+  LoginInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+} from "@/schema/auth-schema.js";
 
 const db = createDb(config.DATABASE_URL);
 
@@ -71,6 +76,11 @@ export async function register(
     userAgent: userAgent ?? null,
     ipAddress: ipAddress ?? null,
     expiresAt: getRefreshTokenExpiry(),
+  });
+
+  // Send verification email (non-blocking)
+  sendVerificationEmail(newUser.id).catch((err) => {
+    console.error("Failed to send verification email on registration:", err);
   });
 
   return {
@@ -172,6 +182,9 @@ export async function getUserById(userId: string): Promise<UserPublic | null> {
   return user ? toUserPublic(user) : null;
 }
 
+// Email verification constants
+const EMAIL_VERIFICATION_EXPIRY_HOURS = 24;
+
 // Password reset constants
 const PASSWORD_RESET_EXPIRY_MINUTES = 60;
 
@@ -243,6 +256,180 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
   }
 
   return { success: true, message: "Password reset email sent successfully" };
+}
+
+// --- Email Verification ---
+
+export async function sendVerificationEmail(userId: string): Promise<{ success: boolean; message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) {
+    return { success: false, message: "User not found" };
+  }
+
+  if (user.emailVerified) {
+    return { success: false, message: "Email is already verified" };
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000);
+
+  await db
+    .update(users)
+    .set({
+      emailVerificationToken: token,
+      emailVerificationExpiresAt: expiresAt,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  const mail = getMailClient();
+  if (!mail) {
+    console.error("Mail client not configured - cannot send verification email");
+    return { success: false, message: "Email service not configured" };
+  }
+
+  const verificationUrl = `${config.CLIENT_URL}/verify-email?token=${token}`;
+  const result = await mail.sendEmailVerificationEmail({
+    to: user.email,
+    verificationUrl,
+    userName: user.name ?? undefined,
+    expiresInHours: EMAIL_VERIFICATION_EXPIRY_HOURS,
+  });
+
+  if (!result.success) {
+    console.error("Failed to send verification email:", result.error);
+    return { success: false, message: "Failed to send verification email" };
+  }
+
+  return { success: true, message: "Verification email sent" };
+}
+
+export async function verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.emailVerificationToken, token),
+  });
+
+  if (!user) {
+    return { success: false, message: "Invalid or expired verification token" };
+  }
+
+  if (!user.emailVerificationExpiresAt || user.emailVerificationExpiresAt < new Date()) {
+    return { success: false, message: "Verification token has expired" };
+  }
+
+  await db
+    .update(users)
+    .set({
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  // Send welcome email after successful verification
+  const mail = getMailClient();
+  if (mail) {
+    const loginUrl = `${config.CLIENT_URL}/login`;
+    await mail.sendWelcomeEmail({
+      to: user.email,
+      userName: user.name ?? user.email,
+      loginUrl,
+    });
+  }
+
+  return { success: true, message: "Email verified successfully" };
+}
+
+export async function resendVerificationEmail(email: string): Promise<{ success: boolean; message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+
+  if (!user) {
+    return { success: true, message: "If an account exists with this email, a verification email has been sent" };
+  }
+
+  if (user.emailVerified) {
+    return { success: true, message: "If an account exists with this email, a verification email has been sent" };
+  }
+
+  return sendVerificationEmail(user.id);
+}
+
+// --- Profile Management ---
+
+export async function updateProfile(userId: string, data: UpdateProfileInput): Promise<UserPublic> {
+  const [updated] = await db
+    .update(users)
+    .set({
+      name: data.name,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+
+  if (!updated) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  return toUserPublic(updated);
+}
+
+export async function changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user || !user.passwordHash) {
+    return { success: false, message: "User not found or uses social login" };
+  }
+
+  const isValid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!isValid) {
+    return { success: false, message: "Current password is incorrect" };
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+  await db
+    .update(users)
+    .set({
+      passwordHash,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  // Invalidate all sessions (logout all devices)
+  await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+  return { success: true, message: "Password changed successfully" };
+}
+
+export async function deleteAccount(userId: string, password: string): Promise<{ success: boolean; message: string }> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user || !user.passwordHash) {
+    return { success: false, message: "User not found or uses social login" };
+  }
+
+  const isValid = await verifyPassword(password, user.passwordHash);
+  if (!isValid) {
+    return { success: false, message: "Password is incorrect" };
+  }
+
+  // Delete user (cascade will handle related records)
+  await db.delete(users).where(eq(users.id, user.id));
+
+  return { success: true, message: "Account deleted successfully" };
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {

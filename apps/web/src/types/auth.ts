@@ -31,3 +31,16 @@ export interface AuthResponse {
 export interface RefreshResponse {
   tokens: AuthTokens;
 }
+
+export interface UpdateProfileInput {
+  name: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateProfileResponse {
+  user: User;
+}

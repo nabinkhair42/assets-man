@@ -83,8 +83,8 @@ export function PdfPreview({
       <div className={cn("flex items-center justify-center w-full h-full", className)}>
         {error ? (
           <div className="flex flex-col items-center justify-center gap-4 text-center p-8">
-            <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center">
-              <FileText className="h-8 w-8 text-red-500" />
+            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+              <FileText className="h-8 w-8 text-destructive" />
             </div>
             <div>
               <p className="text-muted-foreground font-medium mb-2">Unable to preview PDF</p>

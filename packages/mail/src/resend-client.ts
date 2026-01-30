@@ -4,15 +4,21 @@ import type {
   MailClient,
   SendEmailOptions,
   PasswordResetEmailOptions,
+  EmailVerificationEmailOptions,
   WelcomeEmailOptions,
 } from "./types";
 import {
   getPasswordResetEmailHtml,
   getPasswordResetEmailText,
 } from "./templates/password-reset";
+import {
+  getEmailVerificationHtml,
+  getEmailVerificationText,
+} from "./templates/email-verification";
 import { getWelcomeEmailHtml, getWelcomeEmailText } from "./templates/welcome";
 
 const DEFAULT_RESET_EXPIRY_MINUTES = 60;
+const DEFAULT_VERIFICATION_EXPIRY_HOURS = 24;
 
 export function createResendClient(config: MailConfig): MailClient {
   const resend = new Resend(config.apiKey);
@@ -72,6 +78,38 @@ export function createResendClient(config: MailConfig): MailClient {
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         console.error("Password reset email error:", message);
+        return { success: false, error: message };
+      }
+    },
+
+    async sendEmailVerificationEmail(options: EmailVerificationEmailOptions) {
+      const expiresInHours =
+        options.expiresInHours ?? DEFAULT_VERIFICATION_EXPIRY_HOURS;
+
+      const templateData = {
+        verificationUrl: options.verificationUrl,
+        userName: options.userName,
+        expiresInHours,
+      };
+
+      try {
+        const { error } = await resend.emails.send({
+          from: fromAddress,
+          to: options.to,
+          subject: "Verify your email - Assets Man",
+          html: getEmailVerificationHtml(templateData),
+          text: getEmailVerificationText(templateData),
+        });
+
+        if (error) {
+          console.error("Resend error:", error);
+          return { success: false, error: error.message };
+        }
+
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("Email verification email error:", message);
         return { success: false, error: message };
       }
     },

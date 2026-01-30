@@ -150,12 +150,11 @@ export function ShareDialog({
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
       <ResponsiveDialogContent
-        className="sm:max-w-md p-0 gap-0 max-h-[90vh] flex flex-col"
+        className="sm:max-w-md max-h-[90vh]"
         drawerClassName="px-0 pb-0"
       >
-        {/* Header */}
-        <ResponsiveDialogHeader className="px-6 pt-6 pb-4 shrink-0">
-          <ResponsiveDialogTitle className="text-lg font-medium truncate pr-8">
+        <ResponsiveDialogHeader className="shrink-0">
+          <ResponsiveDialogTitle className="truncate pr-8">
             Share &apos;{item?.name}&apos;
           </ResponsiveDialogTitle>
         </ResponsiveDialogHeader>

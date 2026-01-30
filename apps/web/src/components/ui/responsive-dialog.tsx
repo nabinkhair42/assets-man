@@ -130,7 +130,7 @@ function ResponsiveDialogContent({
 
   return (
     <DialogContent
-      className={cn("max-h-[85vh] flex flex-col overflow-hidden", className)}
+      className={cn("max-h-[85vh] flex flex-col overflow-hidden rounded-xl", className)}
       {...props}
     >
       {children}
@@ -148,7 +148,6 @@ function ResponsiveDialogHeader({
     return (
       <DrawerHeader
         className={cn(
-          // Sticky header on mobile so user always sees title
           "sticky top-0 z-10 bg-background pb-2",
           className
         )}
@@ -169,8 +168,7 @@ function ResponsiveDialogFooter({
     return (
       <DrawerFooter
         className={cn(
-          // Sticky footer on mobile so buttons are always accessible
-          "sticky bottom-0 z-10 bg-background pt-2 border-t",
+          "sticky bottom-0 z-10",
           className
         )}
         {...props}
@@ -215,17 +213,15 @@ function ResponsiveDialogBody({
   return (
     <div
       className={cn(
-        // Scrollable with custom styled scrollbar
         "flex-1 min-h-0 overflow-y-auto",
         // Custom scrollbar styling
         "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
-        // Webkit scrollbar styling
-        "[&::-webkit-scrollbar]:w-2",
+        "[&::-webkit-scrollbar]:w-1.5",
         "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:bg-border",
+        "[&::-webkit-scrollbar-thumb]:bg-border/60",
         "[&::-webkit-scrollbar-thumb]:rounded-full",
-        "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50",
-        isMobile ? "px-4 py-2" : "",
+        "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/40",
+        isMobile ? "px-4 py-2" : "px-6 pt-0 pb-4",
         className
       )}
       {...props}

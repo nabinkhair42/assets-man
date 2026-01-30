@@ -41,12 +41,13 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
           </ResponsiveAlertDialogDescription>
         </ResponsiveAlertDialogHeader>
         <ResponsiveAlertDialogFooter>
-          <ResponsiveAlertDialogCancel>Cancel</ResponsiveAlertDialogCancel>
+          <ResponsiveAlertDialogCancel>No, Cancel</ResponsiveAlertDialogCancel>
           <ResponsiveAlertDialogAction
             onClick={handleLogout}
             disabled={logout.isPending}
+            className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
           >
-            {logout.isPending ? "Logging out" : "Logout"}
+            {logout.isPending ? "Logging out" : "Yes, Logout"}
           </ResponsiveAlertDialogAction>
         </ResponsiveAlertDialogFooter>
       </ResponsiveAlertDialogContent>

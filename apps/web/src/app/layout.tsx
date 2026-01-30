@@ -102,7 +102,7 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {children}
-              <Toaster richColors />
+              <Toaster />
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

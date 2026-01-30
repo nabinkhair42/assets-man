@@ -118,7 +118,7 @@ function ResponsiveAlertDialogFooter({
   if (isMobile) {
     return (
       <DrawerFooter
-        className={cn("pt-2", className)}
+        className={cn("border-t border-border/40", className)}
         {...props}
       />
     );
@@ -159,10 +159,9 @@ function ResponsiveAlertDialogAction({
   ...props
 }: ResponsiveAlertDialogActionProps) {
   const { isMobile } = useResponsiveAlertDialog();
-
   if (isMobile) {
     return (
-      <Button className={className} {...props}>
+      <Button className={className} {...props} variant={"destructive"}>
         {children}
       </Button>
     );

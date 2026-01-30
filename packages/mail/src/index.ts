@@ -3,6 +3,7 @@ export type {
   MailClient,
   SendEmailOptions,
   PasswordResetEmailOptions,
+  EmailVerificationEmailOptions,
   WelcomeEmailOptions,
 } from "./types";
 
@@ -13,6 +14,10 @@ export {
   getPasswordResetEmailHtml,
   getPasswordResetEmailText,
 } from "./templates/password-reset";
+export {
+  getEmailVerificationHtml,
+  getEmailVerificationText,
+} from "./templates/email-verification";
 export {
   getWelcomeEmailHtml,
   getWelcomeEmailText,

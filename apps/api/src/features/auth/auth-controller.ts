@@ -2,7 +2,15 @@ import type { Request, Response } from "express";
 import { sendSuccess, sendError } from "@/utils/response-utils.js";
 import * as authService from "./auth-services.js";
 import { getStorageStats } from "@/features/storage/storage-services.js";
-import type { RegisterInput, LoginInput } from "@/schema/auth-schema.js";
+import type {
+  RegisterInput,
+  LoginInput,
+  VerifyEmailInput,
+  ResendVerificationInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  DeleteAccountInput,
+} from "@/schema/auth-schema.js";
 import { AUTH_CONSTANTS } from "@repo/shared";
 
 const REFRESH_TOKEN_COOKIE = "refresh_token";
@@ -185,5 +193,117 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
   } catch (error) {
     console.error("Reset password error:", error);
     sendError(res, "INTERNAL_ERROR", "Failed to reset password", 500);
+  }
+}
+
+export async function verifyEmail(req: Request, res: Response): Promise<void> {
+  try {
+    const { token } = req.body as VerifyEmailInput;
+
+    const result = await authService.verifyEmail(token);
+
+    if (!result.success) {
+      sendError(res, "INVALID_TOKEN", result.message, 400);
+      return;
+    }
+
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Verify email error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to verify email", 500);
+  }
+}
+
+export async function resendVerification(req: Request, res: Response): Promise<void> {
+  try {
+    const { email } = req.body as ResendVerificationInput;
+
+    const result = await authService.resendVerificationEmail(email);
+
+    if (!result.success) {
+      sendError(res, "INTERNAL_ERROR", result.message, 500);
+      return;
+    }
+
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to resend verification email", 500);
+  }
+}
+
+export async function updateProfile(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as Request & { userId?: string }).userId;
+
+    if (!userId) {
+      sendError(res, "UNAUTHORIZED", "Not authenticated", 401);
+      return;
+    }
+
+    const data = req.body as UpdateProfileInput;
+    const user = await authService.updateProfile(userId, data);
+
+    sendSuccess(res, { user }, "Profile updated successfully");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "USER_NOT_FOUND") {
+      sendError(res, "USER_NOT_FOUND", "User not found", 404);
+      return;
+    }
+
+    console.error("Update profile error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to update profile", 500);
+  }
+}
+
+export async function changePassword(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as Request & { userId?: string }).userId;
+
+    if (!userId) {
+      sendError(res, "UNAUTHORIZED", "Not authenticated", 401);
+      return;
+    }
+
+    const { currentPassword, newPassword } = req.body as ChangePasswordInput;
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+
+    if (!result.success) {
+      sendError(res, "INVALID_CREDENTIALS", result.message, 400);
+      return;
+    }
+
+    clearRefreshTokenCookie(res);
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Change password error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to change password", 500);
+  }
+}
+
+export async function deleteAccount(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as Request & { userId?: string }).userId;
+
+    if (!userId) {
+      sendError(res, "UNAUTHORIZED", "Not authenticated", 401);
+      return;
+    }
+
+    const { password } = req.body as DeleteAccountInput;
+    const result = await authService.deleteAccount(userId, password);
+
+    if (!result.success) {
+      sendError(res, "INVALID_CREDENTIALS", result.message, 400);
+      return;
+    }
+
+    clearRefreshTokenCookie(res);
+    sendSuccess(res, null, result.message);
+  } catch (error) {
+    console.error("Delete account error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to delete account", 500);
   }
 }

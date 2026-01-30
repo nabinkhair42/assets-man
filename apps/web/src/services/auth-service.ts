@@ -7,6 +7,9 @@ import type {
   LoginInput,
   AuthResponse,
   RefreshResponse,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  UpdateProfileResponse,
 } from "@/types/auth";
 import type { StorageStats } from "@/types/storage";
 
@@ -56,5 +59,31 @@ export const authService = {
 
   async resetPassword(token: string, password: string): Promise<void> {
     await apiClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, password });
+  },
+
+  async verifyEmail(token: string): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { token });
+  },
+
+  async resendVerification(email: string): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, { email });
+  },
+
+  async updateProfile(data: UpdateProfileInput): Promise<UpdateProfileResponse> {
+    const response = await apiClient.patch<ApiResponse<UpdateProfileResponse>>(
+      API_ENDPOINTS.AUTH.UPDATE_PROFILE,
+      data
+    );
+    return response.data.data;
+  },
+
+  async changePassword(data: ChangePasswordInput): Promise<void> {
+    await apiClient.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
+  },
+
+  async deleteAccount(password: string): Promise<void> {
+    await apiClient.delete(API_ENDPOINTS.AUTH.DELETE_ACCOUNT, {
+      data: { password },
+    });
   },
 };

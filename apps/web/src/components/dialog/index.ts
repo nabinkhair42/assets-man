@@ -1,8 +1,10 @@
 export { BulkDeleteDialog } from "./bulk-delete-dialog";
 export { BulkMoveDialog } from "./bulk-move-dialog";
+export { ChangePasswordDialog } from "./change-password-dialog";
 export { CopyDialog } from "./copy-dialog";
 export { CreateFolderDialog } from "./create-folder-dialog";
 export { DeleteDialog } from "./delete-dialog";
+export { DeleteAccountDialog } from "./delete-account-dialog";
 export { EmptyTrashDialog, EmptyTrashTrigger } from "./empty-trash-dialog";
 export { FilePreviewDialog } from "./file-preview-dialog";
 export { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
