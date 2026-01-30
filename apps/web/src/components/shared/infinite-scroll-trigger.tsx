@@ -1,7 +1,7 @@
 "use client";
 
+import { Loader } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
 
 interface InfiniteScrollTriggerProps {
   hasNextPage: boolean;
@@ -44,7 +44,7 @@ export function InfiniteScrollTrigger({
   return (
     <div ref={loadMoreRef} className="w-full py-4 flex justify-center">
       {isFetchingNextPage && (
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Loader className="h-5 w-5 animate-spin text-muted-foreground" />
       )}
     </div>
   );

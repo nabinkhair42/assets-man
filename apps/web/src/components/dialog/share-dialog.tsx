@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ResponsiveDialog,
+  ResponsiveDialogBody,
   ResponsiveDialogContent,
+  ResponsiveDialogDescription,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from "@/components/ui/responsive-dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -18,33 +19,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  useSharesForItem,
-  useCreateUserShare,
   useCreateLinkShare,
+  useCreateUserShare,
   useDeleteShare,
+  useSharesForItem,
 } from "@/hooks/use-shares";
-import { shareService } from "@/services/share-service";
-import { toast } from "sonner";
-import {
-  Copy,
-  Link2,
-  Trash2,
-  Loader2,
-  Lock,
-  Clock,
-  Globe,
-  X,
-  Check,
-  Mail,
-  Users,
-} from "lucide-react";
 import { cn, getApiErrorMessage } from "@/lib/utils";
-import type { Folder as FolderType } from "@/types/folder";
+import { shareService } from "@/services/share-service";
 import type { Asset } from "@/types/asset";
+import type { Folder as FolderType } from "@/types/folder";
 import type { SharePermission, ShareWithDetails } from "@/types/share";
+import {
+  Check,
+  Clock,
+  Copy,
+  Globe,
+  Link2,
+  Loader,
+  Lock,
+  Mail,
+  Trash2,
+  Users,
+  X
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface ShareDialogProps {
   open: boolean;
@@ -149,24 +151,22 @@ export function ShareDialog({
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent
-        className="sm:max-w-md max-h-[90vh]"
-        drawerClassName="px-0 pb-0"
-      >
-        <ResponsiveDialogHeader className="shrink-0">
+      <ResponsiveDialogContent className="sm:max-w-md">
+        <ResponsiveDialogHeader>
           <ResponsiveDialogTitle className="truncate pr-8">
             Share &apos;{item?.name}&apos;
           </ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
+            Create a link or invite people by email.
+          </ResponsiveDialogDescription>
         </ResponsiveDialogHeader>
 
-        {/* Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as "link" | "email")}
-          className="flex-1 flex flex-col min-h-0"
-        >
-          <div className="px-6 shrink-0">
-            <TabsList className="w-full grid grid-cols-2 h-10">
+        <ResponsiveDialogBody>
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as "link" | "email")}
+          >
+            <TabsList className="w-full grid grid-cols-2 h-10 mb-4">
               <TabsTrigger value="link" className="gap-2 text-sm">
                 <Link2 className="h-4 w-4" />
                 Get Link
@@ -176,234 +176,228 @@ export function ShareDialog({
                 Invite People
               </TabsTrigger>
             </TabsList>
-          </div>
 
-          {/* Get Link Tab */}
-          <TabsContent
-            value="link"
-            className="flex-1 overflow-auto mt-0 px-6 pb-6"
-          >
-            <div className="space-y-4 pt-4">
-              {/* Existing links */}
-              {linkShares.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Active Links
-                  </h3>
-                  <div className="space-y-2">
-                    {linkShares.map((share) => (
-                      <LinkItem
-                        key={share.id}
-                        share={share}
-                        onCopy={() =>
-                          handleCopyLink(share.linkToken ?? "", share.id)
-                        }
-                        onRemove={() => handleRemoveShare(share.id)}
-                        isCopied={copiedLinkId === share.id}
-                        isPending={deleteShare.isPending}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Create new link section */}
+            {/* Get Link Tab */}
+            <TabsContent value="link" className="mt-0">
               <div className="space-y-4">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Create New Link
-                </h3>
-
-                {/* Link permission */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Anyone with link</span>
-                  </div>
-                  <Select
-                    value={linkPermission}
-                    onValueChange={(v) =>
-                      setLinkPermission(v as SharePermission)
-                    }
-                  >
-                    <SelectTrigger className="w-25 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="view">Can view</SelectItem>
-                      <SelectItem value="edit">Can edit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Password protection */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="password-toggle"
-                      className="text-sm flex items-center gap-3 cursor-pointer"
-                    >
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      Password protect
-                    </Label>
-                    <Switch
-                      id="password-toggle"
-                      checked={hasPassword}
-                      onCheckedChange={setHasPassword}
-                    />
-                  </div>
-                  {hasPassword && (
-                    <Input
-                      type="password"
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-9"
-                    />
-                  )}
-                </div>
-
-                {/* Expiration */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="expiry-toggle"
-                      className="text-sm flex items-center gap-3 cursor-pointer"
-                    >
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      Set expiration
-                    </Label>
-                    <Switch
-                      id="expiry-toggle"
-                      checked={hasExpiry}
-                      onCheckedChange={setHasExpiry}
-                    />
-                  </div>
-                  {hasExpiry && (
-                    <Select
-                      value={expiryHours.toString()}
-                      onValueChange={(v) => setExpiryHours(parseInt(v))}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 hour</SelectItem>
-                        <SelectItem value="24">1 day</SelectItem>
-                        <SelectItem value="168">7 days</SelectItem>
-                        <SelectItem value="720">30 days</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {/* Create and copy button */}
-                <Button
-                  onClick={handleCreateLink}
-                  disabled={isPending || (hasPassword && !password)}
-                  className="w-full h-10"
-                >
-                  {createLinkShare.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Copy className="size-4" />
-                  )}
-                  Create & Copy Link
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Invite People Tab */}
-          <TabsContent
-            value="email"
-            className="flex-1 overflow-auto mt-0 px-6 pb-6"
-          >
-            <div className="space-y-4 pt-4">
-              {/* Email input */}
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter email address"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
-                    className="h-10"
-                  />
-                  <Select
-                    value={permission}
-                    onValueChange={(v) => setPermission(v as SharePermission)}
-                  >
-                    <SelectTrigger className="w-25 h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="view">Viewer</SelectItem>
-                      <SelectItem value="edit">Editor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  onClick={handleAddPerson}
-                  disabled={isPending || !email.trim()}
-                  className="w-full h-10"
-                  isLoading={createUserShare.isPending}
-                  loadingText="Sending Invite"
-                >
-                  <Mail className="" />
-                  Send Invite
-                </Button>
-              </div>
-
-              {/* People with access */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    People with access
-                  </h3>
-                  {userShares.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {userShares.length}
-                    </span>
-                  )}
-                </div>
-
-                <ScrollArea
-                  className={cn(userShares.length > 4 && "h-50")}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : userShares.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                        <Users className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        No one has access yet
-                      </p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">
-                        Add people by email above
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {userShares.map((share) => (
-                        <PersonItem
+                {/* Existing links */}
+                {linkShares.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Active Links
+                    </h3>
+                    <div className="space-y-2">
+                      {linkShares.map((share) => (
+                        <LinkItem
                           key={share.id}
                           share={share}
+                          onCopy={() =>
+                            handleCopyLink(share.linkToken ?? "", share.id)
+                          }
                           onRemove={() => handleRemoveShare(share.id)}
+                          isCopied={copiedLinkId === share.id}
                           isPending={deleteShare.isPending}
                         />
                       ))}
                     </div>
-                  )}
-                </ScrollArea>
+                  </div>
+                )}
+
+                {/* Create new link section */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Create New Link
+                  </h3>
+
+                  {/* Link permission */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">Anyone with link</span>
+                    </div>
+                    <Select
+                      value={linkPermission}
+                      onValueChange={(v) =>
+                        setLinkPermission(v as SharePermission)
+                      }
+                    >
+                      <SelectTrigger className="w-25 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="view">Can view</SelectItem>
+                        <SelectItem value="edit">Can edit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Password protection */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="password-toggle"
+                        className="text-sm flex items-center gap-3 cursor-pointer"
+                      >
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        Password protect
+                      </Label>
+                      <Switch
+                        id="password-toggle"
+                        checked={hasPassword}
+                        onCheckedChange={setHasPassword}
+                      />
+                    </div>
+                    {hasPassword && (
+                      <Input
+                        type="password"
+                        placeholder="Enter password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-9"
+                      />
+                    )}
+                  </div>
+
+                  {/* Expiration */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="expiry-toggle"
+                        className="text-sm flex items-center gap-3 cursor-pointer"
+                      >
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        Set expiration
+                      </Label>
+                      <Switch
+                        id="expiry-toggle"
+                        checked={hasExpiry}
+                        onCheckedChange={setHasExpiry}
+                      />
+                    </div>
+                    {hasExpiry && (
+                      <Select
+                        value={expiryHours.toString()}
+                        onValueChange={(v) => setExpiryHours(parseInt(v))}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour</SelectItem>
+                          <SelectItem value="24">1 day</SelectItem>
+                          <SelectItem value="168">7 days</SelectItem>
+                          <SelectItem value="720">30 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Create and copy button */}
+                  <Button
+                    onClick={handleCreateLink}
+                    disabled={isPending || (hasPassword && !password)}
+                    className="w-full h-10"
+                    isLoading={createLinkShare.isPending}
+                    loadingText="Creating Link"
+                  >
+                    <Copy className="size-4" />
+                    Create & Copy Link
+                  </Button>
+                </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+
+            {/* Invite People Tab */}
+            <TabsContent value="email" className="mt-0">
+              <div className="space-y-4">
+                {/* Email input */}
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter email address"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
+                      className="h-10"
+                    />
+                    <Select
+                      value={permission}
+                      onValueChange={(v) =>
+                        setPermission(v as SharePermission)
+                      }
+                    >
+                      <SelectTrigger className="w-25 h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="view">Viewer</SelectItem>
+                        <SelectItem value="edit">Editor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={handleAddPerson}
+                    disabled={isPending || !email.trim()}
+                    className="w-full h-10"
+                    isLoading={createUserShare.isPending}
+                    loadingText="Sending Invite"
+                  >
+                    <Mail />
+                    Send Invite
+                  </Button>
+                </div>
+
+                {/* People with access */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      People with access
+                    </h3>
+                    {userShares.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {userShares.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <ScrollArea
+                    className={cn(userShares.length > 4 && "h-50")}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : userShares.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-center">
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                          <Users className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          No one has access yet
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          Add people by email above
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {userShares.map((share) => (
+                          <PersonItem
+                            key={share.id}
+                            share={share}
+                            onRemove={() => handleRemoveShare(share.id)}
+                            isPending={deleteShare.isPending}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </ResponsiveDialogBody>
       </ResponsiveDialogContent>
     </ResponsiveDialog>
   );

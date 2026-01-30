@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Download,
   FileText,
+  Loader,
   Loader2,
   RotateCw,
   ZoomIn,
@@ -103,8 +104,8 @@ export function PdfPreview({
               onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex flex-col items-center justify-center gap-4 py-20">
-                  <Loader2 className="size-8 animate-spin text-muted-foreground/60" />
-                  <p className="text-muted-foreground/60 text-sm">Loading PDF...</p>
+                  <Loader className="size-8 animate-spin text-muted-foreground/60" />
+                  <p className="text-muted-foreground/60 text-sm">Loading PDF</p>
                 </div>
               }
               className="flex justify-center"
@@ -118,7 +119,7 @@ export function PdfPreview({
                 renderAnnotationLayer={true}
                 loading={
                   <div className="flex items-center justify-center w-[600px] h-[800px] bg-white/5 rounded">
-                    <Loader2 className="size-6 animate-spin text-muted-foreground/60" />
+                    <Loader className="size-6 animate-spin text-muted-foreground/60" />
                   </div>
                 }
               />
@@ -155,7 +156,7 @@ export function PdfPreview({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-foreground/80 text-sm min-w-[60px] text-center tabular-nums">
-              {isLoading ?(<Loader2 className="size-4 animate-spin" />) :(<>{`${pageNumber} / ${numPages}`}</>)}
+              {isLoading ?(<Loader className="size-4 animate-spin" />) :(<>{`${pageNumber} / ${numPages}`}</>)}
             </span>
             <Button
               variant="ghost"
@@ -239,7 +240,7 @@ export function PdfPreview({
               onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex flex-col items-center justify-center gap-4 py-20">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
                   <p className="text-muted-foreground text-sm">Loading PDF...</p>
                 </div>
               }
@@ -254,7 +255,7 @@ export function PdfPreview({
                 renderAnnotationLayer={true}
                 loading={
                   <div className="flex items-center justify-center w-[600px] h-[800px] bg-muted/50 rounded">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 }
               />

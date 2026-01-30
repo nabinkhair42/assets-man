@@ -303,9 +303,6 @@ export function TrashBrowser() {
               <RefreshCw className="h-4 w-4" />
             </Button>
 
-            {/* Theme toggle */}
-            <ThemeToggle />
-
             {/* Empty Trash button */}
             {items.length > 0 && (
               <div className="ml-1">

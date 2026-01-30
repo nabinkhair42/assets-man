@@ -66,14 +66,14 @@ export function AppSidebar() {
     <>
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Stone
               className="size-6 shrink-0 text-accent-foreground"
               fill="currentColor"
               strokeWidth={1.5}
               stroke="white"
             />
-            <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+            <span className="text-[15px] tracking-tight font-semibold group-data-[collapsible=icon]:hidden">
               Assets Man
             </span>
           </div>
@@ -87,7 +87,7 @@ export function AppSidebar() {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start gap-2 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center"
+                      className="w-full justify-start gap-2 shadow-none hover:shadow-none group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center"
                       disabled={isUploading}
                     >
                       <Plus className="size-4" />
@@ -146,13 +146,13 @@ export function AppSidebar() {
                 onClick={() => setShortcutsDialogOpen(true)}
                 tooltip="Keyboard Shortcuts"
               >
-                <Keyboard className="size-4" />
+                <Keyboard className="size-4 opacity-70" />
                 <span>Shortcuts</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
-                {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                {resolvedTheme === "dark" ? <Sun className="size-4 opacity-70" /> : <Moon className="size-4 opacity-70" />}
                 <span>
                   {resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}
                 </span>
@@ -165,7 +165,7 @@ export function AppSidebar() {
                 tooltip="Settings"
               >
                 <Link href="/settings">
-                  <Settings className="size-4" />
+                  <Settings className="size-4 opacity-70" />
                   <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
@@ -175,7 +175,7 @@ export function AppSidebar() {
                 onClick={() => setLogoutDialogOpen(true)}
                 tooltip="Logout"
               >
-                <LogOut className="size-4" />
+                <LogOut className="size-4 opacity-70" />
                 <span>Logout</span>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -1,14 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authService } from "@/services/auth-service";
-import { storageKeys } from "./use-storage";
+import { clearCachedToken, setCachedToken } from "@/lib/safe-storage";
 import { useAuth } from "@/providers/auth-provider";
-import { setCachedToken, clearCachedToken } from "@/lib/safe-storage";
+import { authService } from "@/services/auth-service";
 import type {
-  RegisterInput,
-  LoginInput,
-  UpdateProfileInput,
   ChangePasswordInput,
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput,
 } from "@/types/auth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { storageKeys } from "./use-storage";
 
 export const authKeys = {
   all: ["auth"] as const,

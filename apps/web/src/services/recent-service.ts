@@ -1,10 +1,10 @@
-import { apiClient } from "@/config/axios-config";
 import { API_ENDPOINTS } from "@/config/api-endpoints";
-import type { ApiResponse, PaginatedResponse } from "@/types/api";
+import { apiClient } from "@/config/axios-config";
+import type { PaginatedResponse } from "@/types/api";
 import type {
+  PaginatedRecentItems,
   RecentItem,
   RecordAccessInput,
-  PaginatedRecentItems,
 } from "@/types/recent";
 
 export const recentService = {

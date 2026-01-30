@@ -1,12 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { authKeys } from "@/hooks/use-auth";
-import { getCachedToken, clearCachedToken } from "@/lib/safe-storage";
-import { authService } from "@/services/auth-service";
 import { storageKeys } from "@/hooks/use-storage";
+import { clearCachedToken, getCachedToken } from "@/lib/safe-storage";
+import { authService } from "@/services/auth-service";
 import type { User } from "@/types/auth";
+import { useQueryClient } from "@tanstack/react-query";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       const token = getCachedToken();
-      
+
       if (!token) {
         setIsLoading(false);
         return;

@@ -1,23 +1,22 @@
-import { eq } from "drizzle-orm";
-import crypto from "crypto";
-import { createDb, users, sessions, type User } from "@repo/database";
-import type { UserPublic, AuthResponse, AuthTokens } from "@repo/shared";
-import { createMailClient, type MailClient } from "@repo/mail";
 import { config, getMailConfig } from "@/config/env.js";
+import type {
+  LoginInput,
+  RegisterInput,
+  UpdateProfileInput
+} from "@/schema/auth-schema.js";
 import {
-  hashPassword,
-  verifyPassword,
   generateAccessToken,
   generateRefreshToken,
-  verifyRefreshToken,
   getRefreshTokenExpiry,
+  hashPassword,
+  verifyPassword,
+  verifyRefreshToken,
 } from "@/utils/auth-utils.js";
-import type {
-  RegisterInput,
-  LoginInput,
-  UpdateProfileInput,
-  ChangePasswordInput,
-} from "@/schema/auth-schema.js";
+import { createDb, sessions, users, type User } from "@repo/database";
+import { createMailClient, type MailClient } from "@repo/mail";
+import type { AuthResponse, AuthTokens, UserPublic } from "@repo/shared";
+import crypto from "crypto";
+import { eq } from "drizzle-orm";
 
 const db = createDb(config.DATABASE_URL);
 

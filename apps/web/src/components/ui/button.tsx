@@ -1,14 +1,14 @@
-import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
-import { Loader2 } from "lucide-react"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { Loader } from "lucide-react"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium cursor-pointer select-none transition-all duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
@@ -49,7 +49,7 @@ function Button({
   size = "default",
   asChild = false,
   isLoading = false,
-  loadingText = "Loading",
+  loadingText = "",
   tooltipContent,
   ...props
 }: React.ComponentProps<"button"> &
@@ -63,7 +63,7 @@ function Button({
 
   const buttonContent = isLoading ? (
     <>
-      <Loader2 className="animate-spin" />
+      <Loader className="animate-spin" />
       {loadingText}
     </>
   ) : (

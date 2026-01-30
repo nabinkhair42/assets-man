@@ -4,9 +4,16 @@ import { useStorageStats } from "@/hooks/use-storage";
 import { HardDrive } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useSidebar } from "@/components/ui/sidebar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function StorageIndicator() {
   const { data: stats, isLoading, error } = useStorageStats();
+  const { state } = useSidebar();
 
   // Skeleton loading state
   if (isLoading) {
@@ -37,7 +44,7 @@ export function StorageIndicator() {
     return "bg-primary";
   };
 
-  return (
+  const content = (
     <div className="px-3 py-2 group-data-[collapsible=icon]:px-2">
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5">
         <HardDrive className="size-4 shrink-0" />
@@ -56,4 +63,17 @@ export function StorageIndicator() {
       </div>
     </div>
   );
+
+  if (state === "collapsed") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
+        <TooltipContent side="right" align="center">
+          {formattedUsed}/{formattedLimit}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return content;
 }

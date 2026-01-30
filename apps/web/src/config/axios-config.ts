@@ -51,11 +51,12 @@ apiClient.interceptors.response.use(
 
     // If error is 401 and we haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't retry for auth endpoints
+      // Don't retry for auth endpoints or public share endpoints
       if (
         originalRequest.url?.includes("/auth/login") ||
         originalRequest.url?.includes("/auth/register") ||
-        originalRequest.url?.includes("/auth/refresh")
+        originalRequest.url?.includes("/auth/refresh") ||
+        originalRequest.url?.includes("/shares/link/")
       ) {
         return Promise.reject(error);
       }
@@ -85,7 +86,10 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError as Error);
         clearCachedToken();
-        window.location.href = "/login";
+        // Don't redirect to login if on a public share page
+        if (!window.location.pathname.startsWith("/share/public/")) {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

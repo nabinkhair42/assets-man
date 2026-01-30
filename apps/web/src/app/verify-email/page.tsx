@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { CheckCircle, XCircle, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { authService } from "@/services/auth-service";
 import { getApiErrorMessage } from "@/lib/utils";
+import { authService } from "@/services/auth-service";
+import { ArrowLeft, CheckCircle, Loader, XCircle } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type VerifyState = "verifying" | "success" | "error";
@@ -19,7 +19,7 @@ export default function VerifyEmailPage() {
         <div className="flex min-h-screen items-center justify-center p-4">
           <div className="w-full max-w-md text-center">
             <div className="mx-auto w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              <Loader className="w-5 h-5 text-primary animate-spin" />
             </div>
             <h1 className="text-xl font-semibold text-foreground">
               Loading...
@@ -84,13 +84,13 @@ function VerifyEmailContent() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
           <div className="mx-auto w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <Loader className="w-5 h-5 text-primary animate-spin" />
           </div>
           <h1 className="text-xl font-semibold text-foreground">
             Verifying your email
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Please wait while we verify your email address...
+            Please wait while we verify your email address.
           </p>
         </div>
       </div>

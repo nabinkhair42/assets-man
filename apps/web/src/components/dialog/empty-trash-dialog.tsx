@@ -55,7 +55,7 @@ export function EmptyTrashDialog({
           <ResponsiveAlertDialogCancel>Cancel</ResponsiveAlertDialogCancel>
           <ResponsiveAlertDialogAction
             onClick={handleEmptyTrash}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-destructive text-white shadow-sm hover:bg-destructive/90 hover:shadow-md focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60"
           >
             {emptyTrash.isPending ? "Deleting" : "Empty Trash"}
           </ResponsiveAlertDialogAction>

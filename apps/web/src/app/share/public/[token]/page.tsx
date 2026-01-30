@@ -1,22 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useParams } from "next/navigation";
-import {
-  Download,
-  Folder,
-  Lock,
-  AlertCircle,
-  Loader2,
-  User,
-  Calendar,
-  HardDrive,
-  ChevronRight,
-  LayoutGrid,
-  List,
-} from "lucide-react";
+import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { ReadOnlyFileItem, type ReadOnlyAsset } from "@/components/files/readonly-file-item";
+import { ReadOnlyFolderItem, type ReadOnlyFolder } from "@/components/files/readonly-folder-item";
+import { isPreviewable } from "@/components/preview";
+import { FileIcon as CustomFileIcon } from "@/components/shared/file-icon";
+import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
+import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
+import { ShareInfoPopover } from "@/components/shared/share-info-popover";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -24,31 +16,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileIcon as CustomFileIcon } from "@/components/shared/file-icon";
-import { ShareInfoPopover } from "@/components/shared/share-info-popover";
-import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
-import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
 import {
   DataGrid,
-  DataGridSection,
-  DataGridFolderContainer,
   DataGridFileContainer,
+  DataGridFolderContainer,
+  DataGridSection,
   DataList,
-  DataListHeader,
   DataListEmpty,
+  DataListHeader,
 } from "@/components/ui/data-list";
-import { shareService } from "@/services/share-service";
-import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
-import { toast } from "sonner";
-import type { SharedItemDetails, SharedFolderContents } from "@/types/share";
-import type { Asset } from "@/types/asset";
-import { cn, getApiErrorMessage } from "@/lib/utils";
-import { isPreviewable } from "@/components/preview";
-import { ReadOnlyFileItem, type ReadOnlyAsset } from "@/components/files/readonly-file-item";
-import { ReadOnlyFolderItem, type ReadOnlyFolder } from "@/components/files/readonly-folder-item";
-import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useViewMode } from "@/hooks/use-view-mode";
+import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
+import { cn, getApiErrorMessage } from "@/lib/utils";
+import { shareService } from "@/services/share-service";
+import type { Asset } from "@/types/asset";
+import type { SharedFolderContents, SharedItemDetails } from "@/types/share";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronRight,
+  Download,
+  Folder,
+  HardDrive,
+  LayoutGrid,
+  List,
+  Loader,
+  Loader2,
+  Lock,
+  User,
+} from "lucide-react";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -507,7 +508,7 @@ export default function PublicSharePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading shared item...</p>
         </div>
       </div>
@@ -662,7 +663,7 @@ export default function PublicSharePage() {
                   }
                 >
                   {downloadingFolder ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader className="h-4 w-4 animate-spin" />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
@@ -739,7 +740,7 @@ export default function PublicSharePage() {
           >
             {folderLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : folderContents.folders.length === 0 &&
               folderContents.assets.length === 0 ? (
@@ -880,7 +881,7 @@ export default function PublicSharePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading folder contents...</p>
         </div>
       </div>
@@ -949,7 +950,7 @@ export default function PublicSharePage() {
             >
               {downloading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                   Preparing download...
                 </>
               ) : (

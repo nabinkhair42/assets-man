@@ -8,22 +8,49 @@ interface FileBrowserSkeletonProps {
 export function FileBrowserSkeleton({ viewMode, count = 8 }: FileBrowserSkeletonProps) {
   if (viewMode === "grid") {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {Array.from({ length: count }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-border/60 bg-card p-4"
-          >
-            {/* Icon skeleton */}
-            <div className="flex justify-center mb-3">
-              <Skeleton className="h-14 w-14 rounded-xl" />
-            </div>
-            {/* Name skeleton */}
-            <Skeleton className="h-4 w-3/4 mx-auto mb-1" />
-            {/* Metadata skeleton */}
-            <Skeleton className="h-3 w-1/2 mx-auto" />
+      <div className="space-y-6">
+        {/* Folders section */}
+        <div>
+          <Skeleton className="h-3.5 w-14 mb-3" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={`folder-${i}`}
+                className="rounded-lg border border-border/40 bg-card"
+              >
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <Skeleton className="h-5 w-5 rounded shrink-0" />
+                  <Skeleton className="h-4 flex-1" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+
+        {/* Files section */}
+        <div>
+          <Skeleton className="h-3.5 w-10 mb-3" />
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {Array.from({ length: count }).map((_, i) => (
+              <div
+                key={`file-${i}`}
+                className="rounded-xl border border-transparent"
+              >
+                {/* Preview area */}
+                <div className="relative aspect-4/3 rounded-t-xl bg-muted/50 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Skeleton className="w-12 h-12 rounded-lg" />
+                  </div>
+                </div>
+                {/* Info area */}
+                <div className="p-3">
+                  <Skeleton className="h-4 w-3/4 mb-1" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
