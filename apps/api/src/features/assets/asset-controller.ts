@@ -4,7 +4,7 @@ import { sendSuccess, sendError, sendPaginated } from "@/utils/response-utils.js
 import * as assetService from "./asset-services.js";
 import * as thumbnailService from "./thumbnail-service.js";
 import type { AuthRequest } from "@/middleware/auth-middleware.js";
-import { copyAssetSchema, bulkDownloadSchema, type ListAssetsQuery, type RequestUploadInput, type UpdateAssetInput } from "@/schema/asset-schema.js";
+import { copyAssetSchema, bulkDownloadSchema, batchThumbnailUrlsSchema, type ListAssetsQuery, type RequestUploadInput, type UpdateAssetInput } from "@/schema/asset-schema.js";
 
 export async function requestUpload(
   req: AuthRequest,
@@ -499,6 +499,45 @@ export async function batchRegenerateThumbnails(
   } catch (error) {
     console.error("Batch regenerate thumbnails error:", error);
     sendError(res, "INTERNAL_ERROR", "Failed to regenerate thumbnails", 500);
+  }
+}
+
+// Batch get thumbnail URLs for multiple assets
+export async function batchGetThumbnailUrls(
+  req: AuthRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const parsed = batchThumbnailUrlsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, "VALIDATION_ERROR", "Invalid input", 400);
+      return;
+    }
+
+    const { assetIds } = parsed.data;
+
+    // Verify the user owns these assets with a single query
+    const ownedAssets = await assetService.getAssetsByIds(req.userId, assetIds);
+    const ownedIds = ownedAssets.map((a) => a.id);
+
+    if (ownedIds.length === 0) {
+      sendSuccess(res, { thumbnails: {} });
+      return;
+    }
+
+    // Get thumbnail URLs in batch
+    const results = await thumbnailService.getThumbnailUrlsBatch(ownedIds);
+
+    // Convert Map to plain object
+    const thumbnails: Record<string, { url: string | null; canGenerate: boolean }> = {};
+    for (const [id, result] of results) {
+      thumbnails[id] = result;
+    }
+
+    sendSuccess(res, { thumbnails });
+  } catch (error) {
+    console.error("Batch get thumbnail URLs error:", error);
+    sendError(res, "INTERNAL_ERROR", "Failed to get thumbnail URLs", 500);
   }
 }
 

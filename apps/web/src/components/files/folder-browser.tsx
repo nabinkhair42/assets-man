@@ -463,18 +463,11 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
           }
           return next;
         } else {
-          // Regular click: Clear all and select only this item (or deselect if already selected alone)
-          if (prev.size === 1 && prev.has(key)) {
-            // If only this item is selected, deselect it
-            lastSelectedIndex.current = null;
-            return new Map();
-          } else {
-            // Select only this item
-            const next = new Map<string, SelectedItem>();
-            next.set(key, { id, type, name });
-            lastSelectedIndex.current = index;
-            return next;
-          }
+          // Regular click: Clear all and select only this item
+          const next = new Map<string, SelectedItem>();
+          next.set(key, { id, type, name });
+          lastSelectedIndex.current = index;
+          return next;
         }
       });
     },
@@ -516,6 +509,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     },
     [allItems, handleItemSelect],
   );
+
+  const handleContextSelectFolder = useCallback((folder: Folder) => {
+    const next = new Map<string, SelectedItem>();
+    next.set(`folder-${folder.id}`, { id: folder.id, type: "folder", name: folder.name });
+    setSelectedItems(next);
+  }, []);
+
+  const handleContextSelectAsset = useCallback((asset: Asset) => {
+    const next = new Map<string, SelectedItem>();
+    next.set(`asset-${asset.id}`, { id: asset.id, type: "asset", name: asset.name });
+    setSelectedItems(next);
+  }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -986,7 +991,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
               <ContextMenuTrigger asChild>
                 <div
                   ref={contentContainerRef}
-                  className="p-3 sm:p-6 relative min-h-[calc(100vh-8rem)]"
+                  className={cn("p-3 sm:p-6 relative min-h-[calc(100vh-8rem)]", selectionMode && "pb-24 sm:pb-20")}
                   onMouseDown={handleMarqueeMouseDown}
                 >
                   {/* Marquee selection rectangle */}
@@ -1057,8 +1062,10 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                                   `folder-${folder.id}`,
                                 )}
                                 onSelect={handleSelectFolder}
+                                onContextSelect={handleContextSelectFolder}
                                 selectionMode={selectionMode}
                                 selectedCount={selectedItems.size}
+                                onBulkDownload={handleBulkDownload}
                                 onBulkDelete={handleBulkDelete}
                                 onBulkMove={handleBulkMove}
                                 showOwner
@@ -1106,6 +1113,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                                   `asset-${asset.id}`,
                                 )}
                                 onSelect={handleSelectAsset}
+                                onContextSelect={handleContextSelectAsset}
                                 selectionMode={selectionMode}
                                 selectedCount={selectedItems.size}
                                 onBulkDownload={handleBulkDownload}
@@ -1153,8 +1161,10 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                             `folder-${folder.id}`,
                           )}
                           onSelect={handleSelectFolder}
+                          onContextSelect={handleContextSelectFolder}
                           selectionMode={selectionMode}
                           selectedCount={selectedItems.size}
+                          onBulkDownload={handleBulkDownload}
                           onBulkDelete={handleBulkDelete}
                           onBulkMove={handleBulkMove}
                           showOwner
@@ -1192,6 +1202,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
                             `asset-${asset.id}`,
                           )}
                           onSelect={handleSelectAsset}
+                          onContextSelect={handleContextSelectAsset}
                           selectionMode={selectionMode}
                           selectedCount={selectedItems.size}
                           onBulkDownload={handleBulkDownload}

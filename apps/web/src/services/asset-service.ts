@@ -152,6 +152,15 @@ export const assetService = {
     return response.data;
   },
 
+  async batchGetThumbnailUrls(
+    assetIds: string[]
+  ): Promise<Record<string, { url: string | null; canGenerate: boolean }>> {
+    const response = await apiClient.post<
+      ApiResponse<{ thumbnails: Record<string, { url: string | null; canGenerate: boolean }> }>
+    >(API_ENDPOINTS.ASSETS.BATCH_THUMBNAIL_URLS, { assetIds });
+    return response.data.data.thumbnails;
+  },
+
   async getThumbnailUrl(id: string): Promise<{ url: string | null; canGenerate: boolean }> {
     const response = await apiClient.get<ApiResponse<{ url: string | null; canGenerate?: boolean }>>(
       API_ENDPOINTS.ASSETS.THUMBNAIL(id)

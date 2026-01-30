@@ -109,6 +109,15 @@ export async function getAssetById(
   return asset ?? null;
 }
 
+export async function getAssetsByIds(
+  userId: string,
+  assetIds: string[]
+): Promise<Asset[]> {
+  return db.query.assets.findMany({
+    where: and(inArray(assets.id, assetIds), eq(assets.ownerId, userId)),
+  });
+}
+
 export async function getDownloadUrl(
   userId: string,
   assetId: string

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useThumbnail, canHaveThumbnail } from "@/hooks/use-thumbnail";
+import { useThumbnailUrl, canHaveThumbnail } from "@/hooks/use-thumbnail";
 import { FileIcon } from "./file-icon";
 import { ThumbnailSkeleton } from "@/components/loaders/thumbnail-skeleton";
 
@@ -33,15 +33,33 @@ export function FileThumbnail({
   showFallback = true,
 }: FileThumbnailProps) {
   const [imageError, setImageError] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  const { thumbnailUrl, isLoading, isGenerating } = useThumbnail({
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const { data, isLoading } = useThumbnailUrl(
     assetId,
     mimeType,
-    thumbnailKey,
-    autoGenerate: true,
-  });
+    isInView ? thumbnailKey : undefined
+  );
 
   const canShowThumbnail = canHaveThumbnail(mimeType);
+  const thumbnailUrl = data?.url ?? null;
   const shouldShowImage = thumbnailUrl && !imageError;
 
   // If we can't have a thumbnail, show the file icon
@@ -56,18 +74,27 @@ export function FileThumbnail({
   }
 
   // Loading state - use skeleton for better visual feedback
-  if (isLoading || isGenerating) {
+  if (isInView && isLoading) {
     // For full-width thumbnails (like in grid cards), use the size class from parent
     if (className?.includes("w-full") || className?.includes("h-full")) {
-      return <ThumbnailSkeleton size="full" className={className} />;
+      return (
+        <div ref={ref}>
+          <ThumbnailSkeleton size="full" className={className} />
+        </div>
+      );
     }
-    return <ThumbnailSkeleton size={size} className={className} />;
+    return (
+      <div ref={ref}>
+        <ThumbnailSkeleton size={size} className={className} />
+      </div>
+    );
   }
 
   // Show thumbnail image if available
   if (shouldShowImage) {
     return (
       <div
+        ref={ref}
         className={cn(
           "relative overflow-hidden rounded-lg bg-muted",
           sizeClasses[size],
@@ -87,17 +114,19 @@ export function FileThumbnail({
     );
   }
 
-  // Fallback to file icon
+  // Fallback to file icon (or placeholder before in-view)
   if (showFallback) {
     return (
-      <FileIcon
-        mimeType={mimeType}
-        className={cn(sizeClasses[size], className)}
-      />
+      <div ref={ref}>
+        <FileIcon
+          mimeType={mimeType}
+          className={cn(sizeClasses[size], className)}
+        />
+      </div>
     );
   }
 
-  return null;
+  return <div ref={ref} />;
 }
 
 // Simple thumbnail display without auto-generation (for performance in lists)

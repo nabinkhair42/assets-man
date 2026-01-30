@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { assetService } from "@/services/asset-service";
 
 // MIME types that support thumbnails
@@ -30,97 +31,78 @@ export function canHaveThumbnail(mimeType: string): boolean {
   return THUMBNAIL_SUPPORTED_TYPES.includes(mimeType);
 }
 
-interface UseThumbnailOptions {
-  assetId: string;
-  mimeType: string;
-  thumbnailKey?: string | null;
-  autoGenerate?: boolean;
+// Query key factory
+export const thumbnailKeys = {
+  all: ["thumbnails"] as const,
+  urls: () => [...thumbnailKeys.all, "url"] as const,
+  url: (id: string) => [...thumbnailKeys.urls(), id] as const,
+};
+
+interface ThumbnailUrlResult {
+  url: string | null;
+  canGenerate: boolean;
 }
 
-interface UseThumbnailResult {
-  thumbnailUrl: string | null;
-  isLoading: boolean;
-  isGenerating: boolean;
-  error: string | null;
-  generate: () => Promise<void>;
+// Module-level batcher
+let pendingIds = new Set<string>();
+let batchTimer: ReturnType<typeof setTimeout> | null = null;
+let batchResolvers = new Map<
+  string,
+  { resolve: (result: ThumbnailUrlResult) => void; reject: (err: Error) => void }
+>();
+
+function scheduleBatch(queryClient: QueryClient) {
+  if (batchTimer) return;
+  batchTimer = setTimeout(async () => {
+    const ids = Array.from(pendingIds);
+    pendingIds = new Set();
+    batchTimer = null;
+    const resolvers = new Map(batchResolvers);
+    batchResolvers = new Map();
+
+    try {
+      const results = await assetService.batchGetThumbnailUrls(ids);
+      for (const [id, result] of Object.entries(results)) {
+        queryClient.setQueryData(thumbnailKeys.url(id), result);
+        resolvers.get(id)?.resolve(result);
+      }
+      // Resolve any IDs that weren't in the response
+      for (const [id, resolver] of resolvers) {
+        if (!(id in results)) {
+          const fallback = { url: null, canGenerate: false };
+          queryClient.setQueryData(thumbnailKeys.url(id), fallback);
+          resolver.resolve(fallback);
+        }
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error("Failed to fetch thumbnail URLs");
+      for (const [, resolver] of resolvers) {
+        resolver.reject(error);
+      }
+    }
+  }, 50);
 }
 
-export function useThumbnail({
-  assetId,
-  mimeType,
-  thumbnailKey,
-  autoGenerate = true,
-}: UseThumbnailOptions): UseThumbnailResult {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
-
+export function useThumbnailUrl(
+  assetId: string,
+  mimeType: string,
+  thumbnailKey?: string | null
+) {
+  const queryClient = useQueryClient();
   const canGenerate = canHaveThumbnail(mimeType);
 
-  // Fetch thumbnail URL
-  const fetchThumbnail = useCallback(async () => {
-    if (!canGenerate) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await assetService.getThumbnailUrl(assetId);
-      if (result.url) {
-        setThumbnailUrl(result.url);
-      } else if (autoGenerate && result.canGenerate && !hasAttemptedGeneration) {
-        // Auto-generate thumbnail if it doesn't exist
-        setHasAttemptedGeneration(true);
-        await generateThumbnail();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch thumbnail");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [assetId, canGenerate, autoGenerate, hasAttemptedGeneration]);
-
-  // Generate thumbnail
-  const generateThumbnail = useCallback(async () => {
-    if (!canGenerate || isGenerating) return;
-
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      await assetService.generateThumbnail(assetId);
-      // Fetch the new thumbnail URL after generation
-      const result = await assetService.getThumbnailUrl(assetId);
-      if (result.url) {
-        setThumbnailUrl(result.url);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate thumbnail");
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [assetId, canGenerate, isGenerating]);
-
-  // Fetch thumbnail on mount or when thumbnailKey changes
-  useEffect(() => {
-    if (thumbnailKey) {
-      // If we have a thumbnail key, fetch the URL
-      fetchThumbnail();
-    } else if (canGenerate && autoGenerate && !hasAttemptedGeneration) {
-      // If no thumbnail but can generate, try to generate
-      fetchThumbnail();
-    }
-  }, [assetId, thumbnailKey, canGenerate, autoGenerate]);
-
-  return {
-    thumbnailUrl,
-    isLoading,
-    isGenerating,
-    error,
-    generate: generateThumbnail,
-  };
+  return useQuery({
+    queryKey: thumbnailKeys.url(assetId),
+    queryFn: () =>
+      new Promise<ThumbnailUrlResult>((resolve, reject) => {
+        pendingIds.add(assetId);
+        batchResolvers.set(assetId, { resolve, reject });
+        scheduleBatch(queryClient);
+      }),
+    enabled: canGenerate && !!thumbnailKey,
+    staleTime: 55 * 60 * 1000, // 55 min (presigned URL valid for 60)
+    gcTime: 60 * 60 * 1000, // 60 min
+  });
 }
 
 // Hook for batch thumbnail generation after upload

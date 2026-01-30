@@ -249,6 +249,9 @@ export function useMarqueeSelection<T>({
     (e: React.MouseEvent) => {
       if (disabled) return;
 
+      // Disable marquee on touch devices to prevent conflict with scroll
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+
       // Only start marquee selection on left click
       if (e.button !== 0) return;
 

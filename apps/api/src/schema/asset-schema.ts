@@ -40,8 +40,13 @@ export const bulkDownloadSchema = z.object({
   folderIds: z.array(z.string().uuid()).optional().default([]),
 });
 
+export const batchThumbnailUrlsSchema = z.object({
+  assetIds: z.array(z.string().uuid()).min(1).max(100),
+});
+
 export type RequestUploadInput = z.infer<typeof requestUploadSchema>;
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
 export type ListAssetsQuery = z.infer<typeof listAssetsQuerySchema>;
 export type CopyAssetInput = z.infer<typeof copyAssetSchema>;
 export type BulkDownloadInput = z.infer<typeof bulkDownloadSchema>;
+export type BatchThumbnailUrlsInput = z.infer<typeof batchThumbnailUrlsSchema>;

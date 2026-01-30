@@ -11,6 +11,7 @@ import {
   Star,
   Copy,
   Share2,
+  Download,
 } from "lucide-react";
 import {
   ContextMenu,
@@ -66,8 +67,10 @@ interface DraggableFolderItemProps {
     shiftKey?: boolean,
     ctrlKey?: boolean,
   ) => void;
+  onContextSelect?: (folder: Folder) => void;
   selectionMode?: boolean;
   selectedCount?: number;
+  onBulkDownload?: () => void;
   onBulkDelete?: () => void;
   onBulkMove?: () => void;
   owner?: OwnerInfo;
@@ -88,7 +91,9 @@ export function DraggableFolderItem({
   isPendingSelection = false,
   isFocused = false,
   onSelect,
+  onContextSelect,
   selectedCount = 0,
+  onBulkDownload,
   onBulkDelete,
   onBulkMove,
   owner,
@@ -115,6 +120,11 @@ export function DraggableFolderItem({
 
   const menuItems = useMemo(() => showBulkActions ? (
     <>
+      <ContextMenuItem onClick={onBulkDownload}>
+        <Download className="mr-2 h-4 w-4" />
+        Download {selectedCount} items
+      </ContextMenuItem>
+      <ContextMenuSeparator />
       <ContextMenuItem onClick={onBulkMove}>
         <FolderInput className="mr-2 h-4 w-4" />
         Move {selectedCount} items
@@ -175,7 +185,7 @@ export function DraggableFolderItem({
         <ContextMenuShortcut>Del</ContextMenuShortcut>
       </ContextMenuItem>
     </>
-  ), [showBulkActions, selectedCount, onBulkMove, onBulkDelete, folder, onOpen, onStar, onRename, onMove, onCopy, onShare, onDelete]);
+  ), [showBulkActions, selectedCount, onBulkDownload, onBulkMove, onBulkDelete, folder, onOpen, onStar, onRename, onMove, onCopy, onShare, onDelete]);
 
   const dropdownMenu = useMemo(() => (
     <DropdownMenu>
@@ -183,7 +193,7 @@ export function DraggableFolderItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="h-6 w-6 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-9 w-9 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -191,59 +201,80 @@ export function DraggableFolderItem({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onOpen(folder.id)}>
-          <FolderIcon className="mr-2 h-4 w-4" />
-          Open
-          <DropdownMenuShortcut>Enter</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        {onStar && (
-          <DropdownMenuItem onClick={() => onStar(folder)}>
-            <Star
-              className={cn(
-                "mr-2 h-4 w-4",
-                folder.isStarred && "fill-yellow-400 text-yellow-400",
-              )}
-            />
-            {folder.isStarred ? "Remove from starred" : "Add to starred"}
-            <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
-          </DropdownMenuItem>
+        {showBulkActions ? (
+          <>
+            <DropdownMenuItem onClick={onBulkDownload}>
+              <Download className="mr-2 h-4 w-4" />
+              Download {selectedCount} items
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onBulkMove}>
+              <FolderInput className="mr-2 h-4 w-4" />
+              Move {selectedCount} items
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onBulkDelete} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete {selectedCount} items
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem onClick={() => onOpen(folder.id)}>
+              <FolderIcon className="mr-2 h-4 w-4" />
+              Open
+              <DropdownMenuShortcut>Enter</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {onStar && (
+              <DropdownMenuItem onClick={() => onStar(folder)}>
+                <Star
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    folder.isStarred && "fill-yellow-400 text-yellow-400",
+                  )}
+                />
+                {folder.isStarred ? "Remove from starred" : "Add to starred"}
+                <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onRename(folder)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename
+              <DropdownMenuShortcut>F2</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onMove(folder)}>
+              <FolderInput className="mr-2 h-4 w-4" />
+              Move to
+              <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {onCopy && (
+              <DropdownMenuItem onClick={() => onCopy(folder)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy to
+                <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+            {onShare && (
+              <DropdownMenuItem onClick={() => onShare(folder)}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(folder)}
+              variant="destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Move to trash
+              <DropdownMenuShortcut>Del</DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onRename(folder)}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Rename
-          <DropdownMenuShortcut>F2</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onMove(folder)}>
-          <FolderInput className="mr-2 h-4 w-4" />
-          Move to
-          <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        {onCopy && (
-          <DropdownMenuItem onClick={() => onCopy(folder)}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy to
-            <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        )}
-        {onShare && (
-          <DropdownMenuItem onClick={() => onShare(folder)}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => onDelete(folder)}
-          variant="destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Move to trash
-          <DropdownMenuShortcut>Del</DropdownMenuShortcut>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  ), [folder, onOpen, onStar, onRename, onMove, onCopy, onShare, onDelete]);
+  ), [showBulkActions, selectedCount, onBulkDownload, onBulkMove, onBulkDelete, folder, onOpen, onStar, onRename, onMove, onCopy, onShare, onDelete]);
 
   // Handle click for selection (supports Ctrl+Click for multi-select, Shift+Click for range)
   const handleClick = (e: React.MouseEvent) => {
@@ -266,7 +297,7 @@ export function DraggableFolderItem({
   // Auto-select on context menu open (Google Drive behavior)
   const handleContextMenuOpen = (open: boolean) => {
     if (open && !isSelected) {
-      onSelect?.(folder, true);
+      onContextSelect?.(folder);
     }
   };
 
@@ -381,7 +412,7 @@ export function DraggableFolderItem({
               </button>
 
               {/* Selection checkmark or menu - fixed height container to prevent layout shift */}
-              <div className="shrink-0 h-6 w-6 sm:h-8 sm:w-8 flex items-center justify-center">
+              <div className="shrink-0 h-9 w-9 sm:h-8 sm:w-8 flex items-center justify-center">
                 {isSelected ? (
                   <SelectionCheckmark className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (

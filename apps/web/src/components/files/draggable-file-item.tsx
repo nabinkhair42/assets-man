@@ -73,6 +73,7 @@ interface DraggableFileItemProps {
     shiftKey?: boolean,
     ctrlKey?: boolean,
   ) => void;
+  onContextSelect?: (asset: Asset) => void;
   selectionMode?: boolean;
   selectedCount?: number;
   onBulkDownload?: () => void;
@@ -97,6 +98,7 @@ export function DraggableFileItem({
   isPendingSelection = false,
   isFocused = false,
   onSelect,
+  onContextSelect,
   selectedCount = 0,
   onBulkDownload,
   onBulkDelete,
@@ -189,7 +191,7 @@ export function DraggableFileItem({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="h-6 w-6 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-9 w-9 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
@@ -197,56 +199,77 @@ export function DraggableFileItem({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onDownload(asset)}>
-          <Download className="mr-2 h-4 w-4" />
-          Download
-          <DropdownMenuShortcut>Ctrl+D</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        {onStar && (
-          <DropdownMenuItem onClick={() => onStar(asset)}>
-            <Star
-              className={cn(
-                "mr-2 h-4 w-4",
-                asset.isStarred && "fill-yellow-400 text-yellow-400",
-              )}
-            />
-            {asset.isStarred ? "Remove from starred" : "Add to starred"}
-            <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
-          </DropdownMenuItem>
+        {showBulkActions ? (
+          <>
+            <DropdownMenuItem onClick={onBulkDownload}>
+              <Download className="mr-2 h-4 w-4" />
+              Download {selectedCount} items
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onBulkMove}>
+              <FolderInput className="mr-2 h-4 w-4" />
+              Move {selectedCount} items
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onBulkDelete} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete {selectedCount} items
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem onClick={() => onDownload(asset)}>
+              <Download className="mr-2 h-4 w-4" />
+              Download
+              <DropdownMenuShortcut>Ctrl+D</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {onStar && (
+              <DropdownMenuItem onClick={() => onStar(asset)}>
+                <Star
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    asset.isStarred && "fill-yellow-400 text-yellow-400",
+                  )}
+                />
+                {asset.isStarred ? "Remove from starred" : "Add to starred"}
+                <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onRename(asset)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename
+              <DropdownMenuShortcut>F2</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onMove(asset)}>
+              <FolderInput className="mr-2 h-4 w-4" />
+              Move to
+              <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {onCopy && (
+              <DropdownMenuItem onClick={() => onCopy(asset)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy to
+                <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+            {onShare && (
+              <DropdownMenuItem onClick={() => onShare(asset)}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onDelete(asset)} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Move to trash
+              <DropdownMenuShortcut>Del</DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onRename(asset)}>
-          <Pencil className="mr-2 h-4 w-4" />
-          Rename
-          <DropdownMenuShortcut>F2</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onMove(asset)}>
-          <FolderInput className="mr-2 h-4 w-4" />
-          Move to
-          <DropdownMenuShortcut>Ctrl+M</DropdownMenuShortcut>
-        </DropdownMenuItem>
-        {onCopy && (
-          <DropdownMenuItem onClick={() => onCopy(asset)}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy to
-            <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        )}
-        {onShare && (
-          <DropdownMenuItem onClick={() => onShare(asset)}>
-            <Share2 className="mr-2 h-4 w-4" />
-            Share
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onDelete(asset)} variant="destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          Move to trash
-          <DropdownMenuShortcut>Del</DropdownMenuShortcut>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  ), [asset, onDownload, onStar, onRename, onMove, onCopy, onShare, onDelete]);
+  ), [showBulkActions, selectedCount, onBulkDownload, onBulkMove, onBulkDelete, asset, onDownload, onStar, onRename, onMove, onCopy, onShare, onDelete]);
 
   // Handle click for selection (supports Ctrl+Click for multi-select, Shift+Click for range)
   const handleClick = (e: React.MouseEvent) => {
@@ -265,7 +288,7 @@ export function DraggableFileItem({
   // Auto-select on context menu open (Google Drive behavior)
   const handleContextMenuOpen = (open: boolean) => {
     if (open && !isSelected) {
-      onSelect?.(asset, true);
+      onContextSelect?.(asset);
     }
   };
 

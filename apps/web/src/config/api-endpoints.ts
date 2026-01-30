@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
     BULK_DOWNLOAD: "/api/assets/bulk-download",
     SHARED_BULK_DOWNLOAD: "/api/assets/shared-bulk-download",
     THUMBNAIL: (id: string) => `/api/assets/${id}/thumbnail`,
+    BATCH_THUMBNAIL_URLS: "/api/assets/thumbnails/urls",
     REGENERATE_THUMBNAILS: "/api/assets/thumbnails/regenerate",
   },
 

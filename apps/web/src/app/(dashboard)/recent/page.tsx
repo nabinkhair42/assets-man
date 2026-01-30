@@ -42,7 +42,7 @@ import { SelectionToolbar, type SelectedItem } from "@/components/shared/selecti
 import { RECENT_LIST_COLUMNS } from "@/components/shared/list-columns";
 import { DataList, DataListHeader, DataGrid, DataGridSection, DataGridFolderContainer, DataGridFileContainer } from "@/components/ui/data-list";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { Folder } from "@/types/folder";
 import type { Asset } from "@/types/asset";
 import AppHeader from "@/components/layouts/app-header";
@@ -179,14 +179,15 @@ export default function RecentPage() {
     id: string,
     type: "folder" | "asset",
     name: string,
-    selected: boolean,
-    shiftKey: boolean
+    _selected: boolean,
+    shiftKey: boolean,
+    ctrlKey: boolean = false,
   ) => {
     setSelectedItems((prev) => {
-      const next = new Map(prev);
       const key = `${type}-${id}`;
 
-      if (shiftKey && lastSelectedIndex.current !== null && selected) {
+      if (shiftKey && lastSelectedIndex.current !== null) {
+        const next = new Map(prev);
         const start = Math.min(lastSelectedIndex.current, index);
         const end = Math.max(lastSelectedIndex.current, index);
 
@@ -196,31 +197,46 @@ export default function RecentPage() {
             next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
           }
         }
-      } else {
-        if (selected) {
-          next.set(key, { id, type, name });
-        } else {
+        return next;
+      } else if (ctrlKey) {
+        const next = new Map(prev);
+        if (next.has(key)) {
           next.delete(key);
+        } else {
+          next.set(key, { id, type, name });
+          lastSelectedIndex.current = index;
         }
-      }
-
-      if (selected) {
+        return next;
+      } else {
+        const next = new Map<string, SelectedItem>();
+        next.set(key, { id, type, name });
         lastSelectedIndex.current = index;
+        return next;
       }
-
-      return next;
     });
   }, [allItems]);
 
-  const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false) => {
+  const handleSelectFolder = useCallback((folder: Folder, _selected: boolean, shiftKey = false, ctrlKey = false) => {
     const entry = allItemIndex.get(`folder-${folder.id}`);
-    handleItemSelect(entry?.index ?? -1, folder.id, "folder", folder.name, selected, shiftKey);
+    handleItemSelect(entry?.index ?? -1, folder.id, "folder", folder.name, true, shiftKey, ctrlKey);
   }, [allItemIndex, handleItemSelect]);
 
-  const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false) => {
+  const handleSelectAsset = useCallback((asset: Asset, _selected: boolean, shiftKey = false, ctrlKey = false) => {
     const entry = allItemIndex.get(`asset-${asset.id}`);
-    handleItemSelect(entry?.index ?? -1, asset.id, "asset", asset.name, selected, shiftKey);
+    handleItemSelect(entry?.index ?? -1, asset.id, "asset", asset.name, true, shiftKey, ctrlKey);
   }, [allItemIndex, handleItemSelect]);
+
+  const handleContextSelectFolder = useCallback((folder: Folder) => {
+    const next = new Map<string, SelectedItem>();
+    next.set(`folder-${folder.id}`, { id: folder.id, type: "folder", name: folder.name });
+    setSelectedItems(next);
+  }, []);
+
+  const handleContextSelectAsset = useCallback((asset: Asset) => {
+    const next = new Map<string, SelectedItem>();
+    next.set(`asset-${asset.id}`, { id: asset.id, type: "asset", name: asset.name });
+    setSelectedItems(next);
+  }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -429,7 +445,7 @@ export default function RecentPage() {
           <ScrollArea className="h-full">
             <div
               ref={contentContainerRef}
-              className="p-6 relative min-h-[calc(100vh-8rem)]"
+              className={cn("p-6 relative min-h-[calc(100vh-8rem)]", selectionMode && "pb-24 sm:pb-20")}
               onMouseDown={handleMarqueeMouseDown}
             >
               {/* Marquee selection rectangle */}
@@ -481,8 +497,10 @@ export default function RecentPage() {
                               isSelected={selectedItems.has(`folder-${folder.id}`)}
                               isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
                               onSelect={handleSelectFolder}
+                              onContextSelect={handleContextSelectFolder}
                               selectionMode={selectionMode}
                               selectedCount={selectedItems.size}
+                              onBulkDownload={handleBulkDownload}
                               onBulkDelete={handleBulkDelete}
                               onBulkMove={handleBulkMove}
                               showOwner
@@ -515,6 +533,7 @@ export default function RecentPage() {
                               isSelected={selectedItems.has(`asset-${asset.id}`)}
                               isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
                               onSelect={handleSelectAsset}
+                              onContextSelect={handleContextSelectAsset}
                               selectionMode={selectionMode}
                               selectedCount={selectedItems.size}
                               onBulkDownload={handleBulkDownload}
@@ -548,8 +567,10 @@ export default function RecentPage() {
                         isSelected={selectedItems.has(`folder-${item.id}`)}
                         isPendingSelection={pendingSelection.has(`folder-${item.id}`)}
                         onSelect={handleSelectFolder}
+                        onContextSelect={handleContextSelectFolder}
                         selectionMode={selectionMode}
                         selectedCount={selectedItems.size}
+                        onBulkDownload={handleBulkDownload}
                         onBulkDelete={handleBulkDelete}
                         onBulkMove={handleBulkMove}
                         showOwner
@@ -570,6 +591,7 @@ export default function RecentPage() {
                         isSelected={selectedItems.has(`asset-${item.id}`)}
                         isPendingSelection={pendingSelection.has(`asset-${item.id}`)}
                         onSelect={handleSelectAsset}
+                        onContextSelect={handleContextSelectAsset}
                         selectionMode={selectionMode}
                         selectedCount={selectedItems.size}
                         onBulkDownload={handleBulkDownload}

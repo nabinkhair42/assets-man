@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { Readable } from "stream";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { createDb, assets } from "@repo/database";
 import { createStorageClient, generateThumbnailKey, type StorageClient } from "@repo/storage";
 import { config } from "@/config/env.js";
@@ -321,6 +321,54 @@ export async function generateThumbnailsBatch(assetIds: string[]): Promise<Thumb
     const batch = assetIds.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.all(batch.map((id) => generateThumbnail(id)));
     results.push(...batchResults);
+  }
+
+  return results;
+}
+
+// Get thumbnail URLs for multiple assets in a single batch
+export async function getThumbnailUrlsBatch(
+  assetIds: string[]
+): Promise<Map<string, { url: string | null; canGenerate: boolean }>> {
+  const storage = getStorage();
+
+  const assetList = await db.query.assets.findMany({
+    where: inArray(assets.id, assetIds),
+    columns: { id: true, thumbnailKey: true, mimeType: true },
+  });
+
+  const results = new Map<string, { url: string | null; canGenerate: boolean }>();
+
+  // Generate presigned URLs in parallel for assets that have thumbnailKey
+  const withThumbnails = assetList.filter((a) => a.thumbnailKey);
+  const urlResults = await Promise.all(
+    withThumbnails.map(async (asset) => {
+      try {
+        const { url } = await storage.getPresignedDownloadUrl({
+          key: asset.thumbnailKey!,
+          expiresIn: 3600,
+        });
+        return { id: asset.id, url };
+      } catch {
+        return { id: asset.id, url: null };
+      }
+    })
+  );
+
+  // Build result map
+  const urlMap = new Map(urlResults.map((r) => [r.id, r.url]));
+  for (const asset of assetList) {
+    results.set(asset.id, {
+      url: urlMap.get(asset.id) ?? null,
+      canGenerate: !asset.thumbnailKey && canGenerateThumbnail(asset.mimeType),
+    });
+  }
+
+  // Assets not found in DB — mark as not found
+  for (const id of assetIds) {
+    if (!results.has(id)) {
+      results.set(id, { url: null, canGenerate: false });
+    }
   }
 
   return results;

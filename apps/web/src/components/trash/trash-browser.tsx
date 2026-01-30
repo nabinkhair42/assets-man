@@ -27,7 +27,7 @@ import { useInfiniteTrash, useRestoreItem, usePermanentlyDelete } from "@/hooks/
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
 import { toast } from "sonner";
-import { getApiErrorMessage } from "@/lib/utils";
+import { cn, getApiErrorMessage } from "@/lib/utils";
 import type { TrashedItem } from "@/types/trash";
 
 export function TrashBrowser() {
@@ -98,14 +98,15 @@ export function TrashBrowser() {
     id: string,
     type: "folder" | "asset",
     name: string,
-    selected: boolean,
-    shiftKey: boolean
+    _selected: boolean,
+    shiftKey: boolean,
+    ctrlKey: boolean = false,
   ) => {
     setSelectedItems((prev) => {
-      const next = new Map(prev);
       const key = `${type}-${id}`;
 
-      if (shiftKey && lastSelectedIndex.current !== null && selected) {
+      if (shiftKey && lastSelectedIndex.current !== null) {
+        const next = new Map(prev);
         const start = Math.min(lastSelectedIndex.current, index);
         const end = Math.max(lastSelectedIndex.current, index);
 
@@ -115,26 +116,35 @@ export function TrashBrowser() {
             next.set(`${item.type}-${item.id}`, { id: item.id, type: item.type, name: item.name });
           }
         }
-      } else {
-        if (selected) {
-          next.set(key, { id, type, name });
-        } else {
+        return next;
+      } else if (ctrlKey) {
+        const next = new Map(prev);
+        if (next.has(key)) {
           next.delete(key);
+        } else {
+          next.set(key, { id, type, name });
+          lastSelectedIndex.current = index;
         }
-      }
-
-      if (selected) {
+        return next;
+      } else {
+        const next = new Map<string, SelectedItem>();
+        next.set(key, { id, type, name });
         lastSelectedIndex.current = index;
+        return next;
       }
-
-      return next;
     });
   }, [allItems]);
 
-  const handleSelectItem = useCallback((item: TrashedItem, selected: boolean, shiftKey = false) => {
+  const handleSelectItem = useCallback((item: TrashedItem, _selected: boolean, shiftKey = false) => {
     const entry = allItemIndex.get(`${item.itemType}-${item.id}`);
-    handleItemSelect(entry?.index ?? -1, item.id, item.itemType, item.name, selected, shiftKey);
+    handleItemSelect(entry?.index ?? -1, item.id, item.itemType, item.name, true, shiftKey);
   }, [allItemIndex, handleItemSelect]);
+
+  const handleContextSelectItem = useCallback((item: TrashedItem) => {
+    const next = new Map<string, SelectedItem>();
+    next.set(`${item.itemType}-${item.id}`, { id: item.id, type: item.itemType, name: item.name });
+    setSelectedItems(next);
+  }, []);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -311,7 +321,7 @@ export function TrashBrowser() {
       <ScrollArea className="flex-1 min-h-0">
         <div
           ref={contentContainerRef}
-          className="p-6 relative min-h-[calc(100vh-8rem)]"
+          className={cn("p-6 relative min-h-[calc(100vh-8rem)]", selectionMode && "pb-24 sm:pb-20")}
           onMouseDown={handleMarqueeMouseDown}
         >
           {/* Marquee selection rectangle */}
@@ -346,6 +356,7 @@ export function TrashBrowser() {
                   isSelected={selectedItems.has(`${item.itemType}-${item.id}`)}
                   isPendingSelection={pendingSelection.has(`${item.itemType}-${item.id}`)}
                   onSelect={handleSelectItem}
+                  onContextSelect={handleContextSelectItem}
                   selectedCount={selectedItems.size}
                   onBulkRestore={handleBulkRestore}
                   onBulkDelete={handleBulkDelete}

@@ -20,6 +20,7 @@ interface TrashItemProps {
   isSelected?: boolean;
   isPendingSelection?: boolean;
   onSelect?: (item: TrashedItemType, selected: boolean, shiftKey?: boolean) => void;
+  onContextSelect?: (item: TrashedItemType) => void;
   selectedCount?: number;
   onBulkRestore?: () => void;
   onBulkDelete?: () => void;
@@ -32,6 +33,7 @@ export function TrashItem({
   isSelected = false,
   isPendingSelection = false,
   onSelect,
+  onContextSelect,
   selectedCount = 0,
   onBulkRestore,
   onBulkDelete,
@@ -53,7 +55,7 @@ export function TrashItem({
   // Auto-select on context menu open (Google Drive behavior)
   const handleContextMenuOpen = (open: boolean) => {
     if (open && !isSelected) {
-      onSelect?.(item, true);
+      onContextSelect?.(item);
     }
   };
 
