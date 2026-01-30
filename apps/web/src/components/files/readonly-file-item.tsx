@@ -120,12 +120,10 @@ export function ReadOnlyFileItem({
             className="h-6 w-6 sm:h-8 sm:w-8 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={handleDownloadClick}
             disabled={isDownloading}
+            isLoading={isDownloading}
+            loadingText=""
           >
-            {isDownloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
+           <Download className="size-4" />
           </Button>
         </DataListCell>
       </DataListRow>
@@ -167,12 +165,10 @@ export function ReadOnlyFileItem({
             className="h-6 w-6 sm:h-8 sm:w-8 bg-background/80 hover:bg-background"
             onClick={handleDownloadClick}
             disabled={isDownloading}
+            isLoading={isDownloading}
+            loadingText=""
           >
-            {isDownloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
+            <Download className="size-4" />
           </Button>
         </div>
 

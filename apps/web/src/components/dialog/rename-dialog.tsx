@@ -98,8 +98,8 @@ export function RenameDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || isPending}>
-              {isPending ? "Saving..." : "Save"}
+            <Button type="submit" disabled={!name.trim() || isPending} isLoading={isPending} loadingText="Saving">
+              Save
             </Button>
           </ResponsiveDialogFooter>
         </form>

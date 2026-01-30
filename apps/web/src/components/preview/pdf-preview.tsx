@@ -1,19 +1,19 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileText,
+  Loader2,
+  RotateCw,
   ZoomIn,
   ZoomOut,
-  Download,
-  Loader2,
-  FileText,
-  RotateCw,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useCallback, useState } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
 import type { PreviewComponentProps } from "./types";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -87,10 +87,10 @@ export function PdfPreview({
               <FileText className="h-8 w-8 text-red-500" />
             </div>
             <div>
-              <p className="text-white/80 font-medium mb-2">Unable to preview PDF</p>
-              <p className="text-white/60 text-sm mb-4">{error}</p>
+              <p className="text-muted-foreground font-medium mb-2">Unable to preview PDF</p>
+              <p className="text-muted-foreground text-sm mb-4">{error}</p>
               <Button onClick={onDownload} variant="secondary" size="sm">
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="size-4" />
                 Download PDF
               </Button>
             </div>
@@ -103,8 +103,8 @@ export function PdfPreview({
               onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex flex-col items-center justify-center gap-4 py-20">
-                  <Loader2 className="h-8 w-8 animate-spin text-white/60" />
-                  <p className="text-white/60 text-sm">Loading PDF...</p>
+                  <Loader2 className="size-8 animate-spin text-muted-foreground/60" />
+                  <p className="text-muted-foreground/60 text-sm">Loading PDF...</p>
                 </div>
               }
               className="flex justify-center"
@@ -118,7 +118,7 @@ export function PdfPreview({
                 renderAnnotationLayer={true}
                 loading={
                   <div className="flex items-center justify-center w-[600px] h-[800px] bg-white/5 rounded">
-                    <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+                    <Loader2 className="size-6 animate-spin text-muted-foreground/60" />
                   </div>
                 }
               />
@@ -137,7 +137,7 @@ export function PdfPreview({
         <div className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border gap-2">
           {/* Left: File info */}
           <div className="flex items-center gap-2 min-w-0">
-            <FileText className="h-4 w-4 text-destructive shrink-0" />
+            <FileText className="size-4 text-destructive shrink-0" />
             <span className="text-foreground text-sm font-medium truncate max-w-[100px] sm:max-w-xs">
               {asset.name}
             </span>
@@ -155,7 +155,7 @@ export function PdfPreview({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-foreground/80 text-sm min-w-[60px] text-center tabular-nums">
-              {isLoading ? "..." : `${pageNumber} / ${numPages}`}
+              {isLoading ?(<Loader2 className="size-4 animate-spin" />) :(<>{`${pageNumber} / ${numPages}`}</>)}
             </span>
             <Button
               variant="ghost"
@@ -227,7 +227,7 @@ export function PdfPreview({
                 <p className="text-foreground/80 font-medium mb-2">Unable to preview PDF</p>
                 <p className="text-muted-foreground text-sm mb-4">{error}</p>
                 <Button onClick={onDownload} variant="secondary" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="size-4" />
                   Download PDF
                 </Button>
               </div>

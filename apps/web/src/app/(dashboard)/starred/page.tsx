@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Star } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,20 +13,29 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { useStarredFolders, useFolders, useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
+import { useStarredFolders, useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
 import { useStarredAssets, useUpdateAsset, useToggleAssetStarred } from "@/hooks/use-assets";
 import { useUser } from "@/hooks/use-user";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useFileBrowserShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useViewMode } from "@/hooks/use-view-mode";
+import dynamic from "next/dynamic";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
-import { BulkDeleteDialog } from "@/components/dialog/bulk-delete-dialog";
-import { BulkMoveDialog } from "@/components/dialog/bulk-move-dialog";
-import { RenameDialog } from "@/components/dialog/rename-dialog";
-import { DeleteDialog } from "@/components/dialog/delete-dialog";
-import { MoveDialog } from "@/components/dialog/move-dialog";
-import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+const BulkDeleteDialog = dynamic(() => import("@/components/dialog/bulk-delete-dialog").then(m => ({ default: m.BulkDeleteDialog })));
+const BulkMoveDialog = dynamic(() => import("@/components/dialog/bulk-move-dialog").then(m => ({ default: m.BulkMoveDialog })));
+const RenameDialog = dynamic(() => import("@/components/dialog/rename-dialog").then(m => ({ default: m.RenameDialog })));
+const DeleteDialog = dynamic(() => import("@/components/dialog/delete-dialog").then(m => ({ default: m.DeleteDialog })));
+const MoveDialog = dynamic(() => import("@/components/dialog/move-dialog").then(m => ({ default: m.MoveDialog })));
+const FilePreviewDialog = dynamic(() => import("@/components/dialog/file-preview-dialog").then(m => ({ default: m.FilePreviewDialog })));
+
+// Preload functions for intent-based loading
+const preloadBulkDeleteDialog = () => void import("@/components/dialog/bulk-delete-dialog");
+const preloadBulkMoveDialog = () => void import("@/components/dialog/bulk-move-dialog");
+const preloadRenameDialog = () => void import("@/components/dialog/rename-dialog");
+const preloadDeleteDialog = () => void import("@/components/dialog/delete-dialog");
+const preloadMoveDialog = () => void import("@/components/dialog/move-dialog");
+const preloadFilePreviewDialog = () => void import("@/components/dialog/file-preview-dialog");
 import { EmptyState } from "@/components/shared/empty-state";
 import { InfiniteScrollTrigger } from "@/components/shared/infinite-scroll-trigger";
 import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
@@ -58,11 +67,23 @@ export default function StarredPage() {
 
   const selectionMode = selectedItems.size > 0;
 
+  // Preload dialogs based on user intent
+  useEffect(() => {
+    if (!selectionMode) return;
+    preloadBulkDeleteDialog();
+    preloadBulkMoveDialog();
+    if (selectedItems.size === 1) {
+      preloadRenameDialog();
+      preloadDeleteDialog();
+      preloadMoveDialog();
+      preloadFilePreviewDialog();
+    }
+  }, [selectionMode, selectedItems.size]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  useFolders();
   const { data: starredFolders = [], isLoading: foldersLoading, refetch: refetchFolders } = useStarredFolders();
   const {
     data: starredAssetsData,
@@ -89,13 +110,17 @@ export default function StarredPage() {
     return items;
   }, [starredFolders, starredAssets]);
 
-  // Index maps for O(1) lookups in keyboard/marquee handlers
-  const folderMap = useMemo(() => new Map(starredFolders.map((f) => [f.id, f])), [starredFolders]);
-  const assetMap = useMemo(() => new Map(starredAssets.map((a) => [a.id, a])), [starredAssets]);
-  const allItemIndex = useMemo(() => {
-    const map = new Map<string, { item: typeof allItems[0]; index: number }>();
-    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
-    return map;
+  // Single-pass index maps for O(1) lookups in keyboard/marquee handlers
+  const { folderMap, assetMap, allItemIndex } = useMemo(() => {
+    const folders = new Map<string, Folder>();
+    const assets = new Map<string, Asset>();
+    const index = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, i) => {
+      index.set(`${item.type}-${item.id}`, { item, index: i });
+      if (item.type === "folder") folders.set(item.id, item.data as Folder);
+      else assets.set(item.id, item.data as Asset);
+    });
+    return { folderMap: folders, assetMap: assets, allItemIndex: index };
   }, [allItems]);
 
   const isLoading = foldersLoading || assetsLoading;
@@ -261,8 +286,7 @@ export default function StarredPage() {
 
   const handleBulkOperationSuccess = useCallback(() => {
     handleClearSelection();
-    refetchFolders();
-    refetchAssets();
+    Promise.all([refetchFolders(), refetchAssets()]);
   }, [handleClearSelection, refetchFolders, refetchAssets]);
 
   const handleBulkDownload = useCallback(async () => {
@@ -310,48 +334,41 @@ export default function StarredPage() {
 
   const handleKeyboardStar = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      const folder = folderMap.get(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      const folder = folderMap.get(selected.id);
       if (folder) handleStarFolder(folder);
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) handleStarAsset(asset);
     }
   }, [selectedItems, folderMap, assetMap, handleStarFolder, handleStarAsset]);
 
   const handleKeyboardRename = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      const folder = folderMap.get(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      const folder = folderMap.get(selected.id);
       if (folder) setRenameItem({ item: folder, type: "folder" });
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) setRenameItem({ item: asset, type: "asset" });
     }
   }, [selectedItems, folderMap, assetMap]);
 
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      handleNavigate(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      handleNavigate(selected.id);
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) handlePreview(asset);
     }
   }, [selectedItems, assetMap, handleNavigate, handlePreview]);
 
   const handleRefresh = useCallback(() => {
-    refetchFolders();
-    refetchAssets();
+    Promise.all([refetchFolders(), refetchAssets()]);
   }, [refetchFolders, refetchAssets]);
 
   // Keyboard shortcuts

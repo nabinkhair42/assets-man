@@ -306,7 +306,7 @@ export function ShareDialog({
                   {createLinkShare.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
-                    <Copy className="h-4 w-4 mr-2" />
+                    <Copy className="size-4" />
                   )}
                   Create & Copy Link
                 </Button>
@@ -348,12 +348,10 @@ export function ShareDialog({
                   onClick={handleAddPerson}
                   disabled={isPending || !email.trim()}
                   className="w-full h-10"
+                  isLoading={createUserShare.isPending}
+                  loadingText="Sending Invite"
                 >
-                  {createUserShare.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Mail className="h-4 w-4 mr-2" />
-                  )}
+                  <Mail className="" />
                   Send Invite
                 </Button>
               </div>

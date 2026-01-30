@@ -72,8 +72,10 @@ export function DeleteDialog({
             variant="destructive"
             onClick={handleDelete}
             disabled={isPending}
+            isLoading={isPending}
+            loadingText="Deleting"
           >
-            {isPending ? "Deleting..." : "Delete"}
+            Delete
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

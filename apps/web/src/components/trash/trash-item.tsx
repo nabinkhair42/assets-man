@@ -62,28 +62,28 @@ export function TrashItem({
   const menuItems = showBulkActions ? (
     <>
       <ContextMenuItem onClick={onBulkRestore}>
-        <RotateCcw className="h-4 w-4 mr-2" />
+        <RotateCcw className="size-4" />
         Restore {selectedCount} items
       </ContextMenuItem>
       <ContextMenuItem
         onClick={onBulkDelete}
         className="text-destructive focus:text-destructive"
       >
-        <Trash2 className="h-4 w-4 mr-2" />
+        <Trash2 className="size-4" />
         Delete {selectedCount} items permanently
       </ContextMenuItem>
     </>
   ) : (
     <>
       <ContextMenuItem onClick={() => onRestore(item)}>
-        <RotateCcw className="h-4 w-4 mr-2" />
+        <RotateCcw className="size-4" />
         Restore
       </ContextMenuItem>
       <ContextMenuItem
         onClick={() => onPermanentDelete(item)}
         className="text-destructive focus:text-destructive"
       >
-        <Trash2 className="h-4 w-4 mr-2" />
+        <Trash2 className="size-4" />
         Delete Permanently
       </ContextMenuItem>
     </>

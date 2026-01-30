@@ -297,10 +297,6 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     return assetsData.pages.flatMap((page) => page.assets);
   }, [assetsData]);
 
-  // Index maps for O(1) lookups in keyboard handlers
-  const folderMap = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
-  const assetMap = useMemo(() => new Map(assets.map((a) => [a.id, a])), [assets]);
-
   // Combined list of all items for index-based operations
   const allItems = useMemo(() => {
     const items: Array<{
@@ -327,6 +323,19 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     );
     return items;
   }, [folders, assets]);
+
+  // Single-pass index maps for O(1) lookups in keyboard/marquee handlers
+  const { folderMap, assetMap, allItemIndex } = useMemo(() => {
+    const fMap = new Map<string, Folder>();
+    const aMap = new Map<string, Asset>();
+    const index = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, i) => {
+      index.set(`${item.type}-${item.id}`, { item, index: i });
+      if (item.type === "folder") fMap.set(item.id, item.data as Folder);
+      else aMap.set(item.id, item.data as Asset);
+    });
+    return { folderMap: fMap, assetMap: aMap, allItemIndex: index };
+  }, [allItems]);
 
   const isLoading =
     foldersLoading || assetsLoading || isNavigating || isPending;
@@ -476,11 +485,9 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleSelectFolder = useCallback(
     (folder: Folder, selected: boolean, shiftKey = false, ctrlKey = false) => {
-      const index = allItems.findIndex(
-        (item) => item.type === "folder" && item.id === folder.id,
-      );
+      const entry = allItemIndex.get(`folder-${folder.id}`);
       handleItemSelect(
-        index,
+        entry?.index ?? -1,
         folder.id,
         "folder",
         folder.name,
@@ -489,16 +496,14 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         ctrlKey,
       );
     },
-    [allItems, handleItemSelect],
+    [allItemIndex, handleItemSelect],
   );
 
   const handleSelectAsset = useCallback(
     (asset: Asset, selected: boolean, shiftKey = false, ctrlKey = false) => {
-      const index = allItems.findIndex(
-        (item) => item.type === "asset" && item.id === asset.id,
-      );
+      const entry = allItemIndex.get(`asset-${asset.id}`);
       handleItemSelect(
-        index,
+        entry?.index ?? -1,
         asset.id,
         "asset",
         asset.name,
@@ -507,7 +512,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         ctrlKey,
       );
     },
-    [allItems, handleItemSelect],
+    [allItemIndex, handleItemSelect],
   );
 
   const handleContextSelectFolder = useCallback((folder: Folder) => {
@@ -536,21 +541,18 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
       const newSelection = new Map<string, SelectedItem>();
       for (const id of selectedIds) {
-        // id format is "folder-{id}" or "asset-{id}"
-        const [type, ...idParts] = id.split("-");
-        const itemId = idParts.join("-");
-        const item = allItems.find((i) => i.type === type && i.id === itemId);
-        if (item) {
+        const entry = allItemIndex.get(id);
+        if (entry) {
           newSelection.set(id, {
-            id: itemId,
-            type: item.type,
-            name: item.name,
+            id: entry.item.id,
+            type: entry.item.type,
+            name: entry.item.name,
           });
         }
       }
       setSelectedItems(newSelection);
     },
-    [allItems, handleClearSelection],
+    [allItemIndex, handleClearSelection],
   );
 
   // Marquee selection hook
@@ -580,8 +582,7 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
 
   const handleBulkOperationSuccess = useCallback(() => {
     handleClearSelection();
-    refetchFolders();
-    refetchAssets();
+    Promise.all([refetchFolders(), refetchAssets()]);
   }, [handleClearSelection, refetchFolders, refetchAssets]);
 
   const handleBulkDownload = useCallback(async () => {

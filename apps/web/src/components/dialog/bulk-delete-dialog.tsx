@@ -121,8 +121,10 @@ export function BulkDeleteDialog({
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
+              isLoading={isDeleting}
+              loadingText="Deleting"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              Delete
             </Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
@@ -197,8 +199,10 @@ export function BulkDeleteDialog({
             variant="destructive"
             onClick={handleDelete}
             disabled={isDeleting}
+            isLoading={isDeleting}
+            loadingText="Deleting"
           >
-            {isDeleting ? "Deleting..." : "Delete All"}
+            Delete All
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

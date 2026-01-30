@@ -152,7 +152,6 @@ export function useToggleAssetStarred() {
   return useMutation({
     mutationFn: (id: string) => assetService.toggleStarred(id),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ["starred"] });
       queryClient.setQueryData(assetKeys.detail(data.id), data);
     },
@@ -192,12 +191,7 @@ export function useCopyAsset() {
 }
 
 export function useRegenerateAllThumbnails() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: () => assetService.regenerateAllThumbnails(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
-    },
   });
 }

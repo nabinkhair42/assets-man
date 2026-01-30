@@ -15,7 +15,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { useRecentItems } from "@/hooks/use-recent";
-import { useFolders, useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
+import { useMoveFolder, useToggleFolderStarred } from "@/hooks/use-folders";
 import { useUpdateAsset, useToggleAssetStarred } from "@/hooks/use-assets";
 import { useUser } from "@/hooks/use-user";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
@@ -84,7 +84,6 @@ export default function RecentPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  useFolders();
   const { data: recentData, isLoading, refetch: refetchRecent } = useRecentItems({ limit: 50 });
   const moveFolder = useMoveFolder();
   const updateAsset = useUpdateAsset();
@@ -109,13 +108,17 @@ export default function RecentPage() {
     return { recentFolders: folders, recentAssets: assets, allItems: items };
   }, [recentData]);
 
-  // Index maps for O(1) lookups in keyboard/marquee handlers
-  const folderMap = useMemo(() => new Map(recentFolders.map((f) => [f.id, f])), [recentFolders]);
-  const assetMap = useMemo(() => new Map(recentAssets.map((a) => [a.id, a])), [recentAssets]);
-  const allItemIndex = useMemo(() => {
-    const map = new Map<string, { item: typeof allItems[0]; index: number }>();
-    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
-    return map;
+  // Single-pass index maps for O(1) lookups in keyboard/marquee handlers
+  const { folderMap, assetMap, allItemIndex } = useMemo(() => {
+    const folders = new Map<string, Folder>();
+    const assets = new Map<string, Asset>();
+    const index = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, i) => {
+      index.set(`${item.type}-${item.id}`, { item, index: i });
+      if (item.type === "folder") folders.set(item.id, item.data as Folder);
+      else assets.set(item.id, item.data as Asset);
+    });
+    return { folderMap: folders, assetMap: assets, allItemIndex: index };
   }, [allItems]);
 
   const handleNavigate = useCallback((folderId: string | null) => {
@@ -294,41 +297,35 @@ export default function RecentPage() {
 
   const handleKeyboardStar = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      const folder = folderMap.get(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      const folder = folderMap.get(selected.id);
       if (folder) handleStarFolder(folder);
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) handleStarAsset(asset);
     }
   }, [selectedItems, folderMap, assetMap, handleStarFolder, handleStarAsset]);
 
   const handleKeyboardRename = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      const folder = folderMap.get(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      const folder = folderMap.get(selected.id);
       if (folder) setRenameItem({ item: folder, type: "folder" });
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) setRenameItem({ item: asset, type: "asset" });
     }
   }, [selectedItems, folderMap, assetMap]);
 
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
-    const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    if (type === "folder") {
-      handleNavigate(itemId);
+    const [selected] = Array.from(selectedItems.values());
+    if (selected.type === "folder") {
+      handleNavigate(selected.id);
     } else {
-      const asset = assetMap.get(itemId);
+      const asset = assetMap.get(selected.id);
       if (asset) handlePreview(asset);
     }
   }, [selectedItems, assetMap, handleNavigate, handlePreview]);

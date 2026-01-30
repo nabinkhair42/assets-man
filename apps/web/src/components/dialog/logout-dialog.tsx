@@ -46,7 +46,7 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
             onClick={handleLogout}
             disabled={logout.isPending}
           >
-            {logout.isPending ? "Logging out..." : "Logout"}
+            {logout.isPending ? "Logging out" : "Logout"}
           </ResponsiveAlertDialogAction>
         </ResponsiveAlertDialogFooter>
       </ResponsiveAlertDialogContent>

@@ -52,10 +52,12 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto w-11 h-11 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-3">
             <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
-          <h1 className="text-xl font-semibold text-foreground">Check your email</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            Check your email
+          </h1>
           <p className="text-sm text-muted-foreground mt-1 mb-6">
-            If an account exists for {form.getValues("email")}, we&apos;ve sent a
-            password reset link.
+            If an account exists for {form.getValues("email")}, we&apos;ve sent
+            a password reset link.
           </p>
 
           <div className="space-y-3">
@@ -91,7 +93,9 @@ export default function ForgotPasswordPage() {
         <div className="mx-auto w-11 h-11 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
           <Mail className="w-5 h-5 text-primary" />
         </div>
-        <h1 className="text-xl font-semibold text-foreground">Forgot password?</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          Forgot password?
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Enter your email and we&apos;ll send you a reset link
         </p>
@@ -124,7 +128,7 @@ export default function ForgotPasswordPage() {
             className="w-full mt-2"
             disabled={isPending}
             isLoading={isPending}
-            loadingText="Sending..."
+            loadingText="Sending"
           >
             Send reset link
           </Button>

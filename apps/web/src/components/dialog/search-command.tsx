@@ -183,7 +183,7 @@ export function SearchCommand({
         showCloseButton={false}
       >
         <CommandInput
-          placeholder="Search files and folders..."
+          placeholder="Search files and folders"
           value={query}
           onValueChange={setQuery}
         />

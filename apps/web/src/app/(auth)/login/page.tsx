@@ -128,7 +128,7 @@ export default function LoginPage() {
             className="w-full mt-2"
             disabled={login.isPending}
             isLoading={login.isPending}
-            loadingText="Signing in..."
+            loadingText="Signing in"
           >
             Sign In
           </Button>

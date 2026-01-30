@@ -82,8 +82,10 @@ export function CreateFolderDialog({
             <Button
               type="submit"
               disabled={!name.trim() || createFolder.isPending}
+              isLoading={createFolder.isPending}
+              loadingText="Creating"
             >
-              {createFolder.isPending ? "Creating..." : "Create"}
+              Create
             </Button>
           </ResponsiveDialogFooter>
         </form>

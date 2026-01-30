@@ -199,8 +199,10 @@ export function MoveDialog({
           <Button
             onClick={handleMove}
             disabled={isPending || selectedFolderId === currentParentId}
+            isLoading={isPending}
+            loadingText="Moving"
           >
-            {isPending ? "Moving..." : "Move"}
+            Move{" "}
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

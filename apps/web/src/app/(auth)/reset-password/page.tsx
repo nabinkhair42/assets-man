@@ -201,7 +201,7 @@ export default function ResetPasswordPage() {
             className="w-full mt-2"
             disabled={isPending}
             isLoading={isPending}
-            loadingText="Resetting..."
+            loadingText="Resetting"
           >
             Reset password
           </Button>

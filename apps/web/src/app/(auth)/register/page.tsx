@@ -138,7 +138,7 @@ export default function RegisterPage() {
             className="w-full mt-2"
             disabled={register.isPending}
             isLoading={register.isPending}
-            loadingText="Creating account..."
+            loadingText="Creating account"
           >
             Create Account
           </Button>

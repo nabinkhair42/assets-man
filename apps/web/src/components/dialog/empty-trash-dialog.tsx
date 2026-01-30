@@ -57,7 +57,7 @@ export function EmptyTrashDialog({
             onClick={handleEmptyTrash}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {emptyTrash.isPending ? "Deleting..." : "Empty Trash"}
+            {emptyTrash.isPending ? "Deleting" : "Empty Trash"}
           </ResponsiveAlertDialogAction>
         </ResponsiveAlertDialogFooter>
       </ResponsiveAlertDialogContent>

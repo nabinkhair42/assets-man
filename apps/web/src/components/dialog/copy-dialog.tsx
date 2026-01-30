@@ -180,8 +180,8 @@ export function CopyDialog({
           >
             Cancel
           </Button>
-          <Button onClick={handleCopy} disabled={isPending}>
-            {isPending ? "Copying..." : "Copy"}
+          <Button onClick={handleCopy} disabled={isPending} isLoading={isPending} loadingText="Copying">
+            Copy
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

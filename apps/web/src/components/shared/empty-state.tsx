@@ -102,7 +102,7 @@ export function EmptyState({
                 onClick={action.onClick}
                 size="lg"
               >
-                {ActionIcon && <ActionIcon className="h-4 w-4 mr-2" />}
+                {ActionIcon && <ActionIcon className="size-4" />}
                 {action.label}
               </Button>
             );

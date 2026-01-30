@@ -205,8 +205,8 @@ export function BulkMoveDialog({
           >
             Cancel
           </Button>
-          <Button onClick={handleMove} disabled={isMoving}>
-            {isMoving ? "Moving..." : "Move Here"}
+          <Button onClick={handleMove} disabled={isMoving} isLoading={isMoving} loadingText="Moving">
+            Move Here
           </Button>
         </ResponsiveDialogFooter>
       </ResponsiveDialogContent>

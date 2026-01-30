@@ -73,7 +73,7 @@ export function PermanentDeleteDialog({
             disabled={permanentlyDelete.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {permanentlyDelete.isPending ? "Deleting..." : "Delete Permanently"}
+            {permanentlyDelete.isPending ? "Deleting" : "Delete Permanently"}
           </ResponsiveAlertDialogAction>
         </ResponsiveAlertDialogFooter>
       </ResponsiveAlertDialogContent>

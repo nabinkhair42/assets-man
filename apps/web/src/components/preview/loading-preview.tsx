@@ -7,7 +7,7 @@ interface LoadingPreviewProps {
   message?: string;
 }
 
-export function LoadingPreview({ className, message = "Loading preview..." }: LoadingPreviewProps) {
+export function LoadingPreview({ className, message = "Loading preview" }: LoadingPreviewProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-4", className)}>
       <div className="relative">
