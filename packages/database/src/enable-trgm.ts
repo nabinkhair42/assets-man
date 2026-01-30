@@ -18,9 +18,12 @@ async function enableTrgm() {
 
   console.log("Creating indexes...");
 
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assets_name_trgm ON assets USING GIN (name gin_trgm_ops)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assets_original_name_trgm ON assets USING GIN (original_name gin_trgm_ops)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_folders_name_trgm ON folders USING GIN (name gin_trgm_ops)`);
+  // Create all trigram indexes in parallel (Rule 1.4)
+  await Promise.all([
+    db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assets_name_trgm ON assets USING GIN (name gin_trgm_ops)`),
+    db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assets_original_name_trgm ON assets USING GIN (original_name gin_trgm_ops)`),
+    db.execute(sql`CREATE INDEX IF NOT EXISTS idx_folders_name_trgm ON folders USING GIN (name gin_trgm_ops)`),
+  ]);
 
   console.log("Done!");
 

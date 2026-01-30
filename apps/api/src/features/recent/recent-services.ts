@@ -27,32 +27,28 @@ export async function recordAccess(
 ): Promise<void> {
   const { itemId, itemType } = input;
 
-  // Verify the item exists and belongs to the user
-  if (itemType === "asset") {
-    const asset = await db.query.assets.findFirst({
-      where: and(eq(assets.id, itemId), eq(assets.ownerId, userId)),
-    });
-    if (!asset) {
-      throw new Error("ASSET_NOT_FOUND");
-    }
-  } else {
-    const folder = await db.query.folders.findFirst({
-      where: and(eq(folders.id, itemId), eq(folders.ownerId, userId)),
-    });
-    if (!folder) {
-      throw new Error("FOLDER_NOT_FOUND");
-    }
-  }
+  // Verify item exists and check for existing entry in parallel (independent queries)
+  const [itemExists, existingEntry] = await Promise.all([
+    itemType === "asset"
+      ? db.query.assets.findFirst({
+          where: and(eq(assets.id, itemId), eq(assets.ownerId, userId)),
+        })
+      : db.query.folders.findFirst({
+          where: and(eq(folders.id, itemId), eq(folders.ownerId, userId)),
+        }),
+    db.query.recentActivity.findFirst({
+      where: and(
+        eq(recentActivity.userId, userId),
+        itemType === "asset"
+          ? eq(recentActivity.assetId, itemId)
+          : eq(recentActivity.folderId, itemId)
+      ),
+    }),
+  ]);
 
-  // Check if entry already exists
-  const existingEntry = await db.query.recentActivity.findFirst({
-    where: and(
-      eq(recentActivity.userId, userId),
-      itemType === "asset"
-        ? eq(recentActivity.assetId, itemId)
-        : eq(recentActivity.folderId, itemId)
-    ),
-  });
+  if (!itemExists) {
+    throw new Error(itemType === "asset" ? "ASSET_NOT_FOUND" : "FOLDER_NOT_FOUND");
+  }
 
   if (existingEntry) {
     // Update the access timestamp

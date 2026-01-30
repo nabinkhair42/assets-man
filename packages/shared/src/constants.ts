@@ -12,21 +12,22 @@ export const PREVIEWABLE_MIME_TYPES = {
   document: ["application/pdf"],
 } as const;
 
+// Precomputed lookup maps for O(1) checks (Rule 7.11)
+const MIME_TO_CATEGORY = new Map<string, "image" | "video" | "audio" | "document">();
+for (const [category, types] of Object.entries(PREVIEWABLE_MIME_TYPES)) {
+  for (const type of types) {
+    MIME_TO_CATEGORY.set(type, category as "image" | "video" | "audio" | "document");
+  }
+}
+
 export function isPreviewable(mimeType: string): boolean {
-  const allTypes: readonly string[] =
-    Object.values(PREVIEWABLE_MIME_TYPES).flat();
-  return allTypes.includes(mimeType);
+  return MIME_TO_CATEGORY.has(mimeType);
 }
 
 export function getFileCategory(
   mimeType: string
 ): "image" | "video" | "audio" | "document" | "other" {
-  if (PREVIEWABLE_MIME_TYPES.image.includes(mimeType as never)) return "image";
-  if (PREVIEWABLE_MIME_TYPES.video.includes(mimeType as never)) return "video";
-  if (PREVIEWABLE_MIME_TYPES.audio.includes(mimeType as never)) return "audio";
-  if (PREVIEWABLE_MIME_TYPES.document.includes(mimeType as never))
-    return "document";
-  return "other";
+  return MIME_TO_CATEGORY.get(mimeType) ?? "other";
 }
 
 // Auth constants

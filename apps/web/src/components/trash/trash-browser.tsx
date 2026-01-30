@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Trash2, RotateCcw, X, RefreshCw } from "lucide-react";
 import { TrashSkeleton } from "@/components/loaders/trash-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -8,8 +9,14 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SearchCommand } from "@/components/dialog/search-command";
 import { Button } from "@/components/ui/button";
-import { EmptyTrashDialog, EmptyTrashTrigger } from "@/components/dialog/empty-trash-dialog";
-import { PermanentDeleteDialog } from "@/components/dialog/permanent-delete-dialog";
+import { EmptyTrashTrigger } from "@/components/dialog/empty-trash-dialog";
+
+const EmptyTrashDialog = dynamic(() => import("@/components/dialog/empty-trash-dialog").then(m => ({ default: m.EmptyTrashDialog })));
+const PermanentDeleteDialog = dynamic(() => import("@/components/dialog/permanent-delete-dialog").then(m => ({ default: m.PermanentDeleteDialog })));
+
+// Preload functions for intent-based loading (Rule 2.5)
+const preloadEmptyTrashDialog = () => void import("@/components/dialog/empty-trash-dialog");
+const preloadPermanentDeleteDialog = () => void import("@/components/dialog/permanent-delete-dialog");
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListHeader } from "@/components/shared/list-header";
 import { InfiniteScrollTrigger } from "@/components/shared/infinite-scroll-trigger";
@@ -26,11 +33,17 @@ import type { TrashedItem } from "@/types/trash";
 export function TrashBrowser() {
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
   const [deleteItem, setDeleteItem] = useState<TrashedItem | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(() => new Map());
   const lastSelectedIndex = useRef<number | null>(null);
   const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const selectionMode = selectedItems.size > 0;
+
+  // Preload dialogs based on user intent (Rule 2.5)
+  useEffect(() => {
+    if (!selectionMode) return;
+    preloadPermanentDeleteDialog();
+  }, [selectionMode]);
 
   const {
     data: trashData,
@@ -57,7 +70,14 @@ export function TrashBrowser() {
     }));
   }, [items]);
 
-  const handleRestore = (item: TrashedItem) => {
+  // Index map for O(1) lookups in selection handlers (Rule 7.6)
+  const allItemIndex = useMemo(() => {
+    const map = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
+    return map;
+  }, [allItems]);
+
+  const handleRestore = useCallback((item: TrashedItem) => {
     const toastId = toast.loading(`Restoring ${item.name}`);
     restoreItem.mutate(
       { id: item.id, type: item.itemType },
@@ -66,11 +86,11 @@ export function TrashBrowser() {
         onError: (error) => toast.error(getApiErrorMessage(error, `Failed to restore ${item.name}`), { id: toastId }),
       }
     );
-  };
+  }, [restoreItem]);
 
-  const handlePermanentDelete = (item: TrashedItem) => {
+  const handlePermanentDelete = useCallback((item: TrashedItem) => {
     setDeleteItem(item);
-  };
+  }, []);
 
   // Selection handlers
   const handleItemSelect = useCallback((
@@ -112,9 +132,9 @@ export function TrashBrowser() {
   }, [allItems]);
 
   const handleSelectItem = useCallback((item: TrashedItem, selected: boolean, shiftKey = false) => {
-    const index = allItems.findIndex((i) => i.type === item.itemType && i.id === item.id);
-    handleItemSelect(index, item.id, item.itemType, item.name, selected, shiftKey);
-  }, [allItems, handleItemSelect]);
+    const entry = allItemIndex.get(`${item.itemType}-${item.id}`);
+    handleItemSelect(entry?.index ?? -1, item.id, item.itemType, item.name, selected, shiftKey);
+  }, [allItemIndex, handleItemSelect]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -129,15 +149,13 @@ export function TrashBrowser() {
 
     const newSelection = new Map<string, SelectedItem>();
     for (const id of selectedIds) {
-      const [type, ...idParts] = id.split("-");
-      const itemId = idParts.join("-");
-      const item = allItems.find((i) => i.type === type && i.id === itemId);
-      if (item) {
-        newSelection.set(id, { id: itemId, type: item.type as "folder" | "asset", name: item.name });
+      const entry = allItemIndex.get(id);
+      if (entry) {
+        newSelection.set(id, { id: entry.item.id, type: entry.item.type as "folder" | "asset", name: entry.item.name });
       }
     }
     setSelectedItems(newSelection);
-  }, [allItems, handleClearSelection]);
+  }, [allItemIndex, handleClearSelection]);
 
   // Marquee selection hook
   const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
@@ -148,23 +166,18 @@ export function TrashBrowser() {
     itemSelector: "[data-item-id]",
   });
 
-  // Bulk operations
+  // Bulk operations — parallelized with Promise.allSettled (Rule 1.4)
   const handleBulkRestore = useCallback(async () => {
     const selectedList = Array.from(selectedItems.values());
     if (selectedList.length === 0) return;
 
     const toastId = toast.loading(`Restoring ${selectedList.length} items`);
-    let successCount = 0;
-    let failCount = 0;
+    const results = await Promise.allSettled(
+      selectedList.map((item) => restoreItem.mutateAsync({ id: item.id, type: item.type }))
+    );
 
-    for (const item of selectedList) {
-      try {
-        await restoreItem.mutateAsync({ id: item.id, type: item.type });
-        successCount++;
-      } catch {
-        failCount++;
-      }
-    }
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    const failCount = results.length - successCount;
 
     handleClearSelection();
     if (failCount === 0) {
@@ -179,17 +192,12 @@ export function TrashBrowser() {
     if (selectedList.length === 0) return;
 
     const toastId = toast.loading(`Deleting ${selectedList.length} items permanently`);
-    let successCount = 0;
-    let failCount = 0;
+    const results = await Promise.allSettled(
+      selectedList.map((item) => permanentlyDelete.mutateAsync({ id: item.id, type: item.type }))
+    );
 
-    for (const item of selectedList) {
-      try {
-        await permanentlyDelete.mutateAsync({ id: item.id, type: item.type });
-        successCount++;
-      } catch {
-        failCount++;
-      }
-    }
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    const failCount = results.length - successCount;
 
     handleClearSelection();
     if (failCount === 0) {
@@ -290,7 +298,9 @@ export function TrashBrowser() {
             {/* Empty Trash button */}
             {items.length > 0 && (
               <div className="ml-1">
-                <EmptyTrashTrigger onClick={() => setEmptyDialogOpen(true)} />
+                <span onMouseEnter={preloadEmptyTrashDialog} onFocus={preloadEmptyTrashDialog}>
+                  <EmptyTrashTrigger onClick={() => setEmptyDialogOpen(true)} />
+                </span>
               </div>
             )}
           </div>

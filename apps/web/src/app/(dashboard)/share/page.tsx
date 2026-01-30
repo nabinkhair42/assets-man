@@ -82,6 +82,15 @@ export default function SharedWithMePage() {
   const sharedFolders = useMemo(() => allItems.filter((item) => item.type === "folder"), [allItems]);
   const sharedFiles = useMemo(() => allItems.filter((item) => item.type === "asset"), [allItems]);
 
+  // Index maps for O(1) lookups
+  const allItemIndex = useMemo(() => {
+    const map = new Map<string, { item: SharedItem; index: number }>();
+    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
+    map.forEach(({ item }) => map.set(item.id, { item, index: 0 }));
+    return map;
+  }, [allItems]);
+  const sharesById = useMemo(() => new Map(shares.map((s) => [s.id, s])), [shares]);
+
   const handleNavigate = (folderId: string | null) => {
     if (folderId) {
       router.push(`/files?folderId=${folderId}`);
@@ -112,11 +121,9 @@ export default function SharedWithMePage() {
 
   const handleOpen = useCallback((item: SharedItem) => {
     if (item.type === "folder") {
-      // Navigate to folder
       handleNavigate(item.itemId);
     } else {
-      // Find the share to get asset details
-      const share = shares.find((s) => s.id === item.shareId);
+      const share = sharesById.get(item.shareId);
       if (share && share.assetId) {
         setPreviewAsset({
           id: share.assetId,
@@ -135,7 +142,7 @@ export default function SharedWithMePage() {
         });
       }
     }
-  }, [shares, handleNavigate]);
+  }, [sharesById, handleNavigate]);
 
   // Selection handlers
   const handleItemSelect = useCallback((
@@ -189,16 +196,13 @@ export default function SharedWithMePage() {
 
     const newSelection = new Map<string, SelectedItem>();
     for (const id of selectedIds) {
-      // id format is "folder-{id}" or "asset-{id}"
-      const [type, ...idParts] = id.split("-");
-      const itemId = idParts.join("-");
-      const item = allItems.find((i) => i.type === type && i.id === itemId);
-      if (item) {
-        newSelection.set(id, { id: itemId, type: item.type as "folder" | "asset", name: item.name });
+      const entry = allItemIndex.get(id);
+      if (entry) {
+        newSelection.set(id, { id: entry.item.id, type: entry.item.type as "folder" | "asset", name: entry.item.name });
       }
     }
     setSelectedItems(newSelection);
-  }, [allItems, handleClearSelection]);
+  }, [allItemIndex, handleClearSelection]);
 
   // Marquee selection hook
   const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
@@ -225,12 +229,11 @@ export default function SharedWithMePage() {
     }
 
     // Get the actual item IDs (not share IDs)
-    const assetIds = assetItems
-      .map((item) => {
-        const sharedItem = allItems.find((i) => i.id === item.id);
-        return sharedItem?.itemId;
-      })
-      .filter((id): id is string => !!id);
+    const assetIds: string[] = [];
+    for (const item of assetItems) {
+      const entry = allItemIndex.get(item.id);
+      if (entry?.item.itemId) assetIds.push(entry.item.itemId);
+    }
 
     if (assetIds.length === 0) {
       toast.info("No files selected for download");
@@ -256,7 +259,7 @@ export default function SharedWithMePage() {
     } catch (error) {
       toast.error(getApiErrorMessage(error), { id: toastId });
     }
-  }, [selectedItems, allItems, handleClearSelection]);
+  }, [selectedItems, allItemIndex, handleClearSelection]);
 
   const handleSelectAll = useCallback(() => {
     const newSelection = new Map<string, SelectedItem>();
@@ -269,11 +272,9 @@ export default function SharedWithMePage() {
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
     const [selectedKey] = Array.from(selectedItems.keys());
-    const [type, ...idParts] = selectedKey.split("-");
-    const itemId = idParts.join("-");
-    const sharedItem = allItems.find((i) => i.type === type && i.id === itemId);
-    if (sharedItem) handleOpen(sharedItem);
-  }, [selectedItems, allItems, handleOpen]);
+    const entry = allItemIndex.get(selectedKey);
+    if (entry) handleOpen(entry.item);
+  }, [selectedItems, allItemIndex, handleOpen]);
 
   // Keyboard shortcuts (limited - shared items can't be deleted/moved/renamed)
   const shortcuts: KeyboardShortcut[] = useMemo(() => [

@@ -89,6 +89,15 @@ export default function StarredPage() {
     return items;
   }, [starredFolders, starredAssets]);
 
+  // Index maps for O(1) lookups in keyboard/marquee handlers
+  const folderMap = useMemo(() => new Map(starredFolders.map((f) => [f.id, f])), [starredFolders]);
+  const assetMap = useMemo(() => new Map(starredAssets.map((a) => [a.id, a])), [starredAssets]);
+  const allItemIndex = useMemo(() => {
+    const map = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
+    return map;
+  }, [allItems]);
+
   const isLoading = foldersLoading || assetsLoading;
 
   const handleNavigate = (folderId: string | null) => {
@@ -178,14 +187,14 @@ export default function StarredPage() {
   }, [allItems]);
 
   const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
-    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
-  }, [allItems, handleItemSelect]);
+    const entry = allItemIndex.get(`folder-${folder.id}`);
+    handleItemSelect(entry?.index ?? -1, folder.id, "folder", folder.name, selected, shiftKey);
+  }, [allItemIndex, handleItemSelect]);
 
   const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
-    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
-  }, [allItems, handleItemSelect]);
+    const entry = allItemIndex.get(`asset-${asset.id}`);
+    handleItemSelect(entry?.index ?? -1, asset.id, "asset", asset.name, selected, shiftKey);
+  }, [allItemIndex, handleItemSelect]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -200,15 +209,13 @@ export default function StarredPage() {
 
     const newSelection = new Map<string, SelectedItem>();
     for (const id of selectedIds) {
-      const [type, ...idParts] = id.split("-");
-      const itemId = idParts.join("-");
-      const item = allItems.find((i) => i.type === type && i.id === itemId);
-      if (item) {
-        newSelection.set(id, { id: itemId, type: item.type, name: item.name });
+      const entry = allItemIndex.get(id);
+      if (entry) {
+        newSelection.set(id, { id: entry.item.id, type: entry.item.type, name: entry.item.name });
       }
     }
     setSelectedItems(newSelection);
-  }, [allItems, handleClearSelection]);
+  }, [allItemIndex, handleClearSelection]);
 
   // Marquee selection hook
   const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
@@ -244,8 +251,12 @@ export default function StarredPage() {
 
   const handleBulkDownload = useCallback(async () => {
     const items = Array.from(selectedItems.values());
-    const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
-    const folderIds = items.filter((item) => item.type === "folder").map((item) => item.id);
+    const assetIds: string[] = [];
+    const folderIds: string[] = [];
+    for (const item of items) {
+      if (item.type === "asset") assetIds.push(item.id);
+      else folderIds.push(item.id);
+    }
 
     if (assetIds.length === 0 && folderIds.length === 0) {
       toast.info("No items selected for download");
@@ -287,13 +298,13 @@ export default function StarredPage() {
     const [type, ...idParts] = selectedKey.split("-");
     const itemId = idParts.join("-");
     if (type === "folder") {
-      const folder = starredFolders.find((f) => f.id === itemId);
+      const folder = folderMap.get(itemId);
       if (folder) handleStarFolder(folder);
     } else {
-      const asset = starredAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) handleStarAsset(asset);
     }
-  }, [selectedItems, starredFolders, starredAssets, handleStarFolder, handleStarAsset]);
+  }, [selectedItems, folderMap, assetMap, handleStarFolder, handleStarAsset]);
 
   const handleKeyboardRename = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -301,13 +312,13 @@ export default function StarredPage() {
     const [type, ...idParts] = selectedKey.split("-");
     const itemId = idParts.join("-");
     if (type === "folder") {
-      const folder = starredFolders.find((f) => f.id === itemId);
+      const folder = folderMap.get(itemId);
       if (folder) setRenameItem({ item: folder, type: "folder" });
     } else {
-      const asset = starredAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) setRenameItem({ item: asset, type: "asset" });
     }
-  }, [selectedItems, starredFolders, starredAssets]);
+  }, [selectedItems, folderMap, assetMap]);
 
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -317,10 +328,10 @@ export default function StarredPage() {
     if (type === "folder") {
       handleNavigate(itemId);
     } else {
-      const asset = starredAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) handlePreview(asset);
     }
-  }, [selectedItems, starredAssets, handleNavigate, handlePreview]);
+  }, [selectedItems, assetMap, handleNavigate, handlePreview]);
 
   const handleRefresh = useCallback(() => {
     refetchFolders();

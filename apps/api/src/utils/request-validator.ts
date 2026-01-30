@@ -48,12 +48,18 @@ export function validate(options: ValidateOptions): RequestHandler {
     // Initialize validated object
     req.validated = {};
 
-    for (const target of targets) {
-      const schema = options[target];
-      if (!schema) continue;
+    // Validate all targets in parallel (Rule 1.4)
+    const validations = targets
+      .filter((target) => options[target])
+      .map(async (target) => {
+        const schema = options[target]!;
+        const result = await schema.safeParseAsync(req[target]);
+        return { target, result };
+      });
 
-      const result = await schema.safeParseAsync(req[target]);
+    const results = await Promise.all(validations);
 
+    for (const { target, result } of results) {
       if (!result.success) {
         Object.assign(errors, formatZodErrors(result.error));
       } else {
@@ -65,16 +71,10 @@ export function validate(options: ValidateOptions): RequestHandler {
           req.body = result.data;
         }
         // For query and params, update the original object in place
-        if (target === "query") {
+        if (target === "query" || target === "params") {
           const data = result.data as Record<string, unknown>;
           for (const [key, value] of Object.entries(data)) {
-            (req.query as Record<string, unknown>)[key] = value;
-          }
-        }
-        if (target === "params") {
-          const data = result.data as Record<string, unknown>;
-          for (const [key, value] of Object.entries(data)) {
-            (req.params as Record<string, unknown>)[key] = value;
+            (req[target] as Record<string, unknown>)[key] = value;
           }
         }
       }

@@ -38,9 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Fetch user data
-        const { authService } = await import("@/services/auth-service");
-        const { storageKeys } = await import("@/hooks/use-storage");
+        // Fetch user data — load service modules in parallel
+        const [{ authService }, { storageKeys }] = await Promise.all([
+          import("@/services/auth-service"),
+          import("@/hooks/use-storage"),
+        ]);
         const response = await authService.getMe();
         setUser(response.user);
         queryClient.setQueryData(authKeys.me(), response.user);

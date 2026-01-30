@@ -1,19 +1,18 @@
 import { FolderBreadcrumbs } from '@/components'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { ThemeToggle } from '@/components/theme-toggle'
 import { SearchCommand } from '@/components/dialog/search-command'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Folder, Asset, SortBy, SortOrder } from '@/types'
-import { LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Asset, Folder, SortBy, SortOrder } from '@/types'
+import { ArrowDown, ArrowUp, ArrowUpDown, LayoutGrid, List, RefreshCw } from 'lucide-react'
 
 export interface SortConfig {
   sortBy: SortBy
@@ -70,7 +69,7 @@ const AppHeader = ({
           <SidebarTrigger className="h-8 w-8" />
 
           {/* Mobile: Show current folder name or title */}
-          <span className="sm:hidden font-semibold text-sm truncate max-w-[100px]">
+          <span className="sm:hidden font-semibold text-sm truncate max-w-25">
             {title || currentFolderName}
           </span>
 
@@ -142,8 +141,6 @@ const AppHeader = ({
             </Button>
           )}
 
-          {/* Theme toggle */}
-          <ThemeToggle />
 
           {/* View mode toggle */}
           <div className="hidden sm:flex items-center ml-1 p-0.5 rounded-lg bg-muted/50">

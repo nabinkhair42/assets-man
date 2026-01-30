@@ -51,27 +51,29 @@ export function BulkDeleteDialog({
 
     const toastId = toast.loading(`Deleting ${items.length} items`);
 
-    for (const item of items) {
-      try {
+    const results = await Promise.allSettled(
+      items.map((item) => {
         if (item.type === "folder") {
-          await new Promise<void>((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             deleteFolder.mutate(item.id, {
               onSuccess: () => resolve(),
               onError: () => reject(),
             });
           });
         } else {
-          await new Promise<void>((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             deleteAsset.mutate(item.id, {
               onSuccess: () => resolve(),
               onError: () => reject(),
             });
           });
         }
-        successCount++;
-      } catch {
-        failCount++;
-      }
+      })
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") successCount++;
+      else failCount++;
     }
 
     setIsDeleting(false);

@@ -1,3 +1,4 @@
+import { Readable } from "stream";
 import {
   S3Client,
   PutObjectCommand,
@@ -144,7 +145,7 @@ export function createS3Client(config: StorageConfig): StorageClient {
       );
     },
 
-    async getObjectStream(key: string): Promise<import("stream").Readable> {
+    async getObjectStream(key: string): Promise<Readable> {
       const response = await client.send(
         new GetObjectCommand({
           Bucket: bucket,
@@ -154,9 +155,7 @@ export function createS3Client(config: StorageConfig): StorageClient {
       if (!response.Body) {
         throw new Error(`Failed to get object stream for key: ${key}`);
       }
-      // AWS SDK v3 returns a SdkStream, which has transformToByteArray, transformToString, transformToWebStream
-      // For archiver compatibility, we need to convert it to a Node.js stream
-      const { Readable } = await import("stream");
+      // AWS SDK v3 returns a SdkStream — convert to Node.js Readable for archiver compatibility
       const webStream = response.Body.transformToWebStream();
       return Readable.fromWeb(webStream as Parameters<typeof Readable.fromWeb>[0]);
     },

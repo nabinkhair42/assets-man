@@ -11,6 +11,14 @@ const CopyDialog = dynamic(() => import("@/components/dialog/copy-dialog").then(
 const FilePreviewDialog = dynamic(() => import("@/components/dialog/file-preview-dialog").then(m => ({ default: m.FilePreviewDialog })));
 const MoveDialog = dynamic(() => import("@/components/dialog/move-dialog").then(m => ({ default: m.MoveDialog })));
 const ShareDialog = dynamic(() => import("@/components/dialog/share-dialog").then(m => ({ default: m.ShareDialog })));
+
+// Preload functions for dynamic dialog chunks
+const preloadBulkDeleteDialog = () => void import("@/components/dialog/bulk-delete-dialog");
+const preloadBulkMoveDialog = () => void import("@/components/dialog/bulk-move-dialog");
+const preloadCopyDialog = () => void import("@/components/dialog/copy-dialog");
+const preloadFilePreviewDialog = () => void import("@/components/dialog/file-preview-dialog");
+const preloadMoveDialog = () => void import("@/components/dialog/move-dialog");
+const preloadShareDialog = () => void import("@/components/dialog/share-dialog");
 import AppHeader, { type SortConfig } from "@/components/layouts/app-header";
 import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -226,6 +234,20 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
     useFileActions();
 
   const selectionMode = selectedItems.size > 0;
+
+  // Preload dialog chunks when selection mode activates
+  useEffect(() => {
+    if (!selectionMode) return;
+    preloadBulkDeleteDialog();
+    preloadBulkMoveDialog();
+    if (selectedItems.size === 1) {
+      // Single item selected — user likely to rename/move/copy/share/preview
+      preloadMoveDialog();
+      preloadCopyDialog();
+      preloadShareDialog();
+      preloadFilePreviewDialog();
+    }
+  }, [selectionMode, selectedItems.size]);
 
   // Register triggers for sidebar actions
   useEffect(() => {
@@ -1295,6 +1317,8 @@ export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
         onDelete={handleBulkDelete}
         onMove={handleBulkMove}
         onDownload={handleBulkDownload}
+        onDeleteHover={preloadBulkDeleteDialog}
+        onMoveHover={preloadBulkMoveDialog}
       />
 
       <MobileFab

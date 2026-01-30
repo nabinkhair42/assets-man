@@ -40,6 +40,8 @@ import { LogoutDialog } from "@/components/dialog/logout-dialog";
 import { KeyboardShortcutsDialog } from "@/components/dialog/keyboard-shortcuts-dialog";
 import { StorageIndicator } from "@/components/layouts/storage-indicator";
 import { useFileActions } from "@/contexts/file-actions-context";
+import { useTheme } from "next-themes";
+import {Sun, Moon} from "lucide-react"
 
 const navItems = [
   { title: "All Files", href: "/files", icon: Files },
@@ -54,6 +56,8 @@ export function AppSidebar() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
   const { triggerUpload, triggerCreateFolder, isUploading } = useFileActions();
+    const { setTheme, resolvedTheme } = useTheme()
+
 
   const isTrashPage = pathname === "/trash";
 
@@ -102,7 +106,7 @@ export function AppSidebar() {
                       disabled={isUploading}
                     >
                       <Upload className="size-4 mr-2" />
-                      {isUploading ? "Uploading..." : "Upload File"}
+                      {isUploading ? "Uploading" : "Upload File"}
                       <DropdownMenuShortcut>Ctrl+U</DropdownMenuShortcut>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -145,14 +149,14 @@ export function AppSidebar() {
                 <span>Shortcuts</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/* <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Settings">
-                <Link href="/settings">
-                  <Settings className="size-4" />
-                  <span>Settings</span>
-                </Link>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+                {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                <span>
+                  {resolvedTheme === "dark" ? "Light Mode" : "Dark Mode"}
+                </span>
               </SidebarMenuButton>
-            </SidebarMenuItem> */}
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={() => setLogoutDialogOpen(true)}

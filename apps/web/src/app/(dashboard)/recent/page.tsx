@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Clock } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,12 +23,20 @@ import { useFileBrowserShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { DraggableFolderItem } from "@/components/files/draggable-folder-item";
 import { DraggableFileItem } from "@/components/files/draggable-file-item";
-import { BulkDeleteDialog } from "@/components/dialog/bulk-delete-dialog";
-import { BulkMoveDialog } from "@/components/dialog/bulk-move-dialog";
-import { RenameDialog } from "@/components/dialog/rename-dialog";
-import { DeleteDialog } from "@/components/dialog/delete-dialog";
-import { MoveDialog } from "@/components/dialog/move-dialog";
-import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
+const BulkDeleteDialog = dynamic(() => import("@/components/dialog/bulk-delete-dialog").then(m => ({ default: m.BulkDeleteDialog })));
+const BulkMoveDialog = dynamic(() => import("@/components/dialog/bulk-move-dialog").then(m => ({ default: m.BulkMoveDialog })));
+const RenameDialog = dynamic(() => import("@/components/dialog/rename-dialog").then(m => ({ default: m.RenameDialog })));
+const DeleteDialog = dynamic(() => import("@/components/dialog/delete-dialog").then(m => ({ default: m.DeleteDialog })));
+const MoveDialog = dynamic(() => import("@/components/dialog/move-dialog").then(m => ({ default: m.MoveDialog })));
+const FilePreviewDialog = dynamic(() => import("@/components/dialog/file-preview-dialog").then(m => ({ default: m.FilePreviewDialog })));
+
+// Preload functions for intent-based loading (Rule 2.5)
+const preloadBulkDeleteDialog = () => void import("@/components/dialog/bulk-delete-dialog");
+const preloadBulkMoveDialog = () => void import("@/components/dialog/bulk-move-dialog");
+const preloadRenameDialog = () => void import("@/components/dialog/rename-dialog");
+const preloadDeleteDialog = () => void import("@/components/dialog/delete-dialog");
+const preloadMoveDialog = () => void import("@/components/dialog/move-dialog");
+const preloadFilePreviewDialog = () => void import("@/components/dialog/file-preview-dialog");
 import { EmptyState } from "@/components/shared/empty-state";
 import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
 import { RECENT_LIST_COLUMNS } from "@/components/shared/list-columns";
@@ -52,11 +61,24 @@ export default function RecentPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<{ id: string; type: "folder" | "asset"; data: Folder | Asset } | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(new Map());
+  const [selectedItems, setSelectedItems] = useState<Map<string, SelectedItem>>(() => new Map());
   const lastSelectedIndex = useRef<number | null>(null);
   const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const selectionMode = selectedItems.size > 0;
+
+  // Preload dialogs based on user intent (Rule 2.5)
+  useEffect(() => {
+    if (!selectionMode) return;
+    preloadBulkDeleteDialog();
+    preloadBulkMoveDialog();
+    if (selectedItems.size === 1) {
+      preloadRenameDialog();
+      preloadDeleteDialog();
+      preloadMoveDialog();
+      preloadFilePreviewDialog();
+    }
+  }, [selectionMode, selectedItems.size]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -69,35 +91,34 @@ export default function RecentPage() {
   const toggleAssetStarred = useToggleAssetStarred();
   const toggleFolderStarred = useToggleFolderStarred();
 
-  // Extract folders and assets from recent items
-  const recentFolders = useMemo(() => {
-    if (!recentData?.items) return [];
-    return recentData.items
-      .filter((item) => item.itemType === "folder" && item.folder)
-      .map((item) => item.folder as Folder);
+  // Extract folders, assets, and allItems in a single iteration (Rule 7.6)
+  const { recentFolders, recentAssets, allItems } = useMemo(() => {
+    if (!recentData?.items) return { recentFolders: [] as Folder[], recentAssets: [] as Asset[], allItems: [] as { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }[] };
+    const folders: Folder[] = [];
+    const assets: Asset[] = [];
+    const items: { id: string; type: "folder" | "asset"; name: string; data: Folder | Asset; accessedAt: string }[] = [];
+    for (const item of recentData.items) {
+      if (item.itemType === "folder" && item.folder) {
+        folders.push(item.folder);
+        items.push({ id: item.folder.id, type: item.itemType, name: item.folder.name, data: item.folder, accessedAt: item.accessedAt });
+      } else if (item.itemType === "asset" && item.asset) {
+        assets.push(item.asset);
+        items.push({ id: item.asset.id, type: item.itemType, name: item.asset.name, data: item.asset, accessedAt: item.accessedAt });
+      }
+    }
+    return { recentFolders: folders, recentAssets: assets, allItems: items };
   }, [recentData]);
 
-  const recentAssets = useMemo(() => {
-    if (!recentData?.items) return [];
-    return recentData.items
-      .filter((item) => item.itemType === "asset" && item.asset)
-      .map((item) => item.asset as Asset);
-  }, [recentData]);
+  // Index maps for O(1) lookups in keyboard/marquee handlers
+  const folderMap = useMemo(() => new Map(recentFolders.map((f) => [f.id, f])), [recentFolders]);
+  const assetMap = useMemo(() => new Map(recentAssets.map((a) => [a.id, a])), [recentAssets]);
+  const allItemIndex = useMemo(() => {
+    const map = new Map<string, { item: typeof allItems[0]; index: number }>();
+    allItems.forEach((item, index) => map.set(`${item.type}-${item.id}`, { item, index }));
+    return map;
+  }, [allItems]);
 
-  const allItems = useMemo(() => {
-    if (!recentData?.items) return [];
-    return recentData.items
-      .filter((item) => (item.itemType === "folder" && item.folder) || (item.itemType === "asset" && item.asset))
-      .map((item) => ({
-        id: item.itemType === "folder" ? item.folder!.id : item.asset!.id,
-        type: item.itemType,
-        name: item.itemType === "folder" ? item.folder!.name : item.asset!.name,
-        data: item.itemType === "folder" ? item.folder! : item.asset!,
-        accessedAt: item.accessedAt,
-      }));
-  }, [recentData]);
-
-  const handleNavigate = (folderId: string | null) => {
+  const handleNavigate = useCallback((folderId: string | null) => {
     if (folderId) {
       // Record the folder access
       recentService.recordAccess({ itemId: folderId, itemType: "folder" }).catch(() => {});
@@ -105,7 +126,7 @@ export default function RecentPage() {
     } else {
       router.push("/files");
     }
-  };
+  }, [router]);
 
   const handleDownload = async (asset: Asset) => {
     try {
@@ -192,14 +213,14 @@ export default function RecentPage() {
   }, [allItems]);
 
   const handleSelectFolder = useCallback((folder: Folder, selected: boolean, shiftKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "folder" && item.id === folder.id);
-    handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
-  }, [allItems, handleItemSelect]);
+    const entry = allItemIndex.get(`folder-${folder.id}`);
+    handleItemSelect(entry?.index ?? -1, folder.id, "folder", folder.name, selected, shiftKey);
+  }, [allItemIndex, handleItemSelect]);
 
   const handleSelectAsset = useCallback((asset: Asset, selected: boolean, shiftKey = false) => {
-    const index = allItems.findIndex((item) => item.type === "asset" && item.id === asset.id);
-    handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
-  }, [allItems, handleItemSelect]);
+    const entry = allItemIndex.get(`asset-${asset.id}`);
+    handleItemSelect(entry?.index ?? -1, asset.id, "asset", asset.name, selected, shiftKey);
+  }, [allItemIndex, handleItemSelect]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedItems(new Map());
@@ -214,15 +235,13 @@ export default function RecentPage() {
 
     const newSelection = new Map<string, SelectedItem>();
     for (const id of selectedIds) {
-      const [type, ...idParts] = id.split("-");
-      const itemId = idParts.join("-");
-      const item = allItems.find((i) => i.type === type && i.id === itemId);
-      if (item) {
-        newSelection.set(id, { id: itemId, type: item.type, name: item.name });
+      const entry = allItemIndex.get(id);
+      if (entry) {
+        newSelection.set(id, { id: entry.item.id, type: entry.item.type, name: entry.item.name });
       }
     }
     setSelectedItems(newSelection);
-  }, [allItems, handleClearSelection]);
+  }, [allItemIndex, handleClearSelection]);
 
   // Marquee selection hook
   const { isSelecting: isMarqueeSelecting, marqueeRect, pendingSelection, handleMouseDown: handleMarqueeMouseDown } = useMarqueeSelection({
@@ -263,13 +282,13 @@ export default function RecentPage() {
     const [type, ...idParts] = selectedKey.split("-");
     const itemId = idParts.join("-");
     if (type === "folder") {
-      const folder = recentFolders.find((f) => f.id === itemId);
+      const folder = folderMap.get(itemId);
       if (folder) handleStarFolder(folder);
     } else {
-      const asset = recentAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) handleStarAsset(asset);
     }
-  }, [selectedItems, recentFolders, recentAssets, handleStarFolder, handleStarAsset]);
+  }, [selectedItems, folderMap, assetMap, handleStarFolder, handleStarAsset]);
 
   const handleKeyboardRename = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -277,13 +296,13 @@ export default function RecentPage() {
     const [type, ...idParts] = selectedKey.split("-");
     const itemId = idParts.join("-");
     if (type === "folder") {
-      const folder = recentFolders.find((f) => f.id === itemId);
+      const folder = folderMap.get(itemId);
       if (folder) setRenameItem({ item: folder, type: "folder" });
     } else {
-      const asset = recentAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) setRenameItem({ item: asset, type: "asset" });
     }
-  }, [selectedItems, recentFolders, recentAssets]);
+  }, [selectedItems, folderMap, assetMap]);
 
   const handleKeyboardPreview = useCallback(() => {
     if (selectedItems.size !== 1) return;
@@ -293,15 +312,19 @@ export default function RecentPage() {
     if (type === "folder") {
       handleNavigate(itemId);
     } else {
-      const asset = recentAssets.find((a) => a.id === itemId);
+      const asset = assetMap.get(itemId);
       if (asset) handlePreview(asset);
     }
-  }, [selectedItems, recentAssets, handleNavigate, handlePreview]);
+  }, [selectedItems, assetMap, handleNavigate, handlePreview]);
 
   const handleBulkDownload = useCallback(async () => {
     const items = Array.from(selectedItems.values());
-    const assetIds = items.filter((item) => item.type === "asset").map((item) => item.id);
-    const folderIds = items.filter((item) => item.type === "folder").map((item) => item.id);
+    const assetIds: string[] = [];
+    const folderIds: string[] = [];
+    for (const item of items) {
+      if (item.type === "asset") assetIds.push(item.id);
+      else folderIds.push(item.id);
+    }
 
     if (assetIds.length === 0 && folderIds.length === 0) {
       toast.info("No items selected for download");
@@ -443,7 +466,7 @@ export default function RecentPage() {
                     <DataGridSection title="Folders">
                       <DataGridFolderContainer>
                         {recentFolders.map((folder) => {
-                          const index = allItems.findIndex((i) => i.type === "folder" && i.id === folder.id);
+                          const entry = allItemIndex.get(`folder-${folder.id}`);
                           return (
                             <DraggableFolderItem
                               key={`folder-${folder.id}`}
@@ -454,7 +477,7 @@ export default function RecentPage() {
                               onMove={(f) => handleMove(f, "folder")}
                               onStar={handleStarFolder}
                               viewMode={viewMode}
-                              index={index}
+                              index={entry?.index ?? -1}
                               isSelected={selectedItems.has(`folder-${folder.id}`)}
                               isPendingSelection={pendingSelection.has(`folder-${folder.id}`)}
                               onSelect={handleSelectFolder}
@@ -476,7 +499,7 @@ export default function RecentPage() {
                     <DataGridSection title="Files">
                       <DataGridFileContainer>
                         {recentAssets.map((asset) => {
-                          const index = allItems.findIndex((i) => i.type === "asset" && i.id === asset.id);
+                          const entry = allItemIndex.get(`asset-${asset.id}`);
                           return (
                             <DraggableFileItem
                               key={`asset-${asset.id}`}
@@ -488,7 +511,7 @@ export default function RecentPage() {
                               onStar={handleStarAsset}
                               onPreview={handlePreview}
                               viewMode={viewMode}
-                              index={index}
+                              index={entry?.index ?? -1}
                               isSelected={selectedItems.has(`asset-${asset.id}`)}
                               isPendingSelection={pendingSelection.has(`asset-${asset.id}`)}
                               onSelect={handleSelectAsset}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/utils";
 
 export default function ForgotPasswordPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const form = useForm<ForgotPasswordFormValues>({
@@ -34,16 +34,15 @@ export default function ForgotPasswordPage() {
     },
   });
 
-  const onSubmit = async (values: ForgotPasswordFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await authService.forgotPassword(values.email);
-      setIsSubmitted(true);
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = (values: ForgotPasswordFormValues) => {
+    startTransition(async () => {
+      try {
+        await authService.forgotPassword(values.email);
+        setIsSubmitted(true);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error));
+      }
+    });
   };
 
   if (isSubmitted) {
@@ -123,8 +122,8 @@ export default function ForgotPasswordPage() {
           <Button
             type="submit"
             className="w-full mt-2"
-            disabled={isSubmitting}
-            isLoading={isSubmitting}
+            disabled={isPending}
+            isLoading={isPending}
             loadingText="Sending..."
           >
             Send reset link

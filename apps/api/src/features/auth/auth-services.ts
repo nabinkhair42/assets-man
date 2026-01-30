@@ -137,18 +137,18 @@ export async function refresh(
     throw new Error("TOKEN_EXPIRED");
   }
 
-  // Delete old session
-  await db.delete(sessions).where(eq(sessions.id, session.id));
-
-  // Create new session
+  // Delete old session and create new session in parallel
   const newRefreshToken = generateRefreshToken(session.userId);
-  await db.insert(sessions).values({
-    userId: session.userId,
-    refreshToken: newRefreshToken,
-    userAgent: session.userAgent,
-    ipAddress: session.ipAddress,
-    expiresAt: getRefreshTokenExpiry(),
-  });
+  await Promise.all([
+    db.delete(sessions).where(eq(sessions.id, session.id)),
+    db.insert(sessions).values({
+      userId: session.userId,
+      refreshToken: newRefreshToken,
+      userAgent: session.userAgent,
+      ipAddress: session.ipAddress,
+      expiresAt: getRefreshTokenExpiry(),
+    }),
+  ]);
 
   return {
     tokens: createTokens(session.userId, session.user.email),

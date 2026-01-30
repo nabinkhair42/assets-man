@@ -118,7 +118,7 @@ export default function RegisterPage() {
                       variant="ghost"
                       size="icon-sm"
                       className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword(prev => !prev)}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />

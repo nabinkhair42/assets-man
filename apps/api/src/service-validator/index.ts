@@ -32,30 +32,29 @@ export async function validateServices(
 ): Promise<ValidationResults> {
   console.log("\n🔍 Validating services...\n");
 
-  // Validate database
+  // Validate database and storage in parallel (Rule 1.4)
   console.log("  📦 Checking database connection...");
-  const dbResult = await validateDbConnection(config.databaseUrl);
+  console.log(`  ☁️  Checking ${config.storageProvider === "s3" ? "S3" : "GCS"} bucket...`);
+
+  const storageValidation = config.storageProvider === "s3"
+    ? validateS3Bucket({
+        bucket: config.storageBucket,
+        region: config.storageRegion,
+        accessKeyId: config.awsAccessKeyId,
+        secretAccessKey: config.awsSecretAccessKey,
+      })
+    : validateGCSBucket({
+        bucket: config.storageBucket,
+        projectId: config.gcsProjectId,
+        keyFilePath: config.gcsKeyFilePath,
+      });
+
+  const [dbResult, storageResult] = await Promise.all([
+    validateDbConnection(config.databaseUrl),
+    storageValidation,
+  ]);
+
   logResult("Database", dbResult.success, dbResult.message, dbResult.details);
-
-  // Validate storage
-  let storageResult: S3ValidationResult | GCSValidationResult;
-
-  if (config.storageProvider === "s3") {
-    console.log("  ☁️  Checking S3 bucket...");
-    storageResult = await validateS3Bucket({
-      bucket: config.storageBucket,
-      region: config.storageRegion,
-      accessKeyId: config.awsAccessKeyId,
-      secretAccessKey: config.awsSecretAccessKey,
-    });
-  } else {
-    console.log("  ☁️  Checking GCS bucket...");
-    storageResult = await validateGCSBucket({
-      bucket: config.storageBucket,
-      projectId: config.gcsProjectId,
-      keyFilePath: config.gcsKeyFilePath,
-    });
-  }
   logResult("Storage", storageResult.success, storageResult.message, storageResult.details);
 
   const allPassed = dbResult.success && storageResult.success;

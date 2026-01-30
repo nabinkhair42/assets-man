@@ -19,6 +19,8 @@ interface SelectionToolbarProps {
   onDownload?: () => void;
   variant?: "default" | "readonly";
   className?: string;
+  onDeleteHover?: () => void;
+  onMoveHover?: () => void;
 }
 
 export function SelectionToolbar({
@@ -30,6 +32,8 @@ export function SelectionToolbar({
   onDownload,
   variant = "default",
   className,
+  onDeleteHover,
+  onMoveHover,
 }: SelectionToolbarProps) {
   // Handle both Map and array formats
   const items =
@@ -78,7 +82,14 @@ export function SelectionToolbar({
           </Button>
         )}
         {!isReadonly && onMove && (
-          <Button variant="ghost" size="sm" onClick={onMove} className="gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMove}
+            onMouseEnter={onMoveHover}
+            onFocus={onMoveHover}
+            className="gap-2"
+          >
             <FolderInput className="h-4 w-4" />
             <span className="hidden sm:inline">Move</span>
           </Button>
@@ -88,6 +99,8 @@ export function SelectionToolbar({
             variant="ghost"
             size="sm"
             onClick={onDelete}
+            onMouseEnter={onDeleteHover}
+            onFocus={onDeleteHover}
             className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4" />

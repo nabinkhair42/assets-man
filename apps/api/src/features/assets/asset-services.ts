@@ -469,16 +469,14 @@ export async function emptyTrashAssets(userId: string): Promise<number> {
     totalSize += a.size;
   }
 
-  // Delete from storage
-  await storage.deleteObjects([...keys, ...thumbnailKeys]);
-
-  // Delete from database
-  await db
-    .delete(assets)
-    .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt)));
-
-  // Decrement user's storage usage
-  await decrementUsedStorage(userId, totalSize);
+  // Delete from storage, database, and decrement storage in parallel (Rule 1.4)
+  await Promise.all([
+    storage.deleteObjects([...keys, ...thumbnailKeys]),
+    db
+      .delete(assets)
+      .where(and(eq(assets.ownerId, userId), isNotNull(assets.trashedAt))),
+    decrementUsedStorage(userId, totalSize),
+  ]);
 
   return trashedAssets.length;
 }
@@ -502,16 +500,14 @@ export async function deleteAssetsByFolder(
   // Calculate total size to decrement
   const totalSize = folderAssets.reduce((sum, a) => sum + a.size, 0);
 
-  // Delete from storage
-  await storage.deleteObjects([...keys, ...thumbnailKeys]);
-
-  // Delete from database
-  await db
-    .delete(assets)
-    .where(and(eq(assets.folderId, folderId), eq(assets.ownerId, userId)));
-
-  // Decrement user's storage usage
-  await decrementUsedStorage(userId, totalSize);
+  // Delete from storage, database, and decrement storage in parallel (Rule 1.4)
+  await Promise.all([
+    storage.deleteObjects([...keys, ...thumbnailKeys]),
+    db
+      .delete(assets)
+      .where(and(eq(assets.folderId, folderId), eq(assets.ownerId, userId))),
+    decrementUsedStorage(userId, totalSize),
+  ]);
 }
 
 export async function toggleStarred(
@@ -674,10 +670,15 @@ async function getFolderDescendants(
     folders: [{ folder, path: folderPath }],
   };
 
-  // Get assets in this folder
-  const folderAssets = await db.query.assets.findMany({
-    where: and(eq(assets.folderId, folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt)),
-  });
+  // Get assets and subfolders in parallel (Rule 1.4)
+  const [folderAssets, subfolders] = await Promise.all([
+    db.query.assets.findMany({
+      where: and(eq(assets.folderId, folderId), eq(assets.ownerId, userId), isNull(assets.trashedAt)),
+    }),
+    db.query.folders.findMany({
+      where: and(eq(folders.parentId, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
+    }),
+  ]);
 
   for (const asset of folderAssets) {
     result.assets.push({
@@ -685,11 +686,6 @@ async function getFolderDescendants(
       path: `${folderPath}/${asset.name}`,
     });
   }
-
-  // Get subfolders
-  const subfolders = await db.query.folders.findMany({
-    where: and(eq(folders.parentId, folderId), eq(folders.ownerId, userId), isNull(folders.trashedAt)),
-  });
 
   // Recursively get descendants of subfolders in parallel
   const subResults = await Promise.all(

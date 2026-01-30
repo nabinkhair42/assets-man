@@ -62,23 +62,24 @@ export async function createUserShare(
 ): Promise<Share> {
   const { folderId, assetId, email, permission } = input;
 
-  // Verify the item exists and is owned by the user
-  if (folderId) {
-    const folder = await db.query.folders.findFirst({
-      where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerId)),
-    });
-    if (!folder) throw new Error("FOLDER_NOT_FOUND");
-  } else if (assetId) {
-    const asset = await db.query.assets.findFirst({
-      where: and(eq(assets.id, assetId), eq(assets.ownerId, ownerId)),
-    });
-    if (!asset) throw new Error("ASSET_NOT_FOUND");
-  }
+  // Verify item exists and look up target user in parallel (Rule 1.4)
+  const [itemExists, sharedWithUser] = await Promise.all([
+    folderId
+      ? db.query.folders.findFirst({
+          where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerId)),
+        })
+      : assetId
+        ? db.query.assets.findFirst({
+            where: and(eq(assets.id, assetId), eq(assets.ownerId, ownerId)),
+          })
+        : Promise.resolve(true),
+    db.query.users.findFirst({
+      where: eq(users.email, email.toLowerCase()),
+    }),
+  ]);
 
-  // Check if user exists with this email
-  const sharedWithUser = await db.query.users.findFirst({
-    where: eq(users.email, email.toLowerCase()),
-  });
+  if (folderId && !itemExists) throw new Error("FOLDER_NOT_FOUND");
+  if (assetId && !itemExists) throw new Error("ASSET_NOT_FOUND");
 
   // Check for existing share
   const existingShare = await db.query.shares.findFirst({
@@ -122,21 +123,24 @@ export async function createLinkShare(
 ): Promise<Share> {
   const { folderId, assetId, permission, password, expiresIn } = input;
 
-  // Verify the item exists and is owned by the user
-  if (folderId) {
-    const folder = await db.query.folders.findFirst({
-      where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerId)),
-    });
-    if (!folder) throw new Error("FOLDER_NOT_FOUND");
-  } else if (assetId) {
-    const asset = await db.query.assets.findFirst({
-      where: and(eq(assets.id, assetId), eq(assets.ownerId, ownerId)),
-    });
-    if (!asset) throw new Error("ASSET_NOT_FOUND");
-  }
+  // Verify item exists and hash password in parallel (Rule 1.4)
+  const [itemExists, linkPassword] = await Promise.all([
+    folderId
+      ? db.query.folders.findFirst({
+          where: and(eq(folders.id, folderId), eq(folders.ownerId, ownerId)),
+        })
+      : assetId
+        ? db.query.assets.findFirst({
+            where: and(eq(assets.id, assetId), eq(assets.ownerId, ownerId)),
+          })
+        : Promise.resolve(true),
+    password ? hashPassword(password) : Promise.resolve(null),
+  ]);
+
+  if (folderId && !itemExists) throw new Error("FOLDER_NOT_FOUND");
+  if (assetId && !itemExists) throw new Error("ASSET_NOT_FOUND");
 
   const linkToken = generateLinkToken();
-  const linkPassword = password ? await hashPassword(password) : null;
   const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 60 * 60 * 1000) : null;
 
   const [share] = await db
@@ -666,19 +670,32 @@ export async function getSharedFolderAssetsForDownload(
 
   // Helper to get all assets recursively
   async function collectAssets(folderId: string, relativePath: string) {
-    // Get assets in current folder
-    const folderAssets = await db.query.assets.findMany({
-      where: and(
-        eq(assets.ownerId, ownerId),
-        eq(assets.folderId, folderId),
-        isNull(assets.trashedAt)
-      ),
-      columns: {
-        id: true,
-        name: true,
-        storageKey: true,
-      },
-    });
+    // Get assets and subfolders in parallel (Rule 1.4)
+    const [folderAssets, subFolders] = await Promise.all([
+      db.query.assets.findMany({
+        where: and(
+          eq(assets.ownerId, ownerId),
+          eq(assets.folderId, folderId),
+          isNull(assets.trashedAt)
+        ),
+        columns: {
+          id: true,
+          name: true,
+          storageKey: true,
+        },
+      }),
+      db.query.folders.findMany({
+        where: and(
+          eq(folders.ownerId, ownerId),
+          eq(folders.parentId, folderId),
+          isNull(folders.trashedAt)
+        ),
+        columns: {
+          id: true,
+          name: true,
+        },
+      }),
+    ]);
 
     for (const asset of folderAssets) {
       result.push({
@@ -686,19 +703,6 @@ export async function getSharedFolderAssetsForDownload(
         path: relativePath ? `${relativePath}/${asset.name}` : asset.name,
       });
     }
-
-    // Get subfolders
-    const subFolders = await db.query.folders.findMany({
-      where: and(
-        eq(folders.ownerId, ownerId),
-        eq(folders.parentId, folderId),
-        isNull(folders.trashedAt)
-      ),
-      columns: {
-        id: true,
-        name: true,
-      },
-    });
 
     await Promise.all(
       subFolders.map((subfolder) => {

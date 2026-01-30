@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -42,29 +42,21 @@ export default function ResetPasswordPage() {
     },
   });
 
-  // Check if token exists
-  useEffect(() => {
-    if (!token) {
-      toast.error("Invalid reset link");
-    }
-  }, [token]);
-
-  const onSubmit = async (values: ResetPasswordFormValues) => {
+  const onSubmit = (values: ResetPasswordFormValues) => {
     if (!token) {
       toast.error("Invalid reset link");
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      await authService.resetPassword(token, values.password);
-      setIsSuccess(true);
-      toast.success("Password reset successfully");
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsSubmitting(false);
-    }
+    startTransition(async () => {
+      try {
+        await authService.resetPassword(token, values.password);
+        setIsSuccess(true);
+        toast.success("Password reset successfully");
+      } catch (error) {
+        toast.error(getApiErrorMessage(error));
+      }
+    });
   };
 
   // No token - show error
@@ -154,7 +146,7 @@ export default function ResetPasswordPage() {
                       variant="ghost"
                       size="icon-sm"
                       className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword(prev => !prev)}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -189,7 +181,7 @@ export default function ResetPasswordPage() {
                       variant="ghost"
                       size="icon-sm"
                       className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() => setShowConfirmPassword(prev => !prev)}
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -207,8 +199,8 @@ export default function ResetPasswordPage() {
           <Button
             type="submit"
             className="w-full mt-2"
-            disabled={isSubmitting}
-            isLoading={isSubmitting}
+            disabled={isPending}
+            isLoading={isPending}
             loadingText="Resetting..."
           >
             Reset password
