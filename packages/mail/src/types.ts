@@ -32,6 +32,13 @@ export interface WelcomeEmailOptions {
   loginUrl: string;
 }
 
+export interface OtpEmailOptions {
+  to: string;
+  otp: string;
+  userName?: string;
+  expiresInMinutes?: number;
+}
+
 export interface MailClient {
   /**
    * Send a raw email with custom content
@@ -52,4 +59,15 @@ export interface MailClient {
    * Send a welcome email to new users
    */
   sendWelcomeEmail(options: WelcomeEmailOptions): Promise<{ success: boolean; error?: string }>;
+
+  /**
+   * Send an OTP verification email for registration
+   */
+  sendOtpEmail(options: OtpEmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }>;
+
+  /**
+   * Check the delivery status of a sent email.
+   * Returns the last event (e.g. 'delivered', 'bounced', 'sent', 'queued').
+   */
+  getEmailStatus(emailId: string): Promise<{ status: string | null; error?: string }>;
 }

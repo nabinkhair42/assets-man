@@ -39,6 +39,8 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   MAIL_FROM_EMAIL: z.string().email().optional().default("noreply@example.com"),
   MAIL_FROM_NAME: z.string().optional().default("Assets Man"),
+  // Resend webhook secret for verifying bounce/delivery events
+  RESEND_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export const config = envSchema.parse(process.env);

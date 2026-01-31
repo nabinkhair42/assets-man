@@ -32,6 +32,23 @@ export interface RefreshResponse {
   tokens: AuthTokens;
 }
 
+export interface SendOtpInput {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+export interface VerifyOtpInput {
+  email: string;
+  otp: string;
+}
+
+export interface SendOtpResponse {
+  success: boolean;
+  message: string;
+  email: string;
+}
+
 export interface UpdateProfileInput {
   name: string;
 }

@@ -176,12 +176,7 @@ interface FolderBrowserProps {
 
 export function FolderBrowser({ initialFolderId = null }: FolderBrowserProps) {
   const { data: user } = useUser();
-  const {
-    showTour,
-    isLoading: tourLoading,
-    completeTour,
-    skipTour,
-  } = useWelcomeTour();
+  useWelcomeTour();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(
     initialFolderId,
   );

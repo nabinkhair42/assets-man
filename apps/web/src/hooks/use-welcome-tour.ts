@@ -1,22 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { safeGetItem, safeSetItem, safeRemoveItem } from "@/lib/safe-storage";
 
 const STORAGE_KEY = "assets-man-welcome-tour-completed";
 
-export function useWelcomeTour() {
-  const [showTour, setShowTour] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+function getTourCompleted(): boolean {
+  return !!safeGetItem(STORAGE_KEY);
+}
 
-  useEffect(() => {
-    // Check if tour has been completed
-    const completed = safeGetItem(STORAGE_KEY);
-    if (!completed) {
-      setShowTour(true);
-    }
-    setIsLoading(false);
-  }, []);
+const emptySubscribe = () => () => {};
+
+export function useWelcomeTour() {
+  // Hydration-safe: server assumes tour not completed, client reads localStorage
+  const tourCompleted = useSyncExternalStore(
+    emptySubscribe,
+    getTourCompleted,
+    () => false,
+  );
+
+  const [showTour, setShowTour] = useState(!tourCompleted);
 
   const completeTour = () => {
     safeSetItem(STORAGE_KEY, "true");
@@ -35,7 +38,7 @@ export function useWelcomeTour() {
 
   return {
     showTour,
-    isLoading,
+    isLoading: false,
     completeTour,
     skipTour,
     restartTour,

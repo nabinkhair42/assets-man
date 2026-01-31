@@ -1,12 +1,21 @@
 "use client";
 
 import { FilePreviewDialog } from "@/components/dialog/file-preview-dialog";
-import { ReadOnlyFileItem, type ReadOnlyAsset } from "@/components/files/readonly-file-item";
-import { ReadOnlyFolderItem, type ReadOnlyFolder } from "@/components/files/readonly-folder-item";
+import {
+  ReadOnlyFileItem,
+  type ReadOnlyAsset,
+} from "@/components/files/readonly-file-item";
+import {
+  ReadOnlyFolderItem,
+  type ReadOnlyFolder,
+} from "@/components/files/readonly-folder-item";
 import { isPreviewable } from "@/components/preview";
 import { FileIcon as CustomFileIcon } from "@/components/shared/file-icon";
 import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
-import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
+import {
+  SelectionToolbar,
+  type SelectedItem,
+} from "@/components/shared/selection-toolbar";
 import { ShareInfoPopover } from "@/components/shared/share-info-popover";
 import { FileBrowserSkeleton } from "@/components/loaders";
 import { Button } from "@/components/ui/button";
@@ -366,7 +375,14 @@ export default function PublicSharePage() {
       const index = allItems.findIndex(
         (item) => item.type === "folder" && item.id === folder.id,
       );
-      handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
+      handleItemSelect(
+        index,
+        folder.id,
+        "folder",
+        folder.name,
+        selected,
+        shiftKey,
+      );
     },
     [allItems, handleItemSelect],
   );
@@ -376,7 +392,14 @@ export default function PublicSharePage() {
       const index = allItems.findIndex(
         (item) => item.type === "asset" && item.id === asset.id,
       );
-      handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
+      handleItemSelect(
+        index,
+        asset.id,
+        "asset",
+        asset.name,
+        selected,
+        shiftKey,
+      );
     },
     [allItems, handleItemSelect],
   );
@@ -613,7 +636,9 @@ export default function PublicSharePage() {
                                 index === filteredBreadcrumbs.length - 1 &&
                                   "font-medium text-foreground",
                               )}
-                              onClick={() => handleBreadcrumbClick(crumb.id, index)}
+                              onClick={() =>
+                                handleBreadcrumbClick(crumb.id, index)
+                              }
                             >
                               {crumb.name}
                             </Button>
@@ -734,7 +759,9 @@ export default function PublicSharePage() {
                             folder={folder}
                             onOpen={handleNavigateFolder}
                             viewMode="grid"
-                            isSelected={selectedItems.has(`folder-${folder.id}`)}
+                            isSelected={selectedItems.has(
+                              `folder-${folder.id}`,
+                            )}
                             isPendingSelection={pendingSelection.has(
                               `folder-${folder.id}`,
                             )}
@@ -794,7 +821,9 @@ export default function PublicSharePage() {
                     <ReadOnlyFileItem
                       key={asset.id}
                       asset={asset}
-                      onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
+                      onDownload={(a) =>
+                        handleFolderAssetDownload(a.id, a.name)
+                      }
                       onPreview={(a) => {
                         if (isPreviewable(a.mimeType, a.name)) {
                           openFolderAssetPreview(a);
@@ -834,7 +863,10 @@ export default function PublicSharePage() {
             getDownloadUrl={getFolderAssetDownloadUrl}
             onDownload={() =>
               previewingAsset &&
-              handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
+              handleFolderAssetDownload(
+                previewingAsset.id,
+                previewingAsset.name,
+              )
             }
             subtitle={`Shared by ${share.ownerName}`}
             showNavigation={false}

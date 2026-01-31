@@ -5,4 +5,5 @@ export * from "./assets";
 export * from "./recent-activity";
 export * from "./shares";
 export * from "./storage-quotas";
+export * from "./pending-registrations";
 export * from "./relations";

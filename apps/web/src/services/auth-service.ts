@@ -10,6 +10,9 @@ import type {
   UpdateProfileInput,
   ChangePasswordInput,
   UpdateProfileResponse,
+  SendOtpInput,
+  VerifyOtpInput,
+  SendOtpResponse,
 } from "@/types/auth";
 import type { StorageStats } from "@/types/storage";
 
@@ -19,6 +22,22 @@ export interface MeResponse {
 }
 
 export const authService = {
+  async sendRegistrationOtp(input: SendOtpInput): Promise<SendOtpResponse> {
+    const response = await apiClient.post<ApiResponse<SendOtpResponse>>(
+      API_ENDPOINTS.AUTH.REGISTER_SEND_OTP,
+      input
+    );
+    return response.data.data;
+  },
+
+  async verifyRegistrationOtp(input: VerifyOtpInput): Promise<AuthResponse> {
+    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+      API_ENDPOINTS.AUTH.REGISTER_VERIFY_OTP,
+      input
+    );
+    return response.data.data;
+  },
+
   async register(input: RegisterInput): Promise<AuthResponse> {
     const response = await apiClient.post<ApiResponse<AuthResponse>>(
       API_ENDPOINTS.AUTH.REGISTER,

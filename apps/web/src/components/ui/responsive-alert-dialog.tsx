@@ -150,8 +150,7 @@ function ResponsiveAlertDialogDescription({
   return <AlertDialogDescription className={className} {...props} />;
 }
 
-interface ResponsiveAlertDialogActionProps
-  extends React.ComponentProps<typeof AlertDialogAction> {}
+type ResponsiveAlertDialogActionProps = React.ComponentProps<typeof AlertDialogAction>;
 
 function ResponsiveAlertDialogAction({
   className,
@@ -173,8 +172,7 @@ function ResponsiveAlertDialogAction({
   );
 }
 
-interface ResponsiveAlertDialogCancelProps
-  extends React.ComponentProps<typeof AlertDialogCancel> {}
+type ResponsiveAlertDialogCancelProps = React.ComponentProps<typeof AlertDialogCancel>;
 
 function ResponsiveAlertDialogCancel({
   className,

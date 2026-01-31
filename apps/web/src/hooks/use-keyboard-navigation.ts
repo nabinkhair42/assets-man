@@ -35,7 +35,6 @@ export function useKeyboardNavigation({
   onOpen,
   onSelect,
   enabled = true,
-  containerRef,
 }: UseKeyboardNavigationOptions) {
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
 

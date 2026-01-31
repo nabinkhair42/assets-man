@@ -80,6 +80,14 @@ export const deleteAccountSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+export const otpSchema = z.object({
+  otp: z
+    .string()
+    .length(6, "Code must be 6 digits")
+    .regex(/^\d{6}$/, "Code must be 6 digits"),
+});
+
+export type OtpFormValues = z.infer<typeof otpSchema>;
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;

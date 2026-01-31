@@ -8,7 +8,6 @@ import {
   Download,
   FileText,
   Loader,
-  Loader2,
   RotateCw,
   ZoomIn,
   ZoomOut,

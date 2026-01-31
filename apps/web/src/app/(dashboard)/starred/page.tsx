@@ -124,13 +124,13 @@ export default function StarredPage() {
 
   const isLoading = foldersLoading || assetsLoading;
 
-  const handleNavigate = (folderId: string | null) => {
+  const handleNavigate = useCallback((folderId: string | null) => {
     if (folderId) {
       router.push(`/files?folderId=${folderId}`);
     } else {
       router.push("/files");
     }
-  };
+  }, [router]);
 
   const handleDownload = async (asset: Asset) => {
     try {

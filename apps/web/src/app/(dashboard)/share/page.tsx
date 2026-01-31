@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo } from "react";
-import { Users, Download, MoreVertical, Folder, ExternalLink } from "lucide-react";
+import { Download, MoreVertical, Folder, ExternalLink } from "lucide-react";
 import { FileBrowserSkeleton } from "@/components/loaders/file-browser-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn, getApiErrorMessage } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/utils";
 import { useSharedWithMe } from "@/hooks/use-shares";
 import { useMarqueeSelection } from "@/hooks/use-marquee-selection";
 import { useKeyboardShortcuts, type KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
@@ -94,13 +94,13 @@ export default function SharedWithMePage() {
   }, [allItems]);
   const sharesById = useMemo(() => new Map(shares.map((s) => [s.id, s])), [shares]);
 
-  const handleNavigate = (folderId: string | null) => {
+  const handleNavigate = useCallback((folderId: string | null) => {
     if (folderId) {
       router.push(`/files?folderId=${folderId}`);
     } else {
       router.push("/files");
     }
-  };
+  }, [router]);
 
   const handleDownload = async (item: SharedItem) => {
     if (item.type === "folder") {

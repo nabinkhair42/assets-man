@@ -3,6 +3,8 @@ import * as authController from "./auth-controller.js";
 import { validateBody } from "@/utils/request-validator.js";
 import {
   registerSchema,
+  registerSendOtpSchema,
+  registerVerifyOtpSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -18,6 +20,8 @@ export const authRouter: IRouter = Router();
 
 // Public routes
 authRouter.post("/register", validateBody(registerSchema), authController.register);
+authRouter.post("/register/send-otp", validateBody(registerSendOtpSchema), authController.registerSendOtp);
+authRouter.post("/register/verify-otp", validateBody(registerVerifyOtpSchema), authController.registerVerifyOtp);
 authRouter.post("/login", validateBody(loginSchema), authController.login);
 authRouter.post("/refresh", authController.refreshToken);
 authRouter.post("/logout", authController.logout);

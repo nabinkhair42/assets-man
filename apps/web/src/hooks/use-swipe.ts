@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 interface SwipeHandlers {
   onSwipeLeft?: () => void;
@@ -35,7 +35,9 @@ export function useSwipe(
   const { threshold = 50, maxTime = 300, preventDefault = false } = options;
   const swipeState = useRef<SwipeState | null>(null);
   const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];

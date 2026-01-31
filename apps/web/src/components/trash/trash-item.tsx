@@ -41,7 +41,7 @@ export const TrashItem = memo(function TrashItem({
 }: TrashItemProps) {
   const isFolder = item.itemType === "folder";
   const trashedDate = item.trashedAt ? new Date(item.trashedAt) : new Date();
-  const mimeType = (item as any).mimeType || "";
+  const mimeType = (item as unknown as { mimeType?: string }).mimeType || "";
 
   // Show bulk actions when multiple items are selected and this item is part of selection
   const showBulkActions = isSelected && selectedCount > 1;
@@ -107,7 +107,7 @@ export const TrashItem = memo(function TrashItem({
             <p className="truncate font-medium text-sm text-foreground">{item.name}</p>
           </div>
           <div className="w-24 text-right text-sm text-muted-foreground hidden sm:block">
-            {isFolder ? "—" : formatFileSize((item as any).size || 0)}
+            {isFolder ? "—" : formatFileSize((item as unknown as { size?: number }).size || 0)}
           </div>
           <div className="w-32 text-right text-sm text-muted-foreground hidden md:block">
             {formatRelativeTime(trashedDate)}

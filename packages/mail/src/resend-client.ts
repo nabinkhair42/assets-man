@@ -6,6 +6,7 @@ import type {
   PasswordResetEmailOptions,
   EmailVerificationEmailOptions,
   WelcomeEmailOptions,
+  OtpEmailOptions,
 } from "./types";
 import {
   getPasswordResetEmailHtml,
@@ -16,9 +17,14 @@ import {
   getEmailVerificationText,
 } from "./templates/email-verification";
 import { getWelcomeEmailHtml, getWelcomeEmailText } from "./templates/welcome";
+import {
+  getOtpVerificationHtml,
+  getOtpVerificationText,
+} from "./templates/otp-verification";
 
 const DEFAULT_RESET_EXPIRY_MINUTES = 60;
 const DEFAULT_VERIFICATION_EXPIRY_HOURS = 24;
+const DEFAULT_OTP_EXPIRY_MINUTES = 10;
 
 export function createResendClient(config: MailConfig): MailClient {
   const resend = new Resend(config.apiKey);
@@ -139,6 +145,57 @@ export function createResendClient(config: MailConfig): MailClient {
         const message = err instanceof Error ? err.message : "Unknown error";
         console.error("Welcome email error:", message);
         return { success: false, error: message };
+      }
+    },
+
+    async sendOtpEmail(options: OtpEmailOptions) {
+      const expiresInMinutes =
+        options.expiresInMinutes ?? DEFAULT_OTP_EXPIRY_MINUTES;
+
+      const templateData = {
+        otp: options.otp,
+        userName: options.userName,
+        expiresInMinutes,
+      };
+
+      try {
+        const { data, error } = await resend.emails.send({
+          from: fromAddress,
+          to: options.to,
+          subject: "Your verification code - Assets Man",
+          html: getOtpVerificationHtml(templateData),
+          text: getOtpVerificationText(templateData),
+        });
+
+        if (error) {
+          console.error("Resend error:", error);
+          return { success: false, error: error.message };
+        }
+
+        return { success: true, messageId: data?.id };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("OTP email error:", message);
+        return { success: false, error: message };
+      }
+    },
+
+    async getEmailStatus(emailId: string) {
+      try {
+        const response = await resend.emails.get(emailId);
+
+        if (response.error) {
+          console.error("[Mail] getEmailStatus error:", response.error);
+          return { status: null, error: response.error.message };
+        }
+
+        const lastEvent = response.data?.last_event ?? null;
+        console.log("[Mail] getEmailStatus:", { emailId, lastEvent, data: JSON.stringify(response.data) });
+        return { status: lastEvent };
+      } catch (err) {
+        console.error("[Mail] getEmailStatus exception:", err);
+        const message = err instanceof Error ? err.message : "Unknown error";
+        return { status: null, error: message };
       }
     },
   };

@@ -124,6 +124,7 @@ export function ImagePreview({ asset, previewUrl, className }: ImagePreviewProps
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic preview URL with zoom/pan/rotate transforms requires native img */}
         <img
           ref={imageRef}
           src={previewUrl}

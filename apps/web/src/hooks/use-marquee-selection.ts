@@ -23,8 +23,6 @@ interface UseMarqueeSelectionOptions<T> {
 }
 
 export function useMarqueeSelection<T>({
-  items,
-  getItemId,
   onSelectionChange,
   containerRef,
   itemSelector,
@@ -175,7 +173,9 @@ export function useMarqueeSelection<T>({
     [autoScrollThreshold, autoScrollSpeed]
   );
 
-  // Auto-scroll animation loop
+  // Auto-scroll animation loop - use a ref to avoid the circular dependency
+  const performAutoScrollRef = useRef<() => void>(() => {});
+
   const performAutoScroll = useCallback(() => {
     const container = containerRef.current;
     // Use ref for isSelecting to avoid stale closure in animation loop
@@ -232,8 +232,8 @@ export function useMarqueeSelection<T>({
       }
     }
 
-    // Continue the animation loop
-    autoScrollAnimationRef.current = requestAnimationFrame(performAutoScroll);
+    // Continue the animation loop via ref to avoid circular dependency
+    autoScrollAnimationRef.current = requestAnimationFrame(() => performAutoScrollRef.current());
   }, [
     containerRef,
     getScrollableParent,
@@ -242,12 +242,17 @@ export function useMarqueeSelection<T>({
     stopAutoScroll,
   ]);
 
+  // Keep ref in sync
+  useEffect(() => {
+    performAutoScrollRef.current = performAutoScroll;
+  });
+
   // Start auto-scroll when needed
   const startAutoScroll = useCallback(() => {
     if (autoScrollAnimationRef.current === null) {
-      autoScrollAnimationRef.current = requestAnimationFrame(performAutoScroll);
+      autoScrollAnimationRef.current = requestAnimationFrame(() => performAutoScrollRef.current());
     }
-  }, [performAutoScroll]);
+  }, []);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -376,8 +381,10 @@ export function useMarqueeSelection<T>({
   }, [isSelecting, marqueeRect, containerRef, onSelectionChange, calculateIntersectingItems, stopAutoScroll]);
 
   // Keep handler refs up to date without causing effect re-subscriptions
-  handleMouseMoveRef.current = handleMouseMove;
-  handleMouseUpRef.current = handleMouseUp;
+  useEffect(() => {
+    handleMouseMoveRef.current = handleMouseMove;
+    handleMouseUpRef.current = handleMouseUp;
+  });
 
   // Add global mouse event listeners when selecting
   // Use stable ref-based handlers so this effect only re-subscribes when isSelecting changes

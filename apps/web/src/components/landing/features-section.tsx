@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface Feature {
@@ -75,7 +76,7 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
             <div className="flex flex-col lg:max-w-md gap-4">
               {/* icon */}
               <div className="p-1 border w-fit rounded bg-muted">
-                <img src={feature.icon} className="size-12" />
+                <Image src={feature.icon} alt="" width={48} height={48} className="size-12" />
               </div>
               <h3 className="text-2xl font-medium tracking-tight sm:text-3xl">
                 {feature.title}
@@ -92,15 +93,19 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
             >
               <div className="overflow-hidden rounded-xl">
                 {/* Light mode image */}
-                <img
+                <Image
                   src={feature.image.light}
                   alt={feature.title}
+                  width={800}
+                  height={600}
                   className="w-full h-auto dark:hidden"
                 />
                 {/* Dark mode image */}
-                <img
+                <Image
                   src={feature.image.dark}
                   alt={feature.title}
+                  width={800}
+                  height={600}
                   className="w-full h-auto hidden dark:block"
                 />
               </div>

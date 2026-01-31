@@ -4,6 +4,8 @@ import * as authService from "./auth-services.js";
 import { getStorageStats } from "@/features/storage/storage-services.js";
 import type {
   RegisterInput,
+  RegisterSendOtpInput,
+  RegisterVerifyOtpInput,
   LoginInput,
   VerifyEmailInput,
   ResendVerificationInput,
@@ -51,6 +53,78 @@ export async function register(req: Request, res: Response): Promise<void> {
     }
 
     sendError(res, "INTERNAL_ERROR", "Registration failed", 500);
+  }
+}
+
+export async function registerSendOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const input = req.body as RegisterSendOtpInput;
+    const result = await authService.registerSendOtp(input);
+    sendSuccess(res, result, result.message);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "EMAIL_EXISTS") {
+      sendError(res, "EMAIL_EXISTS", "Email already registered", 409);
+      return;
+    }
+
+    if (message === "INVALID_EMAIL_DOMAIN") {
+      sendError(res, "VALIDATION_ERROR", "This email domain does not appear to accept emails. Please use a valid email address.", 400);
+      return;
+    }
+
+    if (message === "EMAIL_BOUNCED") {
+      sendError(res, "VALIDATION_ERROR", "This email address does not exist or cannot receive emails. Please use a different email.", 400);
+      return;
+    }
+
+    if (message === "MAIL_NOT_CONFIGURED" || message === "MAIL_SEND_FAILED") {
+      sendError(res, "INTERNAL_ERROR", "Failed to send verification email", 500);
+      return;
+    }
+
+    sendError(res, "INTERNAL_ERROR", "Failed to send OTP", 500);
+  }
+}
+
+export async function registerVerifyOtp(req: Request, res: Response): Promise<void> {
+  try {
+    const input = req.body as RegisterVerifyOtpInput;
+    const userAgent = req.get("user-agent");
+    const ipAddress = req.ip;
+
+    const result = await authService.registerVerifyOtp(input, userAgent, ipAddress);
+    sendSuccess(res, result, "Account created successfully", 201);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message === "PENDING_NOT_FOUND") {
+      sendError(res, "NOT_FOUND", "No pending registration found. Please request a new code.", 404);
+      return;
+    }
+
+    if (message === "OTP_EXPIRED") {
+      sendError(res, "VALIDATION_ERROR", "Verification code has expired. Please request a new one.", 400);
+      return;
+    }
+
+    if (message === "MAX_ATTEMPTS_EXCEEDED") {
+      sendError(res, "VALIDATION_ERROR", "Too many attempts. Please request a new code.", 429);
+      return;
+    }
+
+    if (message === "INVALID_OTP") {
+      sendError(res, "VALIDATION_ERROR", "Invalid verification code", 400);
+      return;
+    }
+
+    if (message === "EMAIL_EXISTS") {
+      sendError(res, "EMAIL_EXISTS", "Email already registered", 409);
+      return;
+    }
+
+    sendError(res, "INTERNAL_ERROR", "Verification failed", 500);
   }
 }
 

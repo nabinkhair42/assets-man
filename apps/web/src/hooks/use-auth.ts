@@ -5,6 +5,8 @@ import type {
   ChangePasswordInput,
   LoginInput,
   RegisterInput,
+  SendOtpInput,
+  VerifyOtpInput,
   UpdateProfileInput,
 } from "@/types/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +32,26 @@ export function useUser() {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useRegisterSendOtp() {
+  return useMutation({
+    mutationFn: (input: SendOtpInput) => authService.sendRegistrationOtp(input),
+  });
+}
+
+export function useRegisterVerifyOtp() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuth();
+
+  return useMutation({
+    mutationFn: (input: VerifyOtpInput) => authService.verifyRegistrationOtp(input),
+    onSuccess: (data) => {
+      setCachedToken(data.tokens.accessToken);
+      queryClient.setQueryData(authKeys.me(), data.user);
+      setUser(data.user);
+    },
   });
 }
 

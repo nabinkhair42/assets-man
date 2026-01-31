@@ -68,7 +68,7 @@ export function TextPreview({
           setContent(truncatedContent);
           onContentLoad?.(truncatedContent);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setError("Failed to load file content");
         }

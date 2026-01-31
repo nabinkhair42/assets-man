@@ -1,24 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useSyncExternalStore, useCallback } from "react";
 import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 
 const VIEW_MODE_KEY = "assets-view-mode";
 
 type ViewMode = "grid" | "list";
 
-export function useViewMode(defaultMode: ViewMode = "grid") {
-  const [viewMode, setViewModeState] = useState<ViewMode>(defaultMode);
-  const [isHydrated, setIsHydrated] = useState(false);
+function getStoredViewMode(): ViewMode {
+  const stored = safeGetItem(VIEW_MODE_KEY);
+  if (stored === "grid" || stored === "list") {
+    return stored;
+  }
+  return "grid";
+}
 
-  // Read from localStorage on mount
-  useEffect(() => {
-    const stored = safeGetItem(VIEW_MODE_KEY);
-    if (stored === "grid" || stored === "list") {
-      setViewModeState(stored);
-    }
-    setIsHydrated(true);
-  }, []);
+// Trivial subscribe — localStorage doesn't fire events in the same tab,
+// so we only use this for the initial snapshot (SSR vs client).
+const emptySubscribe = () => () => {};
+
+export function useViewMode(defaultMode: ViewMode = "grid") {
+  // Hydration-safe: server returns defaultMode, client reads localStorage
+  const hydratedDefault = useSyncExternalStore(
+    emptySubscribe,
+    getStoredViewMode,
+    () => defaultMode,
+  );
+
+  const [viewMode, setViewModeState] = useState<ViewMode>(hydratedDefault);
 
   // Persist to localStorage when changed
   const setViewMode = useCallback((mode: ViewMode) => {
@@ -29,6 +38,6 @@ export function useViewMode(defaultMode: ViewMode = "grid") {
   return {
     viewMode,
     setViewMode,
-    isHydrated,
+    isHydrated: true,
   };
 }

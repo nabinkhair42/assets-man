@@ -5,6 +5,7 @@ export type {
   PasswordResetEmailOptions,
   EmailVerificationEmailOptions,
   WelcomeEmailOptions,
+  OtpEmailOptions,
 } from "./types";
 
 export { createResendClient } from "./resend-client";
@@ -22,6 +23,22 @@ export {
   getWelcomeEmailHtml,
   getWelcomeEmailText,
 } from "./templates/welcome";
+export {
+  getOtpVerificationHtml,
+  getOtpVerificationText,
+} from "./templates/otp-verification";
+
+export {
+  validateEmailDomain,
+  type EmailValidationResult,
+} from "./email-validator";
+
+export {
+  verifyResendWebhook,
+  parseBounceEvent,
+  type ResendWebhookEvent,
+  type ResendBounceData,
+} from "./webhook";
 
 import type { MailConfig, MailClient } from "./types";
 import { createResendClient } from "./resend-client";

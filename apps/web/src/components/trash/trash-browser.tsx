@@ -6,7 +6,7 @@ import { Trash2, RotateCcw, X, RefreshCw } from "lucide-react";
 import { TrashSkeleton } from "@/components/loaders/trash-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
+
 import { SearchCommand } from "@/components/dialog/search-command";
 import { Button } from "@/components/ui/button";
 import { EmptyTrashTrigger } from "@/components/dialog/empty-trash-dialog";

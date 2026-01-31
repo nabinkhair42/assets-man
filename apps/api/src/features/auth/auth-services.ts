@@ -2,7 +2,9 @@ import { config, getMailConfig } from "@/config/env.js";
 import type {
   LoginInput,
   RegisterInput,
-  UpdateProfileInput
+  RegisterSendOtpInput,
+  RegisterVerifyOtpInput,
+  UpdateProfileInput,
 } from "@/schema/auth-schema.js";
 import {
   generateAccessToken,
@@ -12,11 +14,11 @@ import {
   verifyPassword,
   verifyRefreshToken,
 } from "@/utils/auth-utils.js";
-import { createDb, sessions, users, type User } from "@repo/database";
-import { createMailClient, type MailClient } from "@repo/mail";
+import { createDb, sessions, users, pendingRegistrations, type User } from "@repo/database";
+import { createMailClient, validateEmailDomain, type MailClient } from "@repo/mail";
 import type { AuthResponse, AuthTokens, UserPublic } from "@repo/shared";
 import crypto from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 
 const db = createDb(config.DATABASE_URL);
 
@@ -81,6 +83,211 @@ export async function register(
   sendVerificationEmail(newUser.id).catch((err) => {
     console.error("Failed to send verification email on registration:", err);
   });
+
+  return {
+    user: toUserPublic(newUser),
+    tokens: createTokens(newUser.id, newUser.email),
+  };
+}
+
+// --- OTP Registration ---
+
+const OTP_EXPIRY_MINUTES = 10;
+const MAX_OTP_ATTEMPTS = 5;
+
+function generateOtp(): string {
+  const num = crypto.randomBytes(4).readUInt32BE(0) % 1000000;
+  return num.toString().padStart(6, "0");
+}
+
+export async function registerSendOtp(
+  input: RegisterSendOtpInput
+): Promise<{ success: boolean; message: string; email: string }> {
+  // Check if email is already taken
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, input.email),
+  });
+
+  if (existingUser) {
+    throw new Error("EMAIL_EXISTS");
+  }
+
+  // Validate email domain has MX records
+  const emailValidation = await validateEmailDomain(input.email);
+  if (!emailValidation.valid && emailValidation.reason !== "dns_error") {
+    throw new Error("INVALID_EMAIL_DOMAIN");
+  }
+
+  // Hash password and generate OTP
+  const passwordHash = await hashPassword(input.password);
+  const otp = generateOtp();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  // Upsert pending registration (delete existing + insert new)
+  await db
+    .delete(pendingRegistrations)
+    .where(eq(pendingRegistrations.email, input.email));
+
+  await db.insert(pendingRegistrations).values({
+    email: input.email,
+    passwordHash,
+    name: input.name ?? null,
+    otp,
+    attempts: 0,
+    expiresAt,
+  });
+
+  // Send OTP email
+  const mail = getMailClient();
+  if (!mail) {
+    throw new Error("MAIL_NOT_CONFIGURED");
+  }
+
+  const result = await mail.sendOtpEmail({
+    to: input.email,
+    otp,
+    userName: input.name,
+    expiresInMinutes: OTP_EXPIRY_MINUTES,
+  });
+
+  if (!result.success) {
+    throw new Error("MAIL_SEND_FAILED");
+  }
+
+  // Poll email status to catch bounces/suppressions early
+  if (result.messageId) {
+    const emailId = result.messageId;
+    // All non-deliverable statuses from Resend's Email Events:
+    // bounced, suppressed, failed, complained, canceled
+    // Safe statuses: sent, delivered, opened, clicked, queued, scheduled, delivery_delayed
+    const FAILED_STATUSES = new Set(["bounced", "suppressed", "failed", "complained", "canceled"]);
+
+    // Check twice — suppressed emails resolve almost instantly,
+    // hard bounces may take a couple seconds
+    for (const delay of [1500, 3000]) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      const statusResult = await mail.getEmailStatus(emailId);
+      console.log(`[OTP] Email ${emailId} status after ${delay}ms: ${statusResult.status}`);
+
+      if (statusResult.status && FAILED_STATUSES.has(statusResult.status)) {
+        // Clean up the pending registration since email is undeliverable
+        await db
+          .delete(pendingRegistrations)
+          .where(eq(pendingRegistrations.email, input.email));
+        throw new Error("EMAIL_BOUNCED");
+      }
+
+      // If already delivered/opened, no need to check again
+      if (statusResult.status === "delivered" || statusResult.status === "opened") {
+        break;
+      }
+    }
+  } else {
+    console.warn("[OTP] No messageId returned from sendOtpEmail — cannot verify delivery status");
+  }
+
+  // Opportunistic cleanup of expired pending registrations
+  db.delete(pendingRegistrations)
+    .where(lt(pendingRegistrations.expiresAt, new Date()))
+    .catch((err) => {
+      console.error("Failed to cleanup expired pending registrations:", err);
+    });
+
+  return {
+    success: true,
+    message: "Verification code sent to your email",
+    email: input.email,
+  };
+}
+
+export async function registerVerifyOtp(
+  input: RegisterVerifyOtpInput,
+  userAgent?: string,
+  ipAddress?: string
+): Promise<AuthResponse> {
+  // Find pending registration
+  const pending = await db.query.pendingRegistrations.findFirst({
+    where: eq(pendingRegistrations.email, input.email),
+  });
+
+  if (!pending) {
+    throw new Error("PENDING_NOT_FOUND");
+  }
+
+  // Check expiry
+  if (pending.expiresAt < new Date()) {
+    throw new Error("OTP_EXPIRED");
+  }
+
+  // Check max attempts
+  if (pending.attempts >= MAX_OTP_ATTEMPTS) {
+    throw new Error("MAX_ATTEMPTS_EXCEEDED");
+  }
+
+  // Verify OTP
+  if (pending.otp !== input.otp) {
+    // Increment attempts
+    await db
+      .update(pendingRegistrations)
+      .set({ attempts: pending.attempts + 1 })
+      .where(eq(pendingRegistrations.id, pending.id));
+    throw new Error("INVALID_OTP");
+  }
+
+  // Re-check email uniqueness (race condition guard)
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, input.email),
+  });
+
+  if (existingUser) {
+    await db
+      .delete(pendingRegistrations)
+      .where(eq(pendingRegistrations.id, pending.id));
+    throw new Error("EMAIL_EXISTS");
+  }
+
+  // Create user with emailVerified: true
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      email: pending.email,
+      passwordHash: pending.passwordHash,
+      name: pending.name,
+      emailVerified: true,
+    })
+    .returning();
+
+  if (!newUser) {
+    throw new Error("INTERNAL_ERROR");
+  }
+
+  // Delete pending registration
+  await db
+    .delete(pendingRegistrations)
+    .where(eq(pendingRegistrations.id, pending.id));
+
+  // Create session
+  const refreshToken = generateRefreshToken(newUser.id);
+  await db.insert(sessions).values({
+    userId: newUser.id,
+    refreshToken,
+    userAgent: userAgent ?? null,
+    ipAddress: ipAddress ?? null,
+    expiresAt: getRefreshTokenExpiry(),
+  });
+
+  // Send welcome email (fire-and-forget)
+  const mail = getMailClient();
+  if (mail) {
+    const loginUrl = `${config.CLIENT_URL}/login`;
+    mail.sendWelcomeEmail({
+      to: newUser.email,
+      userName: newUser.name ?? newUser.email,
+      loginUrl,
+    }).catch((err) => {
+      console.error("Failed to send welcome email:", err);
+    });
+  }
 
   return {
     user: toUserPublic(newUser),

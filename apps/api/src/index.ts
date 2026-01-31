@@ -6,6 +6,7 @@ import { config } from "@/config/env.js";
 import { corsMiddleware, allowedOrigins } from "@/config/cors.js";
 import { apiRouter, healthRouter } from "@/routes/api.js";
 import { appRouter, notFoundHandler } from "@/features/app/index.js";
+import { webhookRouter } from "@/features/webhooks/index.js";
 import { validateServices, logConfig } from "@/service-validator/index.js";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(cookieParser());
 app.use("/", appRouter);
 app.use("/health", healthRouter);
 app.use("/api", apiRouter);
+app.use("/webhooks", webhookRouter);
 app.use(notFoundHandler);
 
 // Start server
