@@ -11,6 +11,7 @@ import {
 } from "@/schema/share-schema.js";
 import { createStorageClient, type StorageClient } from "@repo/storage";
 import { getStorageConfig } from "@/config/env.js";
+import { getThumbnailUrlsBatch } from "@/features/assets/thumbnail-service.js";
 
 let storageClient: StorageClient | null = null;
 
@@ -458,6 +459,56 @@ export async function downloadSharedFolderAsset(req: Request, res: Response): Pr
     sendSuccess(res, { url: result.url, name: assetInfo.name });
   } catch {
     sendError(res, "INTERNAL_ERROR", "Failed to download asset", 500);
+  }
+}
+
+// Get thumbnail URLs for shared assets (public, no auth required)
+export async function getSharedThumbnailUrls(req: Request, res: Response): Promise<void> {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      sendError(res, "VALIDATION_ERROR", "Share token is required", 400);
+      return;
+    }
+
+    const { assetIds } = req.body;
+    if (!Array.isArray(assetIds) || assetIds.length === 0) {
+      sendError(res, "VALIDATION_ERROR", "assetIds array is required", 400);
+      return;
+    }
+
+    // Cap to prevent abuse
+    if (assetIds.length > 50) {
+      sendError(res, "VALIDATION_ERROR", "Maximum 50 asset IDs per request", 400);
+      return;
+    }
+
+    // Validate that these assets belong to the share
+    const validatedKeys = await shareService.getSharedAssetThumbnailKeys(token, assetIds);
+
+    // Get presigned URLs only for assets that have thumbnail keys
+    const validAssetIds = Array.from(validatedKeys.entries())
+      .filter(([, key]) => key !== null)
+      .map(([id]) => id);
+
+    const thumbnailUrls = validAssetIds.length > 0
+      ? await getThumbnailUrlsBatch(validAssetIds)
+      : new Map();
+
+    // Build response
+    const thumbnails: Record<string, { url: string | null; canGenerate: boolean }> = {};
+    for (const id of assetIds) {
+      if (!validatedKeys.has(id)) {
+        thumbnails[id] = { url: null, canGenerate: false };
+      } else {
+        const batchResult = thumbnailUrls.get(id);
+        thumbnails[id] = batchResult ?? { url: null, canGenerate: false };
+      }
+    }
+
+    sendSuccess(res, { thumbnails });
+  } catch {
+    sendError(res, "INTERNAL_ERROR", "Failed to get thumbnail URLs", 500);
   }
 }
 

@@ -71,6 +71,7 @@ export const API_ENDPOINTS = {
     LINK_FOLDER: (token: string) => `/api/shares/link/${token}/folder`,
     LINK_FOLDER_ASSET: (token: string, assetId: string) => `/api/shares/link/${token}/folder/asset/${assetId}`,
     LINK_FOLDER_DOWNLOAD: (token: string) => `/api/shares/link/${token}/folder/download`,
+    LINK_THUMBNAILS: (token: string) => `/api/shares/link/${token}/thumbnails`,
   },
 
   // Storage

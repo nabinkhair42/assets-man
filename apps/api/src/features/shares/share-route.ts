@@ -32,6 +32,9 @@ shareRouter.post("/link/:token/folder/asset/:assetId", wrapPublic(shareControlle
 // Download shared folder as ZIP (public)
 shareRouter.get("/link/:token/folder/download", wrapPublic(shareController.downloadSharedFolderZip));
 
+// Get thumbnail URLs for shared assets (public)
+shareRouter.post("/link/:token/thumbnails", wrapPublic(shareController.getSharedThumbnailUrls));
+
 // All other routes require authentication
 shareRouter.use(authenticate);
 

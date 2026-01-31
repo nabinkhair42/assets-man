@@ -8,6 +8,7 @@ import { FileIcon as CustomFileIcon } from "@/components/shared/file-icon";
 import { FILE_LIST_COLUMNS } from "@/components/shared/list-columns";
 import { SelectionToolbar, type SelectedItem } from "@/components/shared/selection-toolbar";
 import { ShareInfoPopover } from "@/components/shared/share-info-popover";
+import { FileBrowserSkeleton } from "@/components/loaders";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,6 +27,7 @@ import {
   DataListHeader,
 } from "@/components/ui/data-list";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useViewMode } from "@/hooks/use-view-mode";
 import { formatFileSize, formatRelativeTime } from "@/lib/formatters";
@@ -43,13 +45,13 @@ import {
   LayoutGrid,
   List,
   Loader,
-  Loader2,
   Lock,
   User,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ShareProvider } from "@/contexts/share-context";
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -197,7 +199,6 @@ export default function PublicSharePage() {
     }
 
     try {
-      // Try to access the share with the password
       await shareService.accessLinkShare(token, { password });
       setUnlocked(true);
       toast.success("Access granted!");
@@ -216,7 +217,6 @@ export default function PublicSharePage() {
         shareDetails.share.requiresPassword ? password : undefined,
       );
 
-      // Create download link
       const link = document.createElement("a");
       link.href = result.url;
       link.download = result.name;
@@ -265,7 +265,6 @@ export default function PublicSharePage() {
 
   const handleBreadcrumbClick = (folderId: string, index: number) => {
     if (folderContents && index === folderContents.breadcrumbs.length - 1) {
-      // Already at this folder
       return;
     }
     loadFolderContents(folderId);
@@ -284,7 +283,6 @@ export default function PublicSharePage() {
         shareDetails?.share.requiresPassword ? password : undefined,
       );
 
-      // Create download link
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -332,7 +330,6 @@ export default function PublicSharePage() {
         const key = `${type}-${id}`;
 
         if (shiftKey && lastSelectedIndex.current !== null && selected) {
-          // Range selection with shift+click
           const start = Math.min(lastSelectedIndex.current, index);
           const end = Math.max(lastSelectedIndex.current, index);
 
@@ -347,7 +344,6 @@ export default function PublicSharePage() {
             }
           }
         } else {
-          // Single item selection
           if (selected) {
             next.set(key, { id, type, name });
           } else {
@@ -355,7 +351,6 @@ export default function PublicSharePage() {
           }
         }
 
-        // Update last selected index
         if (selected) {
           lastSelectedIndex.current = index;
         }
@@ -371,14 +366,7 @@ export default function PublicSharePage() {
       const index = allItems.findIndex(
         (item) => item.type === "folder" && item.id === folder.id,
       );
-      handleItemSelect(
-        index,
-        folder.id,
-        "folder",
-        folder.name,
-        selected,
-        shiftKey,
-      );
+      handleItemSelect(index, folder.id, "folder", folder.name, selected, shiftKey);
     },
     [allItems, handleItemSelect],
   );
@@ -388,14 +376,7 @@ export default function PublicSharePage() {
       const index = allItems.findIndex(
         (item) => item.type === "asset" && item.id === asset.id,
       );
-      handleItemSelect(
-        index,
-        asset.id,
-        "asset",
-        asset.name,
-        selected,
-        shiftKey,
-      );
+      handleItemSelect(index, asset.id, "asset", asset.name, selected, shiftKey);
     },
     [allItems, handleItemSelect],
   );
@@ -410,7 +391,6 @@ export default function PublicSharePage() {
     handleClearSelection();
   }, [currentFolderId, handleClearSelection]);
 
-  // Pending selection for visual feedback (not using marquee in public share)
   const pendingSelection = new Set<string>();
 
   // Bulk download selected items
@@ -423,7 +403,6 @@ export default function PublicSharePage() {
       return;
     }
 
-    // Download assets one by one
     const toastId = toast.loading(`Downloading ${assets.length} file(s)`);
     let successCount = 0;
 
@@ -462,16 +441,13 @@ export default function PublicSharePage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle shortcuts when folder contents are shown
       if (!folderContents) return;
 
-      // Escape to clear selection
       if (e.key === "Escape") {
         handleClearSelection();
         return;
       }
 
-      // Ctrl+A to select all
       if ((e.ctrlKey || e.metaKey) && e.key === "a") {
         e.preventDefault();
         const newSelection = new Map<string, SelectedItem>();
@@ -486,7 +462,6 @@ export default function PublicSharePage() {
         return;
       }
 
-      // Ctrl+D to download selected
       if ((e.ctrlKey || e.metaKey) && e.key === "d" && selectedItems.size > 0) {
         e.preventDefault();
         handleBulkDownload();
@@ -504,17 +479,16 @@ export default function PublicSharePage() {
     handleBulkDownload,
   ]);
 
+  // --- Initial loading ---
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading shared item...</p>
-        </div>
+        <Loader className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
+  // --- Error ---
   if (error || !shareDetails) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -533,7 +507,7 @@ export default function PublicSharePage() {
     );
   }
 
-  // Password protected and not unlocked yet
+  // --- Password gate ---
   if (shareDetails.share.requiresPassword && !unlocked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -571,7 +545,6 @@ export default function PublicSharePage() {
   const canPreview =
     isAsset && item.mimeType && isPreviewable(item.mimeType, item.name);
 
-  // Create asset-like object for preview components
   const previewAsset = {
     id: item.id,
     name: item.name,
@@ -579,316 +552,299 @@ export default function PublicSharePage() {
     size: item.size || 0,
   };
 
-  // Folder asset preview dialog - uses FilePreviewDialog
-  // Renders below with the main content
-
-  // Direct asset preview dialog - uses FilePreviewDialog
-  // Shows when directAssetPreviewOpen is true for previewable direct shares
+  // --- Direct asset preview ---
   if (canPreview && directAssetPreviewOpen) {
     return (
-      <>
-        <FilePreviewDialog
-          open={directAssetPreviewOpen}
-          onOpenChange={setDirectAssetPreviewOpen}
-          asset={previewAsset as Asset}
-          getDownloadUrl={getDirectAssetDownloadUrl}
-          onDownload={handleDownload}
-          subtitle={`Shared by ${share.ownerName}`}
-          showNavigation={false}
-        />
-      </>
+      <FilePreviewDialog
+        open={directAssetPreviewOpen}
+        onOpenChange={setDirectAssetPreviewOpen}
+        asset={previewAsset as Asset}
+        getDownloadUrl={getDirectAssetDownloadUrl}
+        onDownload={handleDownload}
+        subtitle={`Shared by ${share.ownerName}`}
+        showNavigation={false}
+      />
     );
   }
 
-  // Folder browser UI
-  if (isFolder && folderContents) {
+  // --- Folder browser ---
+  if (isFolder) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        {/* Header */}
-        <header className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center h-14">
-              {/* Left section - Breadcrumbs */}
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="flex items-center gap-1 text-sm overflow-x-auto">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-8 px-2 shrink-0 gap-2",
-                      !currentFolderId && "font-medium text-foreground",
-                    )}
-                    onClick={() => loadFolderContents()}
-                  >
-                    <Folder className="h-4 w-4 text-blue-500" />
-                    <span className="hidden sm:inline">{item.name}</span>
-                  </Button>
-                  {/* Filter out the root shared folder from breadcrumbs since it's already shown above */}
-                  {folderContents.breadcrumbs
-                    .filter((crumb) => crumb.id !== item.id)
-                    .map((crumb, index, filteredBreadcrumbs) => (
-                      <div
-                        key={crumb.id}
-                        className="flex items-center shrink-0"
+      <ShareProvider token={token}>
+        <div className="min-h-screen flex flex-col bg-background">
+          {/* Header */}
+          <header className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6">
+              <div className="flex items-center h-14">
+                {/* Left section - Breadcrumbs */}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {folderLoading && !folderContents ? (
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-5 rounded" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-sm overflow-x-auto">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "h-8 px-2 shrink-0 gap-2",
+                          !currentFolderId && "font-medium text-foreground",
+                        )}
+                        onClick={() => loadFolderContents()}
                       >
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "h-8 px-2",
-                            index === filteredBreadcrumbs.length - 1 &&
-                              "font-medium text-foreground",
-                          )}
-                          onClick={() => handleBreadcrumbClick(crumb.id, index)}
-                        >
-                          {crumb.name}
-                        </Button>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Right section - Actions */}
-              <div className="flex items-center gap-1 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={handleDownloadFolder}
-                  disabled={
-                    downloadingFolder ||
-                    (folderContents?.assets.length === 0 &&
-                      folderContents?.folders.length === 0)
-                  }
-                >
-                  {downloadingFolder ? (
-                    <Loader className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
+                        <Folder className="h-4 w-4 text-blue-500" />
+                        <span className="hidden sm:inline">{item.name}</span>
+                      </Button>
+                      {folderContents?.breadcrumbs
+                        .filter((crumb) => crumb.id !== item.id)
+                        .map((crumb, index, filteredBreadcrumbs) => (
+                          <div
+                            key={crumb.id}
+                            className="flex items-center shrink-0"
+                          >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-8 px-2",
+                                index === filteredBreadcrumbs.length - 1 &&
+                                  "font-medium text-foreground",
+                              )}
+                              onClick={() => handleBreadcrumbClick(crumb.id, index)}
+                            >
+                              {crumb.name}
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
                   )}
-                </Button>
+                </div>
 
-                <ShareInfoPopover
-                  share={{
-                    ownerName: share.ownerName,
-                    permission: share.permission,
-                    expiresAt: share.expiresAt,
-                  }}
-                  item={{
-                    name: item.name,
-                    type: item.type,
-                    createdAt: item.createdAt,
-                  }}
-                />
-
-                {/* View mode toggle */}
-                <div className="hidden sm:flex items-center ml-1 p-0.5 rounded-lg bg-muted/50">
+                {/* Right section - Actions */}
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "h-7 w-7 rounded-md",
-                      viewMode === "list"
-                        ? "bg-background shadow-sm"
-                        : "hover:bg-transparent",
-                    )}
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={handleDownloadFolder}
+                    disabled={
+                      downloadingFolder ||
+                      folderLoading ||
+                      (!folderContents?.assets.length &&
+                        !folderContents?.folders.length)
+                    }
                   >
-                    <List className="h-4 w-4" />
+                    {downloadingFolder ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
                   </Button>
+
+                  <ShareInfoPopover
+                    share={{
+                      ownerName: share.ownerName,
+                      permission: share.permission,
+                      expiresAt: share.expiresAt,
+                    }}
+                    item={{
+                      name: item.name,
+                      type: item.type,
+                      createdAt: item.createdAt,
+                    }}
+                  />
+
+                  {/* View mode toggle */}
+                  <div className="hidden sm:flex items-center ml-1 p-0.5 rounded-lg bg-muted/50">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setViewMode("list")}
+                      className={cn(
+                        "h-7 w-7 rounded-md",
+                        viewMode === "list"
+                          ? "bg-background shadow-sm"
+                          : "hover:bg-transparent",
+                      )}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setViewMode("grid")}
+                      className={cn(
+                        "h-7 w-7 rounded-md",
+                        viewMode === "grid"
+                          ? "bg-background shadow-sm"
+                          : "hover:bg-transparent",
+                      )}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Mobile view toggle */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "h-7 w-7 rounded-md",
-                      viewMode === "grid"
-                        ? "bg-background shadow-sm"
-                        : "hover:bg-transparent",
-                    )}
+                    onClick={() =>
+                      setViewMode(viewMode === "grid" ? "list" : "grid")
+                    }
+                    className="sm:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
                   >
-                    <LayoutGrid className="h-4 w-4" />
+                    {viewMode === "grid" ? (
+                      <List className="h-4 w-4" />
+                    ) : (
+                      <LayoutGrid className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-
-                {/* Mobile view toggle */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setViewMode(viewMode === "grid" ? "list" : "grid")
-                  }
-                  className="sm:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
-                >
-                  {viewMode === "grid" ? (
-                    <List className="h-4 w-4" />
-                  ) : (
-                    <LayoutGrid className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Content */}
-        <ScrollArea className="flex-1">
-          <div
-            ref={contentContainerRef}
-            className="py-6 px-4 sm:px-6 max-w-7xl mx-auto relative"
-          >
-            {folderLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : folderContents.folders.length === 0 &&
-              folderContents.assets.length === 0 ? (
-              <DataListEmpty
-                icon={Folder}
-                title="This folder is empty"
-                description="No files or folders to display"
-              />
-            ) : viewMode === "grid" ? (
-              <DataGrid>
-                {/* Folders Section */}
-                {folderContents.folders.length > 0 && (
-                  <DataGridSection title="Folders">
-                    <DataGridFolderContainer>
-                      {folderContents.folders.map((folder) => (
-                        <ReadOnlyFolderItem
-                          key={folder.id}
-                          folder={folder}
-                          onOpen={handleNavigateFolder}
-                          viewMode="grid"
-                          isSelected={selectedItems.has(`folder-${folder.id}`)}
-                          isPendingSelection={pendingSelection.has(
-                            `folder-${folder.id}`,
-                          )}
-                          onSelect={handleSelectFolder}
-                        />
-                      ))}
-                    </DataGridFolderContainer>
-                  </DataGridSection>
-                )}
-
-                {/* Files Section */}
-                {folderContents.assets.length > 0 && (
-                  <DataGridSection title="Files">
-                    <DataGridFileContainer>
-                      {folderContents.assets.map((asset) => (
-                        <ReadOnlyFileItem
-                          key={asset.id}
-                          asset={asset}
-                          onDownload={(a) =>
-                            handleFolderAssetDownload(a.id, a.name)
-                          }
-                          onPreview={(a) => {
-                            if (isPreviewable(a.mimeType, a.name)) {
-                              openFolderAssetPreview(a);
-                            } else {
-                              handleFolderAssetDownload(a.id, a.name);
+          {/* Content */}
+          <ScrollArea className="flex-1">
+            <div
+              ref={contentContainerRef}
+              className="py-6 px-4 sm:px-6 max-w-7xl mx-auto relative"
+            >
+              {folderLoading ? (
+                <FileBrowserSkeleton viewMode={viewMode} count={6} />
+              ) : !folderContents ||
+                (folderContents.folders.length === 0 &&
+                  folderContents.assets.length === 0) ? (
+                <DataListEmpty
+                  icon={Folder}
+                  title="This folder is empty"
+                  description="No files or folders to display"
+                />
+              ) : viewMode === "grid" ? (
+                <DataGrid>
+                  {folderContents.folders.length > 0 && (
+                    <DataGridSection title="Folders">
+                      <DataGridFolderContainer>
+                        {folderContents.folders.map((folder) => (
+                          <ReadOnlyFolderItem
+                            key={folder.id}
+                            folder={folder}
+                            onOpen={handleNavigateFolder}
+                            viewMode="grid"
+                            isSelected={selectedItems.has(`folder-${folder.id}`)}
+                            isPendingSelection={pendingSelection.has(
+                              `folder-${folder.id}`,
+                            )}
+                            onSelect={handleSelectFolder}
+                          />
+                        ))}
+                      </DataGridFolderContainer>
+                    </DataGridSection>
+                  )}
+                  {folderContents.assets.length > 0 && (
+                    <DataGridSection title="Files">
+                      <DataGridFileContainer>
+                        {folderContents.assets.map((asset) => (
+                          <ReadOnlyFileItem
+                            key={asset.id}
+                            asset={asset}
+                            onDownload={(a) =>
+                              handleFolderAssetDownload(a.id, a.name)
                             }
-                          }}
-                          viewMode="grid"
-                          isDownloading={downloadingAssetId === asset.id}
-                          isSelected={selectedItems.has(`asset-${asset.id}`)}
-                          isPendingSelection={pendingSelection.has(
-                            `asset-${asset.id}`,
-                          )}
-                          onSelect={handleSelectAsset}
-                        />
-                      ))}
-                    </DataGridFileContainer>
-                  </DataGridSection>
-                )}
-              </DataGrid>
-            ) : (
-              /* List View */
-              <DataList>
-                <DataListHeader columns={FILE_LIST_COLUMNS} />
-                {/* Folders */}
-                {folderContents.folders.map((folder) => (
-                  <ReadOnlyFolderItem
-                    key={folder.id}
-                    folder={folder}
-                    onOpen={handleNavigateFolder}
-                    viewMode="list"
-                    isSelected={selectedItems.has(`folder-${folder.id}`)}
-                    isPendingSelection={pendingSelection.has(
-                      `folder-${folder.id}`,
-                    )}
-                    onSelect={handleSelectFolder}
-                  />
-                ))}
+                            onPreview={(a) => {
+                              if (isPreviewable(a.mimeType, a.name)) {
+                                openFolderAssetPreview(a);
+                              } else {
+                                handleFolderAssetDownload(a.id, a.name);
+                              }
+                            }}
+                            viewMode="grid"
+                            isDownloading={downloadingAssetId === asset.id}
+                            isSelected={selectedItems.has(`asset-${asset.id}`)}
+                            isPendingSelection={pendingSelection.has(
+                              `asset-${asset.id}`,
+                            )}
+                            onSelect={handleSelectAsset}
+                          />
+                        ))}
+                      </DataGridFileContainer>
+                    </DataGridSection>
+                  )}
+                </DataGrid>
+              ) : (
+                <DataList>
+                  <DataListHeader columns={FILE_LIST_COLUMNS} />
+                  {folderContents.folders.map((folder) => (
+                    <ReadOnlyFolderItem
+                      key={folder.id}
+                      folder={folder}
+                      onOpen={handleNavigateFolder}
+                      viewMode="list"
+                      isSelected={selectedItems.has(`folder-${folder.id}`)}
+                      isPendingSelection={pendingSelection.has(
+                        `folder-${folder.id}`,
+                      )}
+                      onSelect={handleSelectFolder}
+                    />
+                  ))}
+                  {folderContents.assets.map((asset) => (
+                    <ReadOnlyFileItem
+                      key={asset.id}
+                      asset={asset}
+                      onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
+                      onPreview={(a) => {
+                        if (isPreviewable(a.mimeType, a.name)) {
+                          openFolderAssetPreview(a);
+                        } else {
+                          handleFolderAssetDownload(a.id, a.name);
+                        }
+                      }}
+                      viewMode="list"
+                      isDownloading={downloadingAssetId === asset.id}
+                      isSelected={selectedItems.has(`asset-${asset.id}`)}
+                      isPendingSelection={pendingSelection.has(
+                        `asset-${asset.id}`,
+                      )}
+                      onSelect={handleSelectAsset}
+                    />
+                  ))}
+                </DataList>
+              )}
+            </div>
+          </ScrollArea>
 
-                {/* Files */}
-                {folderContents.assets.map((asset) => (
-                  <ReadOnlyFileItem
-                    key={asset.id}
-                    asset={asset}
-                    onDownload={(a) => handleFolderAssetDownload(a.id, a.name)}
-                    onPreview={(a) => {
-                      if (isPreviewable(a.mimeType, a.name)) {
-                        openFolderAssetPreview(a);
-                      } else {
-                        handleFolderAssetDownload(a.id, a.name);
-                      }
-                    }}
-                    viewMode="list"
-                    isDownloading={downloadingAssetId === asset.id}
-                    isSelected={selectedItems.has(`asset-${asset.id}`)}
-                    isPendingSelection={pendingSelection.has(
-                      `asset-${asset.id}`,
-                    )}
-                    onSelect={handleSelectAsset}
-                  />
-                ))}
-              </DataList>
-            )}
-          </div>
-        </ScrollArea>
+          {/* Selection Toolbar */}
+          {selectionMode && (
+            <SelectionToolbar
+              selectedItems={selectedItems}
+              onClearSelection={handleClearSelection}
+              onBulkDownload={handleBulkDownload}
+              variant="readonly"
+            />
+          )}
 
-        {/* Selection Toolbar */}
-        {selectionMode && (
-          <SelectionToolbar
-            selectedItems={selectedItems}
-            onClearSelection={handleClearSelection}
-            onBulkDownload={handleBulkDownload}
-            variant="readonly"
+          {/* Folder Asset Preview Dialog */}
+          <FilePreviewDialog
+            open={!!previewingAsset}
+            onOpenChange={(open) => !open && closeFolderAssetPreview()}
+            asset={previewingAsset as Asset}
+            getDownloadUrl={getFolderAssetDownloadUrl}
+            onDownload={() =>
+              previewingAsset &&
+              handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
+            }
+            subtitle={`Shared by ${share.ownerName}`}
+            showNavigation={false}
           />
-        )}
-
-        {/* Folder Asset Preview Dialog */}
-        <FilePreviewDialog
-          open={!!previewingAsset}
-          onOpenChange={(open) => !open && closeFolderAssetPreview()}
-          asset={previewingAsset as Asset}
-          getDownloadUrl={getFolderAssetDownloadUrl}
-          onDownload={() =>
-            previewingAsset &&
-            handleFolderAssetDownload(previewingAsset.id, previewingAsset.name)
-          }
-          subtitle={`Shared by ${share.ownerName}`}
-          showNavigation={false}
-        />
-      </div>
-    );
-  }
-
-  // Loading folder contents
-  if (isFolder && folderLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading folder contents...</p>
         </div>
-      </div>
+      </ShareProvider>
     );
   }
 
-  // Card layout for non-previewable files
+  // --- Asset card (non-previewable files) ---
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg">
@@ -908,7 +864,6 @@ export default function PublicSharePage() {
           <CardDescription>Shared by {share.ownerName}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Item details */}
           <div className="rounded-lg bg-muted/50 p-4 space-y-3">
             <div className="flex items-center gap-3 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
@@ -940,25 +895,17 @@ export default function PublicSharePage() {
             )}
           </div>
 
-          {/* Download button for assets */}
           {isAsset && (
             <Button
               className="w-full"
               size="lg"
               onClick={handleDownload}
               disabled={downloading}
+              isLoading={downloading}
+              loadingText="Preparing download..."
             >
-              {downloading ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                  Preparing download...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download File
-                </>
-              )}
+              <Download className="mr-2 h-4 w-4" />
+              Download File
             </Button>
           )}
         </CardContent>

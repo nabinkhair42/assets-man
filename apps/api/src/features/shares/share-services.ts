@@ -1,4 +1,4 @@
-import { eq, and, or, isNull, sql } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { createDb, shares, assets, folders, users, type Share } from "@repo/database";
@@ -437,6 +437,7 @@ export interface SharedFolderContents {
     mimeType: string;
     size: number;
     storageKey: string;
+    thumbnailKey: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -714,6 +715,76 @@ export async function getSharedFolderAssetsForDownload(
   }
 
   await collectAssets(targetFolder.id, "");
+
+  return result;
+}
+
+// Validate that asset IDs belong to a share and return their thumbnail keys
+export async function getSharedAssetThumbnailKeys(
+  token: string,
+  assetIds: string[]
+): Promise<Map<string, string | null>> {
+  const share = await getShareWithItemByToken(token);
+  if (!share) return new Map();
+
+  const result = new Map<string, string | null>();
+
+  if (share.assetId && share.asset) {
+    // Direct asset share — only allow the shared asset itself
+    if (assetIds.includes(share.asset.id)) {
+      result.set(share.asset.id, share.asset.thumbnailKey);
+    }
+    return result;
+  }
+
+  if (!share.folder) return result;
+
+  // Folder share — verify assets belong to the shared folder hierarchy
+  const sharedFolder = share.folder;
+  const ownerId = share.ownerId;
+
+  // Fetch the requested assets that belong to this owner
+  const matchedAssets = await db.query.assets.findMany({
+    where: and(
+      inArray(assets.id, assetIds),
+      eq(assets.ownerId, ownerId),
+      isNull(assets.trashedAt)
+    ),
+    columns: { id: true, folderId: true, thumbnailKey: true },
+  });
+
+  if (matchedAssets.length === 0) return result;
+
+  // Get all unique folder IDs to verify they're within the shared hierarchy
+  const folderIds = [...new Set(matchedAssets.map(a => a.folderId).filter(Boolean))] as string[];
+
+  const assetFolders = folderIds.length > 0
+    ? await db.query.folders.findMany({
+        where: and(
+          inArray(folders.id, folderIds),
+          eq(folders.ownerId, ownerId)
+        ),
+        columns: { id: true, path: true },
+      })
+    : [];
+
+  const folderPathMap = new Map(assetFolders.map(f => [f.id, f.path]));
+  const sharedPath = sharedFolder.path;
+
+  for (const asset of matchedAssets) {
+    if (!asset.folderId) continue;
+
+    // Check if the asset's folder is within the shared folder
+    if (asset.folderId === sharedFolder.id) {
+      result.set(asset.id, asset.thumbnailKey);
+      continue;
+    }
+
+    const folderPath = folderPathMap.get(asset.folderId);
+    if (folderPath && folderPath.startsWith(sharedPath + "/")) {
+      result.set(asset.id, asset.thumbnailKey);
+    }
+  }
 
   return result;
 }

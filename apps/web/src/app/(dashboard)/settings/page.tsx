@@ -318,7 +318,7 @@ function DangerSection() {
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col overflow-auto">
       <div className="mx-auto w-full max-w-xl px-6 py-8 space-y-8">
         <div>
           <h1 className="text-xl font-semibold">Settings</h1>

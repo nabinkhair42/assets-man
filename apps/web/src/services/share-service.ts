@@ -124,6 +124,17 @@ export const shareService = {
     return response.data.data;
   },
 
+  async batchGetSharedThumbnailUrls(
+    token: string,
+    assetIds: string[]
+  ): Promise<Record<string, { url: string | null; canGenerate: boolean }>> {
+    const response = await apiClient.post<ApiResponse<{ thumbnails: Record<string, { url: string | null; canGenerate: boolean }> }>>(
+      API_ENDPOINTS.SHARES.LINK_THUMBNAILS(token),
+      { assetIds }
+    );
+    return response.data.data.thumbnails;
+  },
+
   async downloadSharedFolderZip(
     token: string,
     folderId?: string,
