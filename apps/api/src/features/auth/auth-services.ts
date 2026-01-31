@@ -1,4 +1,4 @@
-import { config, getMailConfig } from "@/config/env.js";
+import { config, getMailConfig, getStorageConfig } from "@/config/env.js";
 import type {
   LoginInput,
   RegisterInput,
@@ -14,7 +14,8 @@ import {
   verifyPassword,
   verifyRefreshToken,
 } from "@/utils/auth-utils.js";
-import { createDb, sessions, users, pendingRegistrations, type User } from "@repo/database";
+import { createDb, sessions, users, assets, pendingRegistrations, type User } from "@repo/database";
+import { createStorageClient, type StorageClient } from "@repo/storage";
 import { createMailClient, validateEmailDomain, type MailClient } from "@repo/mail";
 import type { AuthResponse, AuthTokens, UserPublic } from "@repo/shared";
 import crypto from "crypto";
@@ -602,6 +603,15 @@ export async function changePassword(
   return { success: true, message: "Password changed successfully" };
 }
 
+// Storage client (lazy singleton)
+let storageClient: StorageClient | null = null;
+function getStorage(): StorageClient {
+  if (!storageClient) {
+    storageClient = createStorageClient(getStorageConfig());
+  }
+  return storageClient;
+}
+
 export async function deleteAccount(userId: string, password: string): Promise<{ success: boolean; message: string }> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
@@ -616,7 +626,31 @@ export async function deleteAccount(userId: string, password: string): Promise<{
     return { success: false, message: "Password is incorrect" };
   }
 
-  // Delete user (cascade will handle related records)
+  // Delete all user files from storage bucket before DB cascade
+  const userAssets = await db.query.assets.findMany({
+    where: eq(assets.ownerId, userId),
+  });
+
+  if (userAssets.length > 0) {
+    const storageKeys: string[] = [];
+    for (const asset of userAssets) {
+      storageKeys.push(asset.storageKey);
+      if (asset.thumbnailKey) {
+        storageKeys.push(asset.thumbnailKey);
+      }
+    }
+
+    try {
+      const storage = getStorage();
+      await storage.deleteObjects(storageKeys);
+    } catch (err) {
+      console.error("Failed to delete storage files for user:", userId, err);
+      // Continue with account deletion — orphaned files are preferable to a stuck account
+    }
+  }
+
+  // Delete user (cascade will handle all related DB records:
+  // sessions, folders, assets, recent_activity, shares, storage_quotas)
   await db.delete(users).where(eq(users.id, user.id));
 
   return { success: true, message: "Account deleted successfully" };
