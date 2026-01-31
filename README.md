@@ -8,7 +8,7 @@ A self-hosted, open-source Google Drive alternative.
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/nabinkhair42/assets-man/pulls)
-[![GitHub stars](https://img.shields.io/github/stars/nabinkhair42/assets-man)](https://github.com/nabinkhair42/assets-man/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/nabinkhair42/assets-man?style=social)](https://github.com/nabinkhair42/assets-man/stargazers)
 
 </div>
 
@@ -43,21 +43,35 @@ Assets Man is a privacy-first, self-hosted file management platform built for in
 ## Screenshots
 
 <div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/search-dark.webp">
-    <img alt="Instant search" src="apps/web/public/marketing/search-light.webp" width="100%">
-  </picture>
-  <br><br>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/pdf-preview-dark.webp">
-    <img alt="PDF preview" src="apps/web/public/marketing/pdf-preview-light.webp" width="100%">
-  </picture>
-  <br><br>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/share-assets-dark.webp">
-    <img alt="Secure sharing" src="apps/web/public/marketing/share-assets-light.webp" width="100%">
-  </picture>
+  <table>
+    <tr>
+      <td>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/search-dark.webp">
+          <img alt="Instant search" src="apps/web/public/marketing/search-light.webp" width="400">
+        </picture>
+      </td>
+      <td>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/pdf-preview-dark.webp">
+          <img alt="PDF preview" src="apps/web/public/marketing/pdf-preview-light.webp" width="400">
+        </picture>
+      </td>
+      <td>
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/marketing/share-assets-dark.webp">
+          <img alt="Secure sharing" src="apps/web/public/marketing/share-assets-light.webp" width="400">
+        </picture>
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong>Instant Search</strong></td>
+      <td align="center"><strong>Rich Previews</strong></td>
+      <td align="center"><strong>Secure Sharing</strong></td>
+    </tr>
+  </table>
 </div>
+
 
 ## Tech Stack
 
@@ -74,6 +88,10 @@ Assets Man is a privacy-first, self-hosted file management platform built for in
 ## Contributing
 
 Contributions are welcome! If you'd like to help improve Assets Man, feel free to open an issue or submit a pull request. Check the [open issues](https://github.com/nabinkhair42/assets-man/issues) for ideas on where to start.
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/nabinkhair42/assets-man.svg?variant=adaptive)](https://starchart.cc/nabinkhair42/assets-man)
 
 ## License
 
