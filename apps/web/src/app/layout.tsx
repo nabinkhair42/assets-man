@@ -1,14 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito_Sans } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import "./globals.css";
 
-const nunitoSans = Nunito_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-nunito-sans",
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-serif-display",
   display: "swap",
 });
 
@@ -92,7 +99,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${nunitoSans.className} h-full`}>
+      <body className={`${inter.variable} ${instrumentSerif.variable} font-sans h-full`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

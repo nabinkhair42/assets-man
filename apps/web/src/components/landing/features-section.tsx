@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface Feature {
   icon: string;
@@ -44,27 +47,38 @@ const features: Feature[] = [
   },
 ];
 
-const crosshatchStyle = {
-  backgroundImage: `repeating-linear-gradient(
-    -45deg,
-    var(--muted),
-    var(--muted) 1px,
-    transparent 1px,
-    transparent 8px
-  )`,
-};
-
 interface FeaturesSectionProps {
   className?: string;
 }
 
 export function FeaturesSection({ className }: FeaturesSectionProps) {
   return (
-    <div className={cn("py-16 md:py-24", className)}>
+    <section className={cn("py-16 md:py-24", className)}>
+      {/* Section header */}
+      <motion.div
+        className="mx-auto max-w-6xl px-4 text-center mb-16"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.5 }}
+      >
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-[family-name:var(--font-serif-display)]">
+          Everything you need
+        </h2>
+        <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+          A complete file management solution with the features you&apos;d expect from the best cloud storage services.
+        </p>
+      </motion.div>
+
+      {/* Main features */}
       {features.map((feature, index) => (
-        <div
+        <motion.div
           key={feature.title}
-          className="py-12 md:py-16 mx-auto max-w-5xl px-4"
+          className="py-12 md:py-16 mx-auto max-w-6xl px-4"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.5 }}
         >
           <div
             className={cn(
@@ -74,25 +88,20 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
           >
             {/* Text content */}
             <div className="flex flex-col lg:max-w-md gap-4">
-              {/* icon */}
-              <div className="p-1 border w-fit rounded bg-muted">
-                <Image src={feature.icon} alt="" width={48} height={48} className="size-12" />
+              <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted border">
+                <Image src={feature.icon} alt="" width={28} height={28} className="size-7" />
               </div>
-              <h3 className="text-2xl font-medium tracking-tight sm:text-3xl">
+              <h3 className="text-2xl font-semibold tracking-tight sm:text-3xl font-[family-name:var(--font-serif-display)]">
                 {feature.title}
               </h3>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
             </div>
 
             {/* Image */}
-            <div
-              className="flex-1 p-1 rounded-xl border"
-              style={crosshatchStyle}
-            >
-              <div className="overflow-hidden rounded-xl">
-                {/* Light mode image */}
+            <div className="flex-1 rounded-xl border p-1.5">
+              <div className="overflow-hidden rounded-lg border">
                 <Image
                   src={feature.image.light}
                   alt={feature.title}
@@ -100,7 +109,6 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
                   height={600}
                   className="w-full h-auto dark:hidden"
                 />
-                {/* Dark mode image */}
                 <Image
                   src={feature.image.dark}
                   alt={feature.title}
@@ -111,8 +119,8 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </section>
   );
 }
