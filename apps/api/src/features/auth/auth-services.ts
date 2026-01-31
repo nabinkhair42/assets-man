@@ -154,36 +154,20 @@ export async function registerSendOtp(
     throw new Error("MAIL_SEND_FAILED");
   }
 
-  // Poll email status to catch bounces/suppressions early
+  // Single quick check to catch suppressed/bounced emails.
+  // Suppressed emails resolve instantly; first-time bounces take longer
+  // and are caught by the webhook instead.
   if (result.messageId) {
-    const emailId = result.messageId;
-    // All non-deliverable statuses from Resend's Email Events:
-    // bounced, suppressed, failed, complained, canceled
-    // Safe statuses: sent, delivered, opened, clicked, queued, scheduled, delivery_delayed
     const FAILED_STATUSES = new Set(["bounced", "suppressed", "failed", "complained", "canceled"]);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const statusResult = await mail.getEmailStatus(result.messageId);
 
-    // Check twice — suppressed emails resolve almost instantly,
-    // hard bounces may take a couple seconds
-    for (const delay of [1500, 3000]) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      const statusResult = await mail.getEmailStatus(emailId);
-      console.log(`[OTP] Email ${emailId} status after ${delay}ms: ${statusResult.status}`);
-
-      if (statusResult.status && FAILED_STATUSES.has(statusResult.status)) {
-        // Clean up the pending registration since email is undeliverable
-        await db
-          .delete(pendingRegistrations)
-          .where(eq(pendingRegistrations.email, input.email));
-        throw new Error("EMAIL_BOUNCED");
-      }
-
-      // If already delivered/opened, no need to check again
-      if (statusResult.status === "delivered" || statusResult.status === "opened") {
-        break;
-      }
+    if (statusResult.status && FAILED_STATUSES.has(statusResult.status)) {
+      await db
+        .delete(pendingRegistrations)
+        .where(eq(pendingRegistrations.email, input.email));
+      throw new Error("EMAIL_BOUNCED");
     }
-  } else {
-    console.warn("[OTP] No messageId returned from sendOtpEmail — cannot verify delivery status");
   }
 
   // Opportunistic cleanup of expired pending registrations
