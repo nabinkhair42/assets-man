@@ -33,7 +33,7 @@ export function LandingNavbar({ className }: LandingNavbarProps) {
             strokeWidth={1.5}
             stroke="white"
           />
-          <span className="text-lg font-semibold">
+          <span className="text-lg font-semibold hidden md:flex">
             Assets Man
           </span>
         </Link>
